@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixu - Despesas e Compensações</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            /* Sakura Blossom Palette (Exata) */
+            --sakura-blue: #D4E0EE;
+            --sakura-pale: #FFDBDB;
+            --sakura-salmon: #FFA7A6;
+            --sakura-bg-light: #FFF4F3;
+            --sakura-dark: #F25477;
+            --sakura-crimson: #EC275F;
+
+            /* Light Theme Mapping */
+            --bg-app: var(--sakura-bg-light);
+            --bg-surface: #FFFFFF;
+            --bg-surface-elevated: #FFFFFF;
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --border-color: var(--sakura-pale);
+            
+            --primary: var(--sakura-crimson);
+            --primary-hover: var(--sakura-dark);
+            --accent: var(--sakura-salmon);
+            
+            --shadow-soft: 0 8px 24px rgba(236, 39, 95, 0.08);
+            --shadow-nav: 0 -4px 20px rgba(0, 0, 0, 0.04);
+            
+            --nav-icon: #A0AEC0;
+            --nav-icon-active: var(--sakura-crimson);
+        }
+
+        .dark {
+            /* Dark Theme Mapping */
+            --bg-app: #121212;
+            --bg-surface: #1E1A1D; /* Tom escuro levemente quente */
+            --bg-surface-elevated: #2A2429;
+            --text-main: var(--sakura-bg-light);
+            --text-muted: #A0AEC0;
+            --border-color: #33282C;
+            
+            --primary: var(--sakura-dark);
+            --primary-hover: var(--sakura-crimson);
+            --accent: var(--sakura-salmon);
+            
+            --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --shadow-nav: 0 -4px 24px rgba(0, 0, 0, 0.6);
+
+            --nav-icon: #718096;
+            --nav-icon-active: var(--sakura-salmon);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #E2E8F0; /* Fundo externo da tela do PC */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s ease;
+        }
+
+        .dark-mode-body {
+            background-color: #000000;
+        }
+
+        /* Mobile Device Simulator Container */
+        .mobile-container {
+            width: 100%;
+            max-width: 400px;
+            height: 100dvh;
+            max-height: 850px;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 420px) {
+            .mobile-container {
+                height: 90vh;
+                border-radius: 40px;
+                border: 8px solid #2D3748;
+            }
+            .dark .mobile-container {
+                border-color: #1A202C;
+            }
+        }
+
+        .surface {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-soft);
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #FFFFFF;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .btn-primary:active { transform: scale(0.97); }
+
+        .btn-secondary {
+            background-color: var(--sakura-pale);
+            color: var(--sakura-crimson);
+            transition: all 0.2s ease;
+        }
+        .dark .btn-secondary {
+            background-color: var(--bg-surface-elevated);
+            color: var(--sakura-salmon);
+            border: 1px solid var(--sakura-dark);
+        }
+
+        .text-muted { color: var(--text-muted); }
+
+        /* Animations */
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease-out forwards;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 90px; /* Space for bottom nav */
+        }
+        .screen.active { display: block; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background-color: var(--bg-surface);
+            box-shadow: var(--shadow-nav);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 50;
+            border-top: 1px solid var(--border-color);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .nav-item {
+            color: var(--nav-icon);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 500;
+            gap: 4px;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+        .nav-item.active { color: var(--nav-icon-active); }
+        .nav-item i { font-size: 20px; }
+
+        /* Estética Japonesa / Sakura Dots */
+        .sakura-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--sakura-crimson);
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .sakura-gradient-text {
+            background: linear-gradient(135deg, var(--sakura-crimson), var(--sakura-salmon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body id="main-body">
+
+    <div class="mobile-container">
+        
+        <!-- Top Bar -->
+        <header class="px-6 py-5 flex justify-between items-center z-10 surface rounded-b-3xl absolute top-0 w-full" style="border-top: none; border-left: none; border-right: none;">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-fan" style="color: var(--sakura-crimson);"></i>
+                <h1 class="text-xl font-bold tracking-tight">PiXu</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleTheme()" class="text-xl text-muted hover:text-primary transition-colors focus:outline-none">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+                <div class="w-8 h-8 rounded-full bg-cover bg-center border-2 border-primary" style="background-image: url('https://placehold.co/100x100/D4E0EE/EC275F?text=RC');"></div>
+            </div>
+        </header>
+
+        <main id="screen-dashboard" class="screen active pt-24 px-5">
+            <h2 class="text-sm font-medium text-muted mb-1 mt-2">Konnichiwa,</h2>
+            <h3 class="text-2xl font-bold mb-6">Ryan Carvalho</h3>
+
+            <!-- Balances -->
+            <div class="flex gap-4 mb-8">
+                <div class="surface rounded-[24px] p-5 flex-1 relative overflow-hidden group">
+                    <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20" style="background-color: var(--sakura-salmon);"></div>
+                    <p class="text-xs font-semibold text-muted mb-1 uppercase tracking-wider">A Receber</p>
+                    <p class="text-xl font-bold" style="color: var(--primary);">R$ 50,00</p>
+                </div>
+                <div class="surface rounded-[24px] p-5 flex-1 relative overflow-hidden">
+                    <div class="absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20" style="background-color: var(--sakura-blue);"></div>
+                    <p class="text-xs font-semibold text-muted mb-1 uppercase tracking-wider">A Pagar</p>
+                    <p class="text-xl font-bold">R$ 30,00</p>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="flex justify-between items-end mb-4">
+                <h4 class="font-bold text-lg">Atividade Recente</h4>
+                <span class="text-xs font-medium" style="color: var(--sakura-salmon);">Ver tudo</span>
+            </div>
+
+            <div class="space-y-3">
+                <!-- Transaction Item 1 -->
+                <div onclick="navigateTo('screen-detail')" class="surface rounded-[20px] p-4 flex items-center justify-between cursor-pointer active:scale-95 transition-transform">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background-color: var(--sakura-pale); color: var(--sakura-crimson);">
+                            <i class="fa-solid fa-fire-burner text-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold text-sm">Churrasco</h5>
+                            <p class="text-xs text-muted">Ana deve a você</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-sm" style="color: var(--primary);">R$ 50,00</p>
+                        <i class="fa-solid fa-chevron-right text-[10px] text-muted mt-1"></i>
+                    </div>
+                </div>
+
+                <!-- Transaction Item 2 -->
+                <div class="surface rounded-[20px] p-4 flex items-center justify-between opacity-80">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background-color: var(--sakura-blue); color: #4A5568;">
+                            <i class="fa-solid fa-pizza-slice text-lg"></i>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold text-sm">Pizza de Sexta</h5>
+                            <p class="text-xs text-muted">Você deve a Ana</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-sm text-muted">R$ 30,00</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <main id="screen-detail" class="screen pt-24 px-5">
+            <button onclick="navigateTo('screen-dashboard')" class="w-10 h-10 surface rounded-full flex items-center justify-center mb-4 hover:bg-gray-50">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3 shadow-md" style="background-color: var(--sakura-pale); color: var(--sakura-crimson);">
+                    <i class="fa-solid fa-fire-burner text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-1">Churrasco</h2>
+                <p class="text-sm text-muted">Despesa total: R$ 150,00</p>
+            </div>
+
+            <div class="surface rounded-[24px] p-5 mb-6">
+                <h3 class="text-xs font-bold text-muted uppercase tracking-wider mb-4">Status dos Participantes</h3>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-cover bg-center" style="background-image: url('https://placehold.co/100x100/FFDBDB/EC275F?text=A');"></div>
+                        <span class="font-medium text-sm">Ana</span>
+                    </div>
+                    <span class="font-bold text-sm" style="color: var(--primary);">Deve R$ 50,00</span>
+                </div>
+                
+                <div class="flex justify-between items-center opacity-60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-cover bg-center" style="background-image: url('https://placehold.co/100x100/D4E0EE/121212?text=B');"></div>
+                        <span class="font-medium text-sm">Bruno</span>
+                    </div>
+                    <span class="font-bold text-sm">Pago</span>
+                </div>
+            </div>
+
+            <!-- Smart Suggestion Banner -->
+            <div id="smart-banner" class="rounded-[24px] p-5 relative overflow-hidden" style="background-color: var(--sakura-blue); border: 1px solid rgba(0,0,0,0.05);">
+                <!-- Decoration -->
+                <i class="fa-brands fa-supple absolute -right-2 -bottom-4 text-6xl opacity-10" style="color: #000;"></i>
+                
+                <div class="flex items-start gap-3 relative z-10">
+                    <div class="mt-1" style="color: #2D3748;">
+                        <i class="fa-solid fa-lightbulb text-xl"></i>
+                    </div>
+                    <div style="color: #2D3748;">
+                        <h4 class="font-bold text-sm mb-1">Sugestão Inteligente</h4>
+                        <p class="text-xs mb-3 leading-relaxed opacity-90">Você tem uma dívida pendente de <strong>R$ 30,00</strong> com Ana (Pizza de Sexta). Deseja abater este valor da dívida atual?</p>
+                        <button onclick="navigateTo('screen-compensation')" class="w-full bg-[#1A202C] text-white text-xs font-bold py-2.5 rounded-xl active:scale-95 transition-transform">
+                            Ver Simulação
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <main id="screen-compensation" class="screen pt-24 px-5">
+            <button onclick="navigateTo('screen-detail')" class="w-10 h-10 surface rounded-full flex items-center justify-center mb-4 hover:bg-gray-50">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+
+            <h2 class="text-2xl font-bold mb-2">Simulação de<br><span class="sakura-gradient-text">Compensação</span></h2>
+            <p class="text-sm text-muted mb-8">Resolva duas pendências com uma única ação, equilibrando os saldos.</p>
+
+            <div class="surface rounded-[24px] p-6 mb-8 relative">
+                <!-- Math Lines -->
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm font-medium">Ana deve a você:</span>
+                    <span class="text-sm font-bold" style="color: var(--primary);">+ R$ 50,00</span>
+                </div>
+                <div class="flex justify-between items-center mb-4 pb-4 border-b" style="border-color: var(--border-color);">
+                    <span class="text-sm font-medium">Você deve a Ana:</span>
+                    <span class="text-sm font-bold text-muted">- R$ 30,00</span>
+                </div>
+                
+                <!-- Result -->
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-bold">Novo saldo de Ana:</span>
+                    <span class="text-xl font-bold" style="color: var(--primary);">R$ 20,00</span>
+                </div>
+
+                <!-- Central Japanese-style line decoration -->
+                <div class="absolute left-0 top-1/2 w-1 h-8 rounded-r bg-gray-200 dark:bg-gray-700 transform -translate-y-1/2"></div>
+            </div>
+
+            <button onclick="applyCompensation()" class="w-full btn-primary font-bold py-4 rounded-[20px] shadow-lg flex items-center justify-center gap-2 mb-3">
+                <i class="fa-solid fa-check-double"></i>
+                Aplicar Compensação
+            </button>
+            <p class="text-center text-xs text-muted">Aguardando Ana transferir R$ 20,00 restantes.</p>
+        </main>
+
+        <div id="success-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center px-6" style="background-color: rgba(0,0,0,0.4); backdrop-filter: blur(4px);">
+            <div class="surface rounded-[32px] p-8 text-center max-w-sm w-full transform scale-95 transition-transform" style="animation: modalPop 0.3s ease forwards;">
+                <div class="w-20 h-20 rounded-full mx-auto flex items-center justify-center mb-4 bg-green-100 text-green-500">
+                    <i class="fa-solid fa-leaf text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">Saldos Atualizados!</h3>
+                <p class="text-sm text-muted mb-6">A compensação foi aplicada. Ana agora deve R$ 20,00.</p>
+                <button onclick="closeModal()" class="w-full btn-primary font-bold py-3 rounded-xl">Início</button>
+            </div>
+        </div>
+        <style>
+            @keyframes modalPop {
+                to { transform: scale(1); }
+            }
+        </style>
+
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="navTab(this, 'screen-dashboard')">
+                <i class="fa-solid fa-house"></i>
+                <span>Início</span>
+            </div>
+            <div class="nav-item relative group" style="margin-top: -20px;">
+                <!-- Add Button floating -->
+                <div class="w-14 h-14 rounded-full btn-primary flex items-center justify-center text-2xl shadow-lg border-4 border-white dark:border-[#1E1A1D] cursor-pointer">
+                    <i class="fa-solid fa-plus"></i>
+                </div>
+            </div>
+            <div class="nav-item" onclick="navTab(this, 'screen-dashboard')">
+                <i class="fa-regular fa-user"></i>
+                <span>Perfil</span>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        // System variables & State
+        let isDarkMode = false;
+        
+        // Theme Toggle Logic
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            const html = document.documentElement;
+            const body = document.getElementById('main-body');
+            const icon = document.getElementById('theme-icon');
+            
+            if (isDarkMode) {
+                html.classList.add('dark');
+                body.classList.add('dark-mode-body');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                html.classList.remove('dark');
+                body.classList.remove('dark-mode-body');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+
+        // Screen Navigation
+        function navigateTo(targetScreenId) {
+            // Esconder todas as telas
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(s => {
+                s.classList.remove('active');
+            });
+            
+            // Mostrar a tela alvo
+            const targetScreen = document.getElementById(targetScreenId);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+            }
+
+            // Scroll to top
+            targetScreen.scrollTop = 0;
+        }
+
+        // Bottom Nav interaction
+        function navTab(element, screenId) {
+            // Remove active de todos os nav-items (exceto o botão central que não tem classe active normal)
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                if(!nav.classList.contains('group')) {
+                    nav.classList.remove('active');
+                }
+            });
+            element.classList.add('active');
+            navigateTo(screenId);
+        }
+
+        // Apply Compensation Mock Logic
+        function applyCompensation() {
+            const modal = document.getElementById('success-modal');
+            modal.classList.remove('hidden');
+            
+            // Update Dashboard UI values (Mocking state change)
+            setTimeout(() => {
+                // Remove o banner de sugestão
+                const banner = document.getElementById('smart-banner');
+                if (banner) banner.style.display = 'none';
+
+                // Atualiza tela de detalhe
+                const detailStatus = document.querySelector('#screen-detail .surface span.font-bold.text-sm');
+                if (detailStatus) detailStatus.innerHTML = 'Deve R$ 20,00 <span class="text-[10px] font-normal block text-muted">(R$ 30 Compensados)</span>';
+
+                // Atualiza Dashboard
+                const dashReceber = document.querySelector('#screen-dashboard .surface p.text-xl');
+                if (dashReceber) dashReceber.textContent = 'R$ 20,00';
+                
+                const dashPagar = document.querySelectorAll('#screen-dashboard .surface p.text-xl')[1];
+                if (dashPagar) dashPagar.textContent = 'R$ 0,00';
+            }, 300);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('success-modal');
+            modal.classList.add('hidden');
+            
+            // Retorna ao Dashboard garantindo que a Tab correta esteja selecionada
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+            navigateTo('screen-dashboard');
+        }
+
+        // Check system preference on load
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            toggleTheme(); // Starts dark if OS is dark
+        }
+    </script>
+</body>
+</html>

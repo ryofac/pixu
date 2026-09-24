@@ -1,0 +1,6 @@
+# Copy to .envs/.production/.postgres and replace the password before deployment.
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=pixu
+POSTGRES_USER=pixu
+POSTGRES_PASSWORD=REPLACE_WITH_A_LONG_RANDOM_PASSWORD

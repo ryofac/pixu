@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}{% block head_title %}{% endblock head_title %} · Pixu{% endblock title %}
+
+{% block main %}
+  <section class="pt-2">
+    <div class="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+      {% block content %}{% endblock content %}
+    </div>
+  </section>
+{% endblock main %}

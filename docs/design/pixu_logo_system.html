@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PiXu - System Logo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+        :root {
+            --sakura-blue: #D4E0EE;
+            --sakura-pale: #FFDBDB;
+            --sakura-salmon: #FFA7A6;
+            --sakura-bg-light: #FFF4F3;
+            --sakura-dark: #F25477;
+            --sakura-crimson: #EC275F;
+            
+            --bg-color: var(--sakura-bg-light);
+            --text-color: #2D3748;
+            --diamond-color: var(--sakura-blue);
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: var(--sakura-bg-light);
+            --diamond-color: #2A2125; /* Escurecido para harmonia */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+        .diamond-bg {
+            fill: var(--diamond-color);
+            transition: fill 0.4s ease;
+        }
+
+        /* Float animation for the logo */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .logo-container {
+            animation: float 6s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden selection:bg-[#FFA7A6] selection:text-white">
+
+    <!-- Theme Toggle Controls -->
+    <div class="absolute top-8 right-8 z-20">
+        <div class="bg-white/10 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-full p-1 flex items-center shadow-sm">
+            <button onclick="setTheme('light')" id="btn-light" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-[#EC275F] transition-all bg-white shadow-sm">
+                <i class="fa-solid fa-sun text-sm"></i>
+            </button>
+            <button onclick="setTheme('dark')" id="btn-dark" class="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:text-[#EC275F] transition-all">
+                <i class="fa-solid fa-moon text-sm"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Background subtle decorations -->
+    <div class="absolute w-full h-full pointer-events-none overflow-hidden opacity-30 dark:opacity-10 transition-opacity">
+        <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-[#FFA7A6] rounded-full blur-[100px]"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[#D4E0EE] rounded-full blur-[120px]"></div>
+    </div>
+
+    <!-- MAIN LOGO -->
+    <div class="logo-container z-10 p-8">
+        <svg viewBox="0 0 420 160" class="w-full max-w-[420px] h-auto drop-shadow-xl">
+            <defs>
+                <!-- Sakura Gradient: Combines #FFA7A6 to #EC275F -->
+                <linearGradient id="sakuraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#FFA7A6" />
+                    <stop offset="40%" stop-color="#F25477" />
+                    <stop offset="100%" stop-color="#EC275F" />
+                </linearGradient>
+
+                <!-- Core Petal Geometry with Cleft -->
+                <!-- M0,0 -> Control bezier to top left -> Cleft line -> Line -> Control bezier to center -->
+                <path id="petal" d="M 0 0 C -22 -20, -25 -48, -12 -58 L 0 -48 L 12 -58 C 25 -48, 22 -20, 0 0 Z" />
+                
+                <!-- Small ambient petal -->
+                <path id="mini-petal" d="M 0 0 C -10 -10, -12 -24, -6 -29 L 0 -24 L 6 -29 C 12 -24, 10 -10, 0 0 Z" />
+            </defs>
+
+            <!-- ================= LOGO MARK ================= -->
+            <g transform="translate(80, 80)">
+                <!-- Pix Diamond Frame -->
+                <rect x="-48" y="-48" width="96" height="96" rx="22" transform="rotate(45)" class="diamond-bg" />
+                
+                <!-- Inner glow / shadow for the flower -->
+                <circle cx="0" cy="5" r="30" fill="rgba(236, 39, 95, 0.25)" filter="blur(10px)" />
+
+                <!-- Sakura 5-Petal Assembly -->
+                <g transform="scale(0.8)">
+                    <!-- Rotated uniformly 360/5 = 72 degrees -->
+                    <use href="#petal" transform="rotate(0)" fill="url(#sakuraGrad)"/>
+                    <use href="#petal" transform="rotate(72)" fill="url(#sakuraGrad)"/>
+                    <use href="#petal" transform="rotate(144)" fill="url(#sakuraGrad)"/>
+                    <use href="#petal" transform="rotate(216)" fill="url(#sakuraGrad)"/>
+                    <use href="#petal" transform="rotate(288)" fill="url(#sakuraGrad)"/>
+                </g>
+
+                <!-- Pix Core Arrows overlaid inside the Sakura -->
+                <!-- Forms the iconic X meeting at the center -->
+                <g stroke="var(--bg-color)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none" style="transition: stroke 0.4s ease;">
+                    <path d="M -18 -18 L -3 -3 M 18 -18 L 3 -3 M -18 18 L -3 3 M 18 18 L 3 3" />
+                </g>
+                <circle cx="0" cy="0" r="3.5" fill="var(--bg-color)" style="transition: fill 0.4s ease;" />
+                
+                <!-- Ambient floating petals -->
+                <use href="#mini-petal" transform="translate(55, -45) rotate(45) scale(0.6)" fill="#FFA7A6" opacity="0.6"/>
+                <use href="#mini-petal" transform="translate(-60, 30) rotate(-110) scale(0.5)" fill="#F25477" opacity="0.4"/>
+            </g>
+
+            <!-- ================= TYPOGRAPHY ================= -->
+            <g transform="translate(170, 80)">
+                <!-- Font Inter, heavily weighted, slightly tight tracking -->
+                <text x="0" y="4" font-family="'Inter', sans-serif" font-size="86" font-weight="700" letter-spacing="-2.5" dominant-baseline="middle" fill="currentColor">
+                    Pi<tspan fill="#EC275F">X</tspan>u
+                </text>
+            </g>
+        </svg>
+    </div>
+
+    <!-- Label -->
+    <div class="absolute bottom-8 text-sm font-medium opacity-50 tracking-widest uppercase">
+        System Core Logo
+    </div>
+
+    <script>
+        // Toggle Logic
+        function setTheme(theme) {
+            const body = document.body;
+            const btnLight = document.getElementById('btn-light');
+            const btnDark = document.getElementById('btn-dark');
+
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                btnDark.classList.add('bg-[#2A2125]', 'text-[#FFA7A6]', 'shadow-sm');
+                btnDark.classList.remove('text-gray-500');
+                
+                btnLight.classList.remove('bg-white', 'shadow-sm', 'text-gray-800');
+                btnLight.classList.add('text-gray-500');
+            } else {
+                body.classList.remove('dark-mode');
+                btnLight.classList.add('bg-white', 'text-gray-800', 'shadow-sm');
+                btnLight.classList.remove('text-gray-500');
+                
+                btnDark.classList.remove('bg-[#2A2125]', 'shadow-sm', 'text-[#FFA7A6]');
+                btnDark.classList.add('text-gray-500');
+            }
+        }
+
+        // Initialize based on OS preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{% load allauth %}
+
+{% for field in attrs.form %}
+  {% if field.is_hidden %}
+    {{ field }}
+  {% else %}
+    <div class="mb-4 grid gap-2">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<span class="text-xs leading-relaxed text-pixu-muted">{{ field.help_text }}</span>{% endif %}
+      {% for error in field.errors %}<span class="text-sm text-pixu-danger" role="alert">{{ error }}</span>{% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}

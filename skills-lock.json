@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "ai-memory-durable-pages": {
+      "source": "akitaonrails/ai-memory",
+      "sourceType": "github",
+      "skillPath": "crates/ai-memory-core/src/routing_skills/ai-memory-durable-pages/SKILL.md",
+      "computedHash": "c8556f8cd90814b0b368147c47f3be5b297e9d6a0eba85779b4389b4cd8ad835"
+    },
+    "ai-memory-handoff": {
+      "source": "akitaonrails/ai-memory",
+      "sourceType": "github",
+      "skillPath": "crates/ai-memory-core/src/routing_skills/ai-memory-handoff/SKILL.md",
+      "computedHash": "453605e81202dc7832d279135f766d0d6b4fc963a2ee5c858abf39bbb28fbd83"
+    },
+    "ai-memory-learning-maintenance": {
+      "source": "akitaonrails/ai-memory",
+      "sourceType": "github",
+      "skillPath": "crates/ai-memory-core/src/routing_skills/ai-memory-learning-maintenance/SKILL.md",
+      "computedHash": "c6f95c2c3298b6e3f28470b9bff79758e7a71e0c058097af6d79db256ab6ceac"
+    },
+    "ai-memory-retrieval": {
+      "source": "akitaonrails/ai-memory",
+      "sourceType": "github",
+      "skillPath": "crates/ai-memory-core/src/routing_skills/ai-memory-retrieval/SKILL.md",
+      "computedHash": "d4f809f313f1a08d4848853224af1b6653b76323a7329d2c0d3746dceae83359"
+    },
+    "ai-memory-routing-install": {
+      "source": "akitaonrails/ai-memory",
+      "sourceType": "github",
+      "skillPath": "crates/ai-memory-core/src/routing_skills/ai-memory-routing-install/SKILL.md",
+      "computedHash": "059efc33b95ca36f53513f7d868397cf4a993916e02474fcbbbc583d1d8abb41"
+    },
+    "chrome-devtools": {
+      "source": "chromedevtools/chrome-devtools-mcp",
+      "sourceType": "github",
+      "skillPath": "skills/chrome-devtools/SKILL.md",
+      "computedHash": "3dbca8528db5940abc28faaebfd73a0fd08c34a5f3f46ff6b7810ea39b183de5"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "9cdbb4b8f7a3aeaef82e6230c9e823500d4a8a1214c726cf342cf9829d34fc7d"
+    },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grilling/SKILL.md",
+      "computedHash": "4dd886b0196bf43729d954ae326016f2bd9f5f79d892500b407c33a753362f14"
+    }
+  }
+}

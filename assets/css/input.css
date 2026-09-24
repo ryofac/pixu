@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@source "../../pixu/templates";
+
+@theme {
+  --font-app: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  --color-sakura-1: #d4e0ee;
+  --color-sakura-2: #ffdbdb;
+  --color-sakura-3: #ffa7a6;
+  --color-sakura-4: #fff4f3;
+  --color-sakura-5: #f25477;
+  --color-sakura-6: #ec275f;
+  --color-pixu-action: #b91649;
+  --color-pixu-ink: #2d3748;
+  --color-pixu-muted: #718096;
+  --color-pixu-pending: #805400;
+  --color-pixu-success: #276749;
+  --color-pixu-danger: #a12632;
+}
+
+@layer base {
+  html {
+    min-width: 320px;
+    min-height: 100%;
+    background: #090909;
+  }
+
+  body {
+    min-width: 320px;
+    min-height: 100dvh;
+    margin: 0;
+    font-family: var(--font-app);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  select,
+  textarea {
+    @apply min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-pixu-ink;
+  }
+
+  textarea {
+    @apply min-h-24 resize-y;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply size-5 accent-sakura-6;
+  }
+
+  label {
+    @apply text-sm font-bold text-pixu-ink;
+  }
+
+  .form-text,
+  .helptext,
+  .help-text {
+    @apply text-xs leading-relaxed text-pixu-muted;
+  }
+
+  .errorlist {
+    @apply mb-2 mt-1 list-inside list-disc text-sm text-pixu-danger;
+  }
+
+  :focus-visible {
+    outline: 3px solid #1d5ca8;
+    outline-offset: 3px;
+  }
+}

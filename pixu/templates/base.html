@@ -1,0 +1,84 @@
+{% load static i18n %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#fff4f3" />
+    <meta name="description" content="Aplicação para dividir despesas e acompanhar obrigações entre amigos." />
+    <meta name="author" content="Pixu Team" />
+    <title>{% block title %}Pixu{% endblock title %}</title>
+    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
+    <link href="{% static 'css/tailwind.css' %}" rel="stylesheet" />
+    {% block css %}{% endblock css %}
+    <script defer src="{% static 'js/htmx.min.js' %}"></script>
+    <script defer src="{% static 'js/project.js' %}"></script>
+    {% block javascript %}{% endblock javascript %}
+  </head>
+  <body class="min-h-dvh min-w-[320px] bg-[#090909] font-app text-pixu-ink">
+    {% block body %}
+      <a class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-3" href="#main">Pular para o conteúdo</a>
+      <div class="relative mx-auto flex h-dvh min-h-[480px] max-h-[896px] w-full max-w-[414px] flex-col overflow-hidden bg-sakura-4 text-pixu-ink min-[420px]:my-[5dvh] min-[420px]:h-[min(90dvh,896px)] min-[420px]:min-h-[min(560px,90dvh)] min-[420px]:rounded-[2.5rem] min-[420px]:border-8 min-[420px]:border-[#333] min-[420px]:shadow-[0_25px_50px_-12px_rgb(0_0_0_/_50%)]">
+        <header class="z-10 flex min-h-[4.5rem] items-center justify-between gap-4 bg-sakura-4 px-5 pb-3 pt-[max(.9rem,env(safe-area-inset-top))]">
+          <a class="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-sakura-6 no-underline" href="{% url 'home' %}" aria-label="Pixu, início">
+            <span class="grid size-8 place-items-center rounded-xl bg-sakura-6 text-white" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path d="M12 5.2c1.8-2.7 5.1-.7 3.6 2.2 2.9-1.5 4.9 1.8 2.2 3.6 2.7 1.8.7 5.1-2.2 3.6 1.5 2.9-1.8 4.9-3.6 2.2-1.8 2.7-5.1.7-3.6-2.2-2.9 1.5-4.9-1.8-2.2-3.6-2.7-1.8-.7-5.1 2.2-3.6C6.9 4.5 10.2 2.5 12 5.2Z" fill="currentColor" />
+                <circle cx="12" cy="12" r="1.5" fill="#fff4f3" />
+              </svg>
+            </span>
+            PiXu
+          </a>
+          {% if request.user.is_authenticated %}
+            <a class="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-pixu-ink no-underline" href="{% url 'accounts:detail' request.user.username %}" aria-label="Abrir perfil de {{ request.user.name|default:request.user.username }}">
+              <span class="grid size-7 place-items-center rounded-full bg-sakura-2 font-extrabold text-pixu-action" aria-hidden="true">{{ request.user.name|default:request.user.username|slice:":1"|upper }}</span>
+              <span>{{ request.user.name|default:request.user.username }}</span>
+            </a>
+          {% else %}
+            <a class="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-pixu-ink no-underline" id="log-in-link" href="{% url 'account_login' %}">Entrar</a>
+          {% endif %}
+        </header>
+
+        {% if messages %}
+          <div class="px-5" aria-live="polite">
+            {% for message in messages %}
+              <p class="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed{% if 'success' in message.tags %} border-green-200 bg-green-50 text-pixu-success{% elif 'error' in message.tags %} border-red-200 bg-red-50 text-pixu-danger{% elif 'warning' in message.tags %} border-amber-200 bg-amber-50 text-pixu-pending{% else %} border-sakura-1 bg-blue-50 text-pixu-ink{% endif %}" role="status">{{ message }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <main class="min-h-0 flex-1 overflow-auto overscroll-contain scroll-smooth px-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))]" id="main">
+          {% block main %}
+            {% block content %}{% endblock content %}
+          {% endblock main %}
+        </main>
+
+        {% if request.user.is_authenticated %}
+          <nav class="absolute inset-x-0 bottom-0 z-20 grid min-h-20 grid-cols-3 items-center border-t border-slate-200 bg-white/95 px-2 pb-[max(.55rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-md" aria-label="Navegação principal">
+            <a class="relative flex min-h-[3.4rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-bold no-underline{% if request.resolver_match.url_name == 'home' or request.resolver_match.namespace == 'charges' and request.resolver_match.url_name != 'invites' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted{% endif %}"
+               href="{% url 'home' %}"
+               {% if request.resolver_match.url_name == 'home' or request.resolver_match.namespace == 'charges' and request.resolver_match.url_name != 'invites' %}aria-current="page"{% endif %}>
+              <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 4.75h14a1.25 1.25 0 0 1 1.25 1.25v12A1.25 1.25 0 0 1 19 19.25H5A1.25 1.25 0 0 1 3.75 18V6A1.25 1.25 0 0 1 5 4.75Z" /><path d="M7.5 8h9M7.5 12h9M7.5 16h5" /></svg>
+              <span>Cobranças</span>
+            </a>
+            <a class="relative flex min-h-[3.4rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-bold no-underline{% if request.resolver_match.namespace == 'charges' and request.resolver_match.url_name == 'invites' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted{% endif %}"
+               href="{% url 'charges:invites' %}"
+               {% if request.resolver_match.namespace == 'charges' and request.resolver_match.url_name == 'invites' %}aria-current="page"{% endif %}>
+              <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 5.5L19.5 7" /></svg>
+              {% if pending_charge_invites_count %}<span class="absolute left-[calc(50%+0.2rem)] top-0 grid h-4 min-w-4 place-items-center rounded-full border-2 border-white bg-sakura-6 px-0.5 text-[10px] font-extrabold text-white" aria-label="{{ pending_charge_invites_count }} convites pendentes">{{ pending_charge_invites_count }}</span>{% endif %}
+              <span>Convites</span>
+            </a>
+            <a class="relative flex min-h-[3.4rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-bold no-underline{% if request.resolver_match.namespace == 'accounts' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted{% endif %}"
+               href="{% url 'accounts:detail' request.user.username %}"
+               {% if request.resolver_match.namespace == 'accounts' %}aria-current="page"{% endif %}>
+              <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.25" /><path d="M5.5 19a6.5 6.5 0 0 1 13 0" /></svg>
+              <span>Perfil</span>
+            </a>
+          </nav>
+        {% endif %}
+      </div>
+      {% block modal %}{% endblock modal %}
+      {% block inline_javascript %}{% endblock inline_javascript %}
+    {% endblock body %}
+  </body>
+</html>

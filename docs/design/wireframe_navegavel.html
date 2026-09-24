@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PiXu - Divida despesas com inteligência</title>
+  
+  <!-- Fontes e Ícones -->
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    :root {
+      /* Sakura Blossom Palette */
+      --sakura-1: #D4E0EE; /* Light Blue */
+      --sakura-2: #FFDBDB; /* Light Pink */
+      --sakura-3: #FFA7A6; /* Salmon */
+      --sakura-4: #FFF4F3; /* Off-white Pink (Bg) */
+      --sakura-5: #F25477; /* Deep Pink */
+      --sakura-6: #EC275F; /* Crimson */
+
+      /* Light Theme Variables */
+      --bg-app: var(--sakura-4);
+      --bg-card: #FFFFFF;
+      --text-main: #2D3748;
+      --text-muted: #718096;
+      --border-color: #E2E8F0;
+      --nav-bg: rgba(255, 255, 255, 0.95);
+      --input-bg: #FFFFFF;
+    }
+
+    [data-theme="dark"] {
+      /* Dark Theme Variables */
+      --bg-app: #1A202C;
+      --bg-card: #2D3748;
+      --text-main: #F7FAFC;
+      --text-muted: #A0AEC0;
+      --border-color: #4A5568;
+      --nav-bg: rgba(45, 55, 72, 0.95);
+      --input-bg: #1A202C;
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background-color: #000; /* Fundo escuro externo para desktop */
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--text-main);
+      transition: background-color 0.3s ease;
+    }
+
+    /* Container Mobile-First */
+    .app-container {
+      width: 100%;
+      max-width: 414px; /* Largura máxima (padrão iPhone Max) */
+      height: 100vh;
+      max-height: 896px;
+      background-color: var(--bg-app);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s ease;
+    }
+
+    @media (min-width: 420px) {
+      .app-container {
+        height: 90vh;
+        border-radius: 40px;
+        border: 8px solid #333;
+      }
+    }
+
+    /* Header e Logo */
+    .app-header {
+      padding: 1.5rem 1.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-app);
+      z-index: 10;
+      transition: background-color 0.3s ease;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 800;
+      font-size: 1.25rem;
+      color: var(--sakura-6);
+      letter-spacing: -0.02em;
+    }
+
+    /* Área de Conteúdo Scrollável */
+    .app-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 1.5rem 6rem; /* Espaçamento inferior para a nav bar */
+      scroll-behavior: smooth;
+    }
+    .app-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Gestão de Telas */
+    .screen {
+      display: none;
+      animation: fadeIn 0.3s ease forwards;
+    }
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Componentes de UI */
+    .card {
+      background-color: var(--bg-card);
+      border-radius: 1.25rem;
+      padding: 1.25rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1rem;
+      border: 1px solid var(--border-color);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    .input-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+    .input-field {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      border: 2px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, background-color 0.3s;
+      box-sizing: border-box;
+    }
+    .input-field:focus {
+      border-color: var(--sakura-5);
+    }
+
+    /* Botões */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.875rem;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--sakura-5), var(--sakura-6));
+      color: white;
+      box-shadow: 0 4px 14px rgba(236, 39, 95, 0.3);
+    }
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    .btn-secondary {
+      background-color: transparent;
+      color: var(--sakura-6);
+      border: 2px solid var(--sakura-6);
+    }
+    .btn-outline {
+      background-color: transparent;
+      color: var(--text-muted);
+      border: 2px solid var(--border-color);
+    }
+    .btn-outline:hover {
+      background-color: var(--border-color);
+      color: var(--text-main);
+    }
+
+    /* Badges */
+    .badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-pending {
+      background-color: var(--sakura-2);
+      color: var(--sakura-6);
+    }
+    .badge-creator {
+      background-color: var(--sakura-1);
+      color: #2B6CB0;
+    }
+
+    /* Checkboxes customizados (Nova Cobrança) */
+    .user-select-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .user-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      border: 2px solid var(--border-color);
+      border-radius: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .user-checkbox-label:has(input:checked) {
+      border-color: var(--sakura-5);
+      background-color: rgba(242, 84, 119, 0.05);
+    }
+    .user-checkbox-label input {
+      accent-color: var(--sakura-6);
+      width: 1.25rem;
+      height: 1.25rem;
+    }
+
+    /* Navegação Inferior (Mobile Bottom Nav) */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 5rem;
+      background-color: var(--nav-bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding-bottom: 1rem; /* Safe area notch */
+      z-index: 20;
+      transition: background-color 0.3s ease;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      gap: 0.25rem;
+      position: relative;
+      width: 33%;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+    .nav-item.active {
+      color: var(--sakura-6);
+    }
+    .nav-item i {
+      font-size: 1.5rem;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: -2px;
+      right: 25px;
+      background-color: var(--sakura-6);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: bold;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: 2px solid var(--bg-card);
+    }
+
+    /* Helpers Typography/Layout */
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .text-h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 1rem; color: var(--text-main); }
+    .text-h2 { font-size: 1.25rem; font-weight: 800; margin-bottom: 0.75rem; color: var(--text-main); }
+    .text-muted { color: var(--text-muted); font-size: 0.875rem; }
+    .text-danger { color: var(--sakura-6); }
+    .text-bold { font-weight: 700; }
+    .mt-4 { margin-top: 1rem; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .mb-4 { margin-bottom: 1rem; }
+
+    /* Botão de Tema */
+    .theme-toggle {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+  
+  <!-- Cabecalho e Logo -->
+  <header class="app-header">
+    <div class="logo-container">
+      <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="50" y="4" width="65" height="65" rx="16" transform="rotate(45 50 4)" fill="#EC275F"/>
+        <path d="M50 35C58 20 75 35 65 50C75 65 58 80 50 65C42 80 25 65 35 50C25 35 42 20 50 35Z" fill="#FFF4F3"/>
+        <circle cx="50" cy="50" r="5" fill="#EC275F"/>
+      </svg>
+      PiXu
+    </div>
+    <button class="theme-toggle" id="btnThemeToggle" aria-label="Alternar Tema">
+      <i class="ph ph-moon"></i>
+    </button>
+  </header>
+
+  <!-- Área de Conteúdo Principal -->
+  <main class="app-content">
+
+    <!-- ==========================================
+         TELA 1: COBRANÇAS (Dashboard/Lista)
+         ========================================== -->
+    <div id="screen-cobrancas" class="screen active">
+      <h1 class="text-h1">Cobranças</h1>
+      
+      <button class="btn btn-primary mb-4" onclick="navigateTo('screen-nova-cobranca')">
+        <i class="ph ph-plus-circle" style="margin-right: 8px; font-size: 1.25rem;"></i> Nova cobrança
+      </button>
+
+      <div class="card">
+        <div class="flex-between mb-2">
+          <span class="text-bold">Pizza de sexta</span>
+          <span class="badge" style="background: var(--border-color); color: var(--text-main)">Ativa</span>
+        </div>
+        <div class="text-muted mb-2">Criada por você</div>
+        <div class="flex-between">
+          <span class="text-muted">Total: R$ 80,00</span>
+          <span class="text-bold text-danger">A receber: R$ 40,00</span>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 2rem; color: var(--text-muted);">
+        <i class="ph ph-receipt" style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem; display: block;"></i>
+        <p>Você não tem outras cobranças ativas.</p>
+      </div>
+    </div>
+
+
+    <!-- ==========================================
+         TELA 2: NOVA COBRANÇA (Wireframe 3.1)
+         ========================================== -->
+    <div id="screen-nova-cobranca" class="screen">
+      <h1 class="text-h1">Nova cobrança</h1>
+      
+      <div class="input-group">
+        <label class="input-label">Título</label>
+        <input type="text" class="input-field" value="Churrasco de sábado" placeholder="Ex: Pizza de sexta">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Descrição (opcional)</label>
+        <input type="text" class="input-field" value="Encontro na casa da Ana" placeholder="Detalhes da cobrança">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Valor total</label>
+        <input type="text" class="input-field text-bold" value="R$ 150,00" style="font-size: 1.25rem; color: var(--sakura-6);">
+      </div>
+
+      <div class="input-group mt-4">
+        <label class="input-label">Convidar pessoas já cadastradas</label>
+        <div class="input-field mb-2" style="display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+          <i class="ph ph-magnifying-glass"></i>
+          <span style="opacity: 0.7;">buscar por usuário ou e-mail</span>
+        </div>
+        
+        <div class="user-select-grid">
+          <label class="user-checkbox-label">
+            <input type="checkbox" checked>
+            <span class="text-bold">Ana</span>
+          </label>
+          <label class="user-checkbox-label">
+            <input type="checkbox" checked>
+            <span class="text-bold">Bruno</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Prévia do rateio -->
+      <div class="card mt-4" style="background-color: var(--bg-app); border: none; padding: 0;">
+        <h2 class="text-h2" style="font-size: 1rem; margin-top: 1rem;">Prévia do rateio</h2>
+        
+        <div class="flex-between mb-2">
+          <span>Ryan <span class="text-muted">(criador)</span></span>
+          <span class="text-bold">R$ 50,00</span>
+        </div>
+        <div class="flex-between mb-2">
+          <span>Ana <span class="text-muted">(convite pendente)</span></span>
+          <span class="text-bold">R$ 50,00</span>
+        </div>
+        <div class="flex-between mb-2 pb-2" style="border-bottom: 1px dashed var(--border-color);">
+          <span>Bruno <span class="text-muted">(convite pendente)</span></span>
+          <span class="text-bold">R$ 50,00</span>
+        </div>
+        <div class="flex-between mt-2">
+          <span class="text-bold">Total</span>
+          <span class="text-bold text-danger">R$ 150,00</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <button class="btn btn-outline" style="flex: 1;" onclick="navigateNav('screen-cobrancas', document.getElementById('nav-cobrancas'))">Voltar</button>
+        <button class="btn btn-primary" style="flex: 2;" onclick="alert('Cobrança criada com sucesso!'); navigateNav('screen-cobrancas', document.getElementById('nav-cobrancas'))">Criar cobrança</button>
+      </div>
+    </div>
+
+
+    <!-- ==========================================
+         TELA 3: CONVITE RECEBIDO (Wireframe 3.2)
+         ========================================== -->
+    <div id="screen-convites" class="screen">
+      <h1 class="text-h1">Convites</h1>
+      
+      <div class="card" id="invite-card">
+        <h2 class="text-h2 mb-2">Churrasco de sábado</h2>
+        <p class="text-muted mb-4">Criada por Ryan</p>
+        
+        <div class="flex-between mb-2">
+          <span class="text-muted">Total da cobrança</span>
+          <span class="text-bold">R$ 150,00</span>
+        </div>
+        <div class="flex-between mb-4 pb-4" style="border-bottom: 1px solid var(--border-color);">
+          <span class="text-bold text-danger">Sua cota</span>
+          <span class="text-bold text-danger" style="font-size: 1.25rem;">R$ 50,00</span>
+        </div>
+
+        <h3 class="input-label" style="font-size: 1rem;">Participantes</h3>
+        <div class="flex-between mb-2">
+          <span>Ryan</span>
+          <span class="badge badge-creator">Criador</span>
+        </div>
+        <div class="flex-between mb-2">
+          <span class="text-bold">Você (Ana)</span>
+          <span class="badge badge-pending" id="badge-ana">Pendente</span>
+        </div>
+        <div class="flex-between mb-4">
+          <span>Bruno</span>
+          <span class="badge badge-pending">Pendente</span>
+        </div>
+
+        <div class="card mb-4" style="background-color: var(--sakura-4); border: 1px solid var(--sakura-2); padding: 0.75rem;">
+          <p class="text-muted" style="font-size: 0.75rem; text-align: center; color: var(--sakura-6); margin: 0;">
+            <i class="ph ph-info" style="vertical-align: middle;"></i> 
+            A cobrança só fica ativa quando todos aceitarem.
+          </p>
+        </div>
+
+        <!-- Botões de Ação do Convite -->
+        <div id="invite-actions" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button class="btn btn-primary" onclick="acceptInvite()">Aceitar participação</button>
+          <button class="btn btn-outline" onclick="rejectInvite()">Recusar convite</button>
+        </div>
+        
+        <!-- Estado Pós-Aceite (Oculto Inicialmente) -->
+        <div id="invite-feedback" style="display: none; text-align: center; padding: 1rem 0;">
+          <i class="ph ph-check-circle" style="font-size: 3rem; color: #48BB78; margin-bottom: 0.5rem;"></i>
+          <p class="text-bold" style="margin: 0 0 0.5rem 0;">Participação aceita!</p>
+          <p class="text-muted" style="font-size: 0.875rem; margin: 0;">Dívida registrada, aguardando os demais participantes.</p>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==========================================
+         TELA 4: PERFIL (Wireframe 3.3)
+         ========================================== -->
+    <div id="screen-perfil" class="screen">
+      <h1 class="text-h1">Meu Perfil</h1>
+      
+      <div class="card" style="text-align: center; padding: 2rem 1rem;">
+         <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--sakura-2); color: var(--sakura-6); display: inline-flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; margin-bottom: 1rem;">
+           A
+         </div>
+         <div class="input-group" style="text-align: left;">
+          <label class="input-label">Nome de exibição</label>
+          <input type="text" class="input-field" value="Ana">
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="input-group">
+          <label class="input-label">Chave Pix (Recebimentos)</label>
+          <input type="text" class="input-field" value="ana@email.com" placeholder="telefone, e-mail, CPF/CNPJ">
+        </div>
+        <p class="text-muted mb-4" style="font-size: 0.75rem; line-height: 1.4; color: var(--text-muted);">
+          <i class="ph ph-warning-circle" style="vertical-align: middle; color: var(--sakura-5);"></i>
+          A chave é informada por você. O Pixu não verifica a chave junto ao banco.
+        </p>
+        <button class="btn btn-secondary" onclick="alert('Perfil atualizado com sucesso!')">Salvar alterações</button>
+      </div>
+      
+      <div style="text-align: center; margin-top: 2rem;">
+        <button class="btn btn-outline" style="border: none; color: var(--sakura-6);">Sair da conta</button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==========================================
+       BOTTOM NAVIGATION (Navegação Principal)
+       ========================================== -->
+  <nav class="bottom-nav">
+    <a href="#" class="nav-item active" id="nav-cobrancas" onclick="navigateNav('screen-cobrancas', this)">
+      <i class="ph-fill ph-receipt"></i>
+      <span>Cobranças</span>
+    </a>
+    <a href="#" class="nav-item" onclick="navigateNav('screen-convites', this)">
+      <div style="position: relative;">
+        <i class="ph ph-envelope-open"></i>
+        <span class="nav-badge" id="nav-badge-count">1</span>
+      </div>
+      <span>Convites</span>
+    </a>
+    <a href="#" class="nav-item" onclick="navigateNav('screen-perfil', this)">
+      <i class="ph ph-user"></i>
+      <span>Perfil</span>
+    </a>
+  </nav>
+
+</div>
+
+<!-- Funcionalidades em JavaScript -->
+<script>
+  // Transição de Telas
+  function navigateTo(screenId) {
+    document.querySelectorAll('.screen').forEach(screen => {
+      screen.classList.remove('active');
+    });
+    document.getElementById(screenId).classList.add('active');
+  }
+
+  // Controle da Bottom Nav
+  function navigateNav(screenId, element) {
+    navigateTo(screenId);
+    
+    // Reseta estado de todos os botões de navegação
+    document.querySelectorAll('.nav-item').forEach(nav => {
+      nav.classList.remove('active');
+      const icon = nav.querySelector('i');
+      if(icon) icon.className = icon.className.replace('ph-fill', 'ph');
+    });
+    
+    // Ativa botão clicado
+    element.classList.add('active');
+    const activeIcon = element.querySelector('i');
+    if(activeIcon) activeIcon.className = activeIcon.className.replace('ph ', 'ph-fill ');
+  }
+
+  // Ações da Tela de Convite (Aceite / Recusa)
+  function acceptInvite() {
+    document.getElementById('invite-actions').style.display = 'none';
+    document.getElementById('invite-feedback').style.display = 'block';
+    
+    // Atualiza status do badge da Ana
+    const badgeAna = document.getElementById('badge-ana');
+    if(badgeAna) {
+      badgeAna.className = 'badge badge-creator'; 
+      badgeAna.textContent = 'Aceito';
+      badgeAna.style.backgroundColor = '#C6F6D5'; // Verde suave
+      badgeAna.style.color = '#276749';
+    }
+    
+    // Remove o indicador numérico vermelho da Navigation Bar
+    document.getElementById('nav-badge-count').style.display = 'none';
+  }
+
+  function rejectInvite() {
+    const card = document.getElementById('invite-card');
+    card.innerHTML = `
+      <div style="text-align: center; padding: 2rem 0;">
+        <i class="ph ph-x-circle" style="font-size: 3rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+        <h2 class="text-h2">Convite Recusado</h2>
+        <p class="text-muted" style="margin-bottom:0;">Você não faz mais parte desta cobrança.</p>
+      </div>
+    `;
+    document.getElementById('nav-badge-count').style.display = 'none';
+  }
+
+  // Controle de Light/Dark Mode (Tema Sakura)
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const htmlElement = document.documentElement;
+  let isDark = false;
+
+  btnThemeToggle.addEventListener('click', () => {
+    isDark = !isDark;
+    if (isDark) {
+      htmlElement.setAttribute('data-theme', 'dark');
+      btnThemeToggle.innerHTML = '<i class="ph ph-sun"></i>';
+    } else {
+      htmlElement.removeAttribute('data-theme');
+      btnThemeToggle.innerHTML = '<i class="ph ph-moon"></i>';
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Protótipo local dos fluxos iniciais do Pixu.">
+    <title>Pixu — protótipo da primeira visão</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --brand: #ec275f;
+        --action: #b91649;
+        --action-hover: #97133d;
+        --canvas: #fff4f3;
+        --surface: #fff;
+        --text: #2d3748;
+        --muted: #5b6573;
+        --border: #e8d5d8;
+        --soft-blue: #d4e0ee;
+        --success: #176b45;
+        --warning: #805400;
+        --danger: #a12632;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--canvas); color: var(--text); }
+      button, input, textarea { font: inherit; }
+      a { color: var(--action); }
+      :focus-visible { outline: 3px solid #1d5ca8; outline-offset: 3px; }
+      .skip-link { position: absolute; left: -9999px; top: 0; background: white; padding: .75rem; z-index: 5; }
+      .skip-link:focus { left: .75rem; top: .75rem; }
+      .topbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: max(.8rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) .8rem max(1rem, env(safe-area-inset-left)); background: var(--surface); border-bottom: 1px solid var(--border); }
+      .brand { color: var(--action); font-size: 1.35rem; font-weight: 800; letter-spacing: -.04em; text-decoration: none; }
+      .user-pill { border: 1px solid var(--border); border-radius: 999px; padding: .5rem .8rem; background: var(--canvas); }
+      .layout { width: min(42rem, 100%); margin: 1rem auto; padding: 0 1rem calc(6rem + env(safe-area-inset-bottom)); }
+      .nav { position: fixed; z-index: 3; left: 50%; bottom: 0; transform: translateX(-50%); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .25rem; width: min(42rem, 100%); padding: .5rem max(.5rem, env(safe-area-inset-right)) max(.5rem, env(safe-area-inset-bottom)) max(.5rem, env(safe-area-inset-left)); background: var(--surface); border-top: 1px solid var(--border); }
+      .nav button { min-height: 3rem; text-align: center; background: transparent; color: var(--text); border: 0; border-radius: .75rem; padding: .5rem .3rem; cursor: pointer; }
+      .nav button[aria-current="page"] { background: #ffdbdb; color: #791637; font-weight: 700; }
+      main { min-width: 0; }
+      .notice { padding: .85rem 1rem; margin-bottom: 1rem; border-radius: .75rem; background: var(--soft-blue); color: var(--text); }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; padding: clamp(1rem, 3vw, 1.5rem); box-shadow: 0 8px 24px rgb(81 28 45 / 6%); }
+      .screen { display: none; }
+      .screen.active { display: block; }
+      h1 { margin: 0 0 .5rem; font-size: clamp(1.55rem, 4vw, 2rem); }
+      h2 { margin: 1.5rem 0 .75rem; font-size: 1.2rem; }
+      p { line-height: 1.55; }
+      .muted { color: var(--muted); }
+      .field { display: grid; gap: .4rem; margin: 1rem 0; }
+      .field input, .field textarea { width: 100%; min-height: 2.8rem; padding: .7rem .8rem; color: var(--text); background: white; border: 1px solid #9b8990; border-radius: .55rem; }
+      .field textarea { min-height: 5rem; resize: vertical; }
+      .check-row { display: flex; flex-wrap: wrap; gap: .65rem; }
+      .check-pill { display: flex; align-items: center; gap: .5rem; padding: .6rem .8rem; border: 1px solid var(--border); border-radius: .7rem; }
+      .check-pill input { width: 1.15rem; height: 1.15rem; }
+      .actions { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1rem; }
+      .button { min-height: 2.75rem; padding: .65rem 1rem; border: 1px solid transparent; border-radius: .65rem; cursor: pointer; font-weight: 700; }
+      .button.primary { background: var(--action); color: white; }
+      .button.primary:hover { background: var(--action-hover); }
+      .button.secondary { border-color: var(--border); background: white; color: var(--text); }
+      .button.danger { color: var(--danger); border-color: #e7bfc4; background: white; }
+      .summary { width: 100%; border-collapse: collapse; margin: .5rem 0; }
+      .summary th, .summary td { padding: .7rem .25rem; border-bottom: 1px solid var(--border); text-align: left; }
+      .summary td:last-child, .summary th:last-child { text-align: right; }
+      .summary tfoot { font-weight: 800; }
+      .status { display: inline-block; padding: .25rem .6rem; border-radius: 999px; background: #fff0cf; color: var(--warning); font-size: .85rem; font-weight: 700; }
+      .status.accepted { background: #d9f1e3; color: var(--success); }
+      .status.declined { background: #fbe3e4; color: var(--danger); }
+      .invite { display: grid; grid-template-columns: 1fr auto; gap: .5rem 1rem; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border); }
+      .invite:last-child { border-bottom: 0; }
+      .invite h2 { margin: 0 0 .25rem; }
+      .toast { display: none; position: fixed; z-index: 4; left: 50%; bottom: calc(5rem + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(25rem, calc(100% - 2rem)); padding: 1rem; color: white; background: #243142; border-radius: .75rem; box-shadow: 0 8px 24px #0003; }
+      .toast.visible { display: block; }
+      .split { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+      @media (max-width: 380px) {
+        .nav { gap: 0; }
+        .nav button { font-size: .86rem; }
+        .user-pill { font-size: .9rem; }
+        .invite { grid-template-columns: 1fr; }
+        .invite .actions { margin-top: 0; }
+        .split { grid-template-columns: 1fr; }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .card { animation: enter .18s ease-out; }
+        @keyframes enter { from { opacity: .7; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Pular para o conteúdo</a>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Pixu, início">PiXu</a>
+      <span class="user-pill">Demonstração · Ryan</span>
+    </header>
+    <div class="layout">
+      <nav class="nav" aria-label="Navegação principal">
+        <button type="button" data-go="charges" aria-current="page">Nova cobrança</button>
+        <button type="button" data-go="invites">Convites</button>
+        <button type="button" data-go="profile">Perfil</button>
+        <button type="button" data-go="account">Conta</button>
+      </nav>
+      <main id="main" tabindex="-1">
+        <section class="screen active" id="screen-charges" aria-labelledby="title-charges">
+      <div class="notice">Demonstração com dados fictícios. Não cria contas, salva cobranças nem oferece cache ou ações offline.</div>
+          <div class="card">
+            <h1 id="title-charges">Nova cobrança</h1>
+            <p class="muted">Convide pessoas cadastradas e confira o rateio antes de criar.</p>
+            <form id="charge-form">
+              <label class="field">Título
+                <input id="charge-title" name="title" maxlength="120" value="Churrasco de sábado" required>
+              </label>
+              <label class="field">Descrição <span class="muted">(opcional)</span>
+                <textarea id="charge-description" name="description" maxlength="1000">Encontro na casa da Ana</textarea>
+              </label>
+              <label class="field">Valor total em reais
+                <input id="charge-amount" name="amount" inputmode="decimal" value="150,00" aria-describedby="amount-help" required>
+                <span class="muted" id="amount-help">Exemplo: 150,00</span>
+              </label>
+              <fieldset class="field" style="border:0;padding:0">
+                <legend>Convidar pessoas já cadastradas</legend>
+                <div class="check-row">
+                  <label class="check-pill"><input type="checkbox" name="invite" value="2" checked> Ana</label>
+                  <label class="check-pill"><input type="checkbox" name="invite" value="3" checked> Bruno</label>
+                </div>
+              </fieldset>
+              <div id="share-preview" aria-live="polite"></div>
+              <div class="actions">
+                <button class="button secondary" type="button" data-go="invites">Ver convites</button>
+                <button class="button primary" type="submit">Criar cobrança</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-invites" aria-labelledby="title-invites">
+          <div class="card">
+            <h1 id="title-invites">Convites</h1>
+            <p class="muted">Uma dívida só é criada quando você aceita. A cobrança ativa depois que todos os convites atuais forem aceitos.</p>
+            <article class="invite" id="invite-demo">
+              <div>
+                <h2>Viagem de domingo</h2>
+                <div class="muted">Criada por Ana · Total R$ 90,00 · Sua cota R$ 30,00</div>
+                <p>Participantes: Ana, você e Bruno</p>
+                <span class="status" id="invite-status">Pendente</span>
+              </div>
+              <div class="actions" id="invite-actions">
+                <button class="button primary" type="button" data-invite="accepted">Aceitar participação</button>
+                <button class="button danger" type="button" data-invite="declined">Recusar convite</button>
+              </div>
+            </article>
+            <p id="invite-result" class="muted" aria-live="polite"></p>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-profile" aria-labelledby="title-profile">
+          <div class="card">
+            <h1 id="title-profile">Meu perfil</h1>
+            <form id="profile-form">
+              <label class="field">Nome de exibição
+                <input name="display_name" maxlength="255" value="Ryan">
+              </label>
+              <label class="field">Chave Pix principal
+                <input name="pix_key" maxlength="255" placeholder="Telefone, e-mail, CPF/CNPJ ou chave aleatória">
+              </label>
+              <p class="notice">A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.</p>
+              <button class="button primary" type="submit">Salvar alterações</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="screen" id="screen-account" aria-labelledby="title-account">
+          <div class="card">
+            <h1 id="title-account">Sua conta Pixu</h1>
+            <p class="muted">Cadastro, confirmação de e-mail, login e recuperação de senha fazem parte do fluxo da aplicação.</p>
+            <div class="split">
+              <form class="demo-form">
+                <h2>Criar conta</h2>
+                <label class="field">E-mail<input type="email" autocomplete="email" placeholder="voce@exemplo.com" required></label>
+                <label class="field">Nome de usuário<input autocomplete="username" placeholder="seu-usuario" required></label>
+                <label class="field">Senha<input type="password" autocomplete="new-password" required></label>
+                <button class="button primary" type="submit">Enviar cadastro</button>
+              </form>
+              <form class="demo-form">
+                <h2>Entrar ou recuperar</h2>
+                <label class="field">Nome de usuário<input autocomplete="username" placeholder="seu-usuario"></label>
+                <label class="field">Senha<input type="password" autocomplete="current-password"></label>
+                <button class="button secondary" type="submit">Entrar</button>
+                <p><a href="#recovery" id="recovery-link">Esqueci minha senha</a></p>
+              </form>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const participants = [
+        { id: 1, name: "Ryan (criador)" },
+        { id: 2, name: "Ana (convite pendente)" },
+        { id: 3, name: "Bruno (convite pendente)" },
+      ];
+      const formatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+      const screenButtons = document.querySelectorAll("[data-go]");
+      const toast = document.getElementById("toast");
+      let toastTimer;
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("visible");
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => toast.classList.remove("visible"), 3200);
+      }
+
+      function goTo(name) {
+        document.querySelectorAll(".screen").forEach((screen) => screen.classList.toggle("active", screen.id === "screen-" + name));
+        screenButtons.forEach((button) => {
+          if (button.dataset.go === name) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        document.querySelector("#screen-" + name + " h1").focus({ preventScroll: true });
+      }
+      screenButtons.forEach((button) => button.addEventListener("click", () => goTo(button.dataset.go)));
+
+      function parseCents(value) {
+        const normalized = value.trim().replace(/\./g, "").replace(",", ".");
+        const amount = Number(normalized);
+        if (!Number.isFinite(amount) || amount <= 0) return null;
+        return Math.round(amount * 100);
+      }
+
+      function renderSharePreview() {
+        const cents = parseCents(document.getElementById("charge-amount").value);
+        const selectedIds = Array.from(document.querySelectorAll('input[name="invite"]:checked')).map((input) => Number(input.value));
+        const group = participants.filter((person) => person.id === 1 || selectedIds.includes(person.id)).sort((a, b) => a.id - b.id);
+        const preview = document.getElementById("share-preview");
+        if (cents === null) {
+          preview.innerHTML = '<p class="muted">Informe um valor positivo para ver a prévia.</p>';
+          return;
+        }
+        const base = Math.floor(cents / group.length);
+        const remainder = cents % group.length;
+        const rows = group.map((person, index) => {
+          const share = base + (index < remainder ? 1 : 0);
+          return "<tr><th scope=\"row\">" + person.name + "</th><td>" + formatter.format(share / 100) + "</td></tr>";
+        }).join("");
+        preview.innerHTML = "<h2>Prévia do rateio</h2><table class=\"summary\"><tbody>" + rows + "</tbody><tfoot><tr><th scope=\"row\">Total</th><td>" + formatter.format(cents / 100) + "</td></tr></tfoot></table><p class=\"muted\">A cobrança fica aguardando o aceite de todos os convidados.</p>";
+      }
+      document.getElementById("charge-amount").addEventListener("input", renderSharePreview);
+      document.querySelectorAll('input[name="invite"]').forEach((input) => input.addEventListener("change", renderSharePreview));
+      renderSharePreview();
+
+      document.getElementById("charge-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const title = document.getElementById("charge-title").value.trim();
+        if (!title || parseCents(document.getElementById("charge-amount").value) === null) {
+          showToast("Revise o título e informe um valor positivo.");
+          return;
+        }
+        showToast("Demonstração: cobrança criada e convites enviados como pendentes.");
+      });
+
+      document.querySelectorAll("[data-invite]").forEach((button) => button.addEventListener("click", () => {
+        const next = button.dataset.invite;
+        const status = document.getElementById("invite-status");
+        status.textContent = next === "accepted" ? "Aceito" : "Recusado";
+        status.className = "status " + next;
+        document.getElementById("invite-actions").hidden = true;
+        document.getElementById("invite-result").textContent = next === "accepted"
+          ? "Você aceitou. Sua dívida foi criada uma única vez; a cobrança ainda depende dos outros convites."
+          : "Você recusou. Nenhuma dívida foi criada.";
+      }));
+
+      document.getElementById("profile-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        showToast("Demonstração: alterações de perfil salvas.");
+      });
+      document.querySelectorAll(".demo-form").forEach((form) => form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        showToast("Demonstração: este protótipo não cria contas nem inicia sessão.");
+      }));
+      document.getElementById("recovery-link").addEventListener("click", (event) => {
+        event.preventDefault();
+        showToast("Na aplicação, este link abre a recuperação por e-mail.");
+      });
+    </script>
+  </body>
+</html>

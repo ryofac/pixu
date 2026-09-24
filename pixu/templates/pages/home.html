@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load charge_format %}
+
+{% block title %}{% if request.user.is_authenticated %}Cobranças{% else %}Pixu · despesas em grupo{% endif %}{% endblock title %}
+
+{% block content %}
+  {% if request.user.is_authenticated %}
+    <section class="space-y-5 pt-2" aria-labelledby="page-title">
+      <div>
+        <h1 class="mb-2 text-2xl font-extrabold leading-tight text-pixu-ink" id="page-title">Cobranças</h1>
+        <p class="text-sm leading-relaxed text-pixu-muted">Organize despesas compartilhadas e acompanhe os convites.</p>
+      </div>
+
+      <a class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 text-center font-extrabold text-white no-underline shadow-md transition active:scale-95" href="{% url 'charges:create' %}">
+        <span aria-hidden="true">＋</span> Nova cobrança
+      </a>
+
+      <div class="space-y-3">
+        <h2 class="text-lg font-extrabold text-pixu-ink">Suas cobranças</h2>
+        {% for charge in charges %}
+          <a class="block rounded-[20px] border border-slate-200 bg-white p-4 text-inherit no-underline shadow-sm transition hover:shadow-md focus-visible:ring-2 focus-visible:ring-sky-700" href="{% url 'charges:detail' charge.pk %}">
+            <div class="flex items-center justify-between gap-3">
+              <strong class="min-w-0 break-words">{{ charge.title }}</strong>
+              <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if charge.state == 'ACTIVE' %} bg-green-100 text-pixu-success{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ charge.get_state_display }}</span>
+            </div>
+            <p class="mb-3 mt-2 text-sm text-pixu-muted">
+              {% if charge.creator_id == request.user.id %}Criada por você{% else %}Criada por {{ charge.creator.name|default:charge.creator.username }}{% endif %}
+            </p>
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span class="text-pixu-muted">Total</span>
+              <strong>{{ charge.total_cents|brl_from_cents }}</strong>
+            </div>
+            {% for participation in charge.participations.all %}
+              {% if participation.user_id == request.user.id %}
+                <div class="mt-2 flex items-center justify-between gap-3 text-sm">
+                  <span class="text-pixu-muted">Sua cota</span>
+                  <strong class="text-pixu-action">{{ participation.share_cents|brl_from_cents }}</strong>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </a>
+        {% empty %}
+          <div class="rounded-[20px] border border-dashed border-slate-300 bg-white/60 px-4 py-8 text-center">
+            <h3 class="mb-2 font-extrabold">Nenhuma cobrança por aqui</h3>
+            <p class="mb-4 text-sm leading-relaxed text-pixu-muted">Crie uma cobrança para organizar uma despesa em grupo.</p>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-xl border-2 border-sakura-6 bg-white px-4 py-2 font-bold text-pixu-action no-underline" href="{% url 'charges:create' %}">Criar cobrança</a>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% else %}
+    <section class="space-y-4 pt-2" aria-labelledby="page-title">
+      <div class="rounded-[24px] border border-slate-200 bg-white p-6 shadow-md">
+        <span class="mb-4 inline-flex rounded-full bg-sakura-2 px-3 py-1 text-xs font-extrabold text-pixu-action">Despesas em grupo, com clareza</span>
+        <h1 class="mb-3 text-3xl font-extrabold leading-tight tracking-tight text-pixu-ink" id="page-title">Combinar o rateio fica mais simples.</h1>
+        <p class="mb-5 text-sm leading-relaxed text-pixu-muted">Crie cobranças, convide as pessoas e acompanhe quem já respondeu.</p>
+        <a class="flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 text-center font-extrabold text-white no-underline shadow-md" href="{% url 'account_signup' %}">Criar minha conta</a>
+        <a class="mt-3 flex min-h-12 w-full items-center justify-center rounded-xl border-2 border-sakura-6 bg-white px-4 py-3 text-center font-extrabold text-pixu-action no-underline" href="{% url 'account_login' %}">Já tenho uma conta</a>
+      </div>
+      <div class="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 class="mb-2 text-lg font-extrabold text-pixu-ink">Cada pessoa entende sua parte</h2>
+        <p class="text-sm leading-relaxed text-pixu-muted">Veja o total, sua cota e o estado dos convites em uma tela feita primeiro para o celular.</p>
+      </div>
+    </section>
+  {% endif %}
+{% endblock content %}
