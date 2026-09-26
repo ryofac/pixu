@@ -440,6 +440,27 @@ class ChargeViewTests(TestCase):
         self.assertContains(response, "100,01")
         assert Charge.objects.count() == 1
 
+    def test_money_input_accepts_pt_br_and_dotted_decimal_forms(self):
+        self.client.force_login(self.creator)
+
+        for value in ("150,00", "150.00"):
+            response = self.client.post(
+                reverse("charges:preview"),
+                {**self.creation_data(), "total": value},
+                HTTP_HX_REQUEST="true",
+            )
+            assert response.status_code == 200
+            self.assertContains(response, "150,00")
+
+        response = self.client.post(
+            reverse("charges:preview"),
+            {**self.creation_data(), "total": "not-money"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert response.status_code == 200
+        self.assertContains(response, "Informe um número.")
+        self.assertNotContains(response, "Enter a number")
+
     def test_create_form_has_registered_user_search_and_filters_only_preview_fields(
         self,
     ):

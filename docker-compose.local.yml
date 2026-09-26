@@ -2,6 +2,8 @@ volumes:
   pixu_local_postgres_data: {}
   pixu_local_postgres_data_backups: {}
   pixu_local_redis_data: {}
+  pixu_local_garage_data: {}
+  pixu_local_garage_config: {}
 
 services:
   django: &django
@@ -13,6 +15,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - garage
     volumes:
       - /app/.venv
       - .:/app:z
@@ -33,6 +36,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - garage
     ports: []
     command: /start-celeryworker
 
@@ -54,3 +58,58 @@ services:
     container_name: pixu_local_redis
     volumes:
       - pixu_local_redis_data:/data
+
+  garage-config:
+    image: docker.io/alpine:3.22
+    container_name: pixu_local_garage_config
+    env_file:
+      - path: ./.envs/.local/.garage
+        required: false
+    volumes:
+      - pixu_local_garage_config:/config
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        umask 077
+        cat > /config/garage.toml <<EOF
+        metadata_dir = "/var/lib/garage/meta"
+        data_dir = "/var/lib/garage/data"
+        db_engine = "sqlite"
+        replication_factor = 1
+        rpc_bind_addr = "[::]:3901"
+        rpc_public_addr = "garage:3901"
+        rpc_secret = "$${GARAGE_RPC_SECRET}"
+        [s3_api]
+        s3_region = "$${PIXU_S3_REGION_NAME}"
+        api_bind_addr = "[::]:3900"
+        root_domain = ".s3.garage.localhost"
+        [s3_web]
+        bind_addr = "[::]:3902"
+        root_domain = ".web.garage.localhost"
+        index = "index.html"
+        [admin]
+        api_bind_addr = "[::]:3903"
+        admin_token = "$${GARAGE_ADMIN_TOKEN}"
+        metrics_token = "$${GARAGE_METRICS_TOKEN}"
+        EOF
+
+  garage:
+    image: docker.io/dxflrs/garage:v2.3.0
+    container_name: pixu_local_garage
+    depends_on:
+      garage-config:
+        condition: service_completed_successfully
+    env_file:
+      - path: ./.envs/.local/.garage
+        required: false
+    environment:
+      GARAGE_CONFIG_FILE: /etc/garage/garage.toml
+    volumes:
+      - pixu_local_garage_data:/var/lib/garage
+      - pixu_local_garage_config:/etc/garage:ro
+    ports:
+      - "3900:3900"
+      - "3901:3901"
+      - "3902:3902"
+      - "3903:3903"
+    command: ["/garage", "server", "--single-node", "--default-bucket"]

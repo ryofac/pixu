@@ -1,8 +1,8 @@
-{% load charge_format form_fields %}
+{% load charge_format form_fields i18n %}
 {% if allocation_form %}
   <section class="rounded-2xl border border-sakura-1 bg-blue-50 p-4 sm:p-5" aria-labelledby="share-preview-title">
-    <h2 class="mb-3 text-base font-extrabold text-pixu-ink" id="share-preview-title">Prévia do rateio</h2>
-    <p class="mb-4 text-sm leading-relaxed text-pixu-muted">Ajuste cada cota em reais. A soma precisa fechar o total da cobrança.</p>
+    <h2 class="mb-3 text-base font-extrabold text-pixu-ink" id="share-preview-title">{% translate "Prévia do rateio" %}</h2>
+    <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% translate "Ajuste cada cota em reais. A soma precisa fechar o total da cobrança." %}</p>
     {% if allocation_form.non_field_errors %}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ allocation_form.non_field_errors }}</div>{% endif %}
     <div class="grid gap-4">
       {% for field in allocation_form %}
@@ -13,10 +13,10 @@
         </div>
       {% endfor %}
       <div class="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 text-sm font-extrabold">
-        <span>Total a distribuir</span><span>{{ total_cents|brl_from_cents }}</span>
+        <span>{% translate "Total a distribuir" %}</span><span>{{ total_cents|brl_from_cents }}</span>
       </div>
     </div>
-    <p class="mt-3 text-xs leading-relaxed text-pixu-muted">A divisão inicial é igualitária; os centavos residuais seguem a ordem das contas. Alterar o total ou os participantes recalcula as cotas.</p>
+    <p class="mt-3 text-xs leading-relaxed text-pixu-muted">{% translate "A divisão inicial é igualitária; os centavos residuais seguem a ordem das contas. Alterar o total ou os participantes recalcula as cotas." %}</p>
   </section>
 {% elif preview_errors %}
   <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-pixu-pending" role="status">
@@ -24,6 +24,6 @@
   </div>
 {% else %}
   <div class="rounded-xl border border-dashed border-slate-300 bg-white/70 px-4 py-4 text-sm leading-relaxed text-pixu-muted" role="status">
-    Informe o valor e escolha as pessoas para conferir a divisão antes de criar.
+    {% translate "Informe o valor e escolha as pessoas para conferir a divisão antes de criar." %}
   </div>
 {% endif %}

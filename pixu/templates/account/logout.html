@@ -5,8 +5,8 @@
 {% block head_title %}Sair da conta{% endblock head_title %}
 
 {% block content %}
-  {% element h1 %}Sair da conta{% endelement %}
-  {% element p %}Tem certeza de que deseja sair do Pixu?{% endelement %}
+  {% element h1 %}{% translate "Sair da conta" %}{% endelement %}
+  {% element p %}{% translate "Tem certeza de que deseja sair do Pixu?" %}{% endelement %}
   {% url 'account_logout' as action_url %}
   {% element form method="post" action=action_url no_visible_fields=True %}
     {% slot body %}
@@ -14,8 +14,8 @@
       {{ redirect_field }}
     {% endslot %}
     {% slot actions %}
-      {% element button type="submit" %}Sair{% endelement %}
-      <a class="inline-flex min-h-11 items-center justify-center font-bold text-pixu-muted underline underline-offset-2" href="{% url 'home' %}">Continuar no Pixu</a>
+      {% element button type="submit" %}{% translate "Sair" %}{% endelement %}
+      <a class="inline-flex min-h-11 items-center justify-center font-bold text-pixu-muted underline underline-offset-2" href="{% url 'home' %}">{% translate "Continuar no Pixu" %}</a>
     {% endslot %}
   {% endelement %}
 {% endblock content %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load form_fields %}
+{% load form_fields i18n %}
 
 {% block title %}Nova cobrança · Pixu{% endblock title %}
 
@@ -8,7 +8,7 @@
     <div>
       <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline" href="{% url 'home' %}">‹ Cobranças</a>
       <h1 class="mb-2 text-2xl font-extrabold leading-tight text-pixu-ink" id="page-title">Nova cobrança</h1>
-      <p class="text-sm leading-relaxed text-pixu-muted">Convide pessoas cadastradas e confira o rateio antes de criar.</p>
+      <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Convide pessoas cadastradas e confira o rateio antes de criar." %}</p>
     </div>
 
     <form id="charge-create-form" class="space-y-5" method="post" action="{% url 'charges:create' %}" hx-post="{% url 'charges:preview' %}" hx-trigger="input changed delay:300ms from:input[name=total], change from:input[name=invitees], change from:input[name=include_creator]" hx-target="#share-preview" hx-swap="innerHTML" hx-sync="this:replace" novalidate>
@@ -50,9 +50,9 @@
             <legend class="px-1">{{ form.invitees.label }}</legend>
             {% if form.invitees.field.queryset %}
               <div class="grid gap-2">
-                <label for="invitee-search">Buscar pessoa</label>
-                <input id="invitee-search" type="search" autocomplete="off" placeholder="Nome ou usuário" data-invitee-search>
-                <p class="text-xs text-pixu-muted" data-invitee-search-status aria-live="polite">{{ form.invitees.field.queryset|length }} pessoas disponíveis.</p>
+                <label for="invitee-search">{% translate "Buscar pessoa" %}</label>
+                <input id="invitee-search" type="search" autocomplete="off" placeholder="{% translate 'Nome ou usuário' %}" data-invitee-search>
+                <p class="text-xs text-pixu-muted" data-invitee-search-status aria-live="polite">{% blocktranslate count available=form.invitees.field.queryset|length %}{{ available }} pessoa disponível.{% plural %}{{ available }} pessoas disponíveis.{% endblocktranslate %}</p>
               </div>
               <div class="grid gap-2.5 sm:grid-cols-2">
                 {% for checkbox in form.invitees %}
@@ -62,21 +62,21 @@
                 {% endfor %}
               </div>
             {% else %}
-              <p class="text-xs leading-relaxed text-pixu-muted">Não há outras contas ativas para convidar.</p>
+              <p class="text-xs leading-relaxed text-pixu-muted">{% translate "Não há outras contas ativas para convidar." %}</p>
             {% endif %}
             {% if form.invitees.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.invitees.auto_id }}_errors" role="alert">{% for error in form.invitees.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
           </fieldset>
           <div id="share-preview" aria-live="polite">
             {% include "charges/partials/share_preview.html" %}
           </div>
-          <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-white px-4 py-2.5 font-bold text-pixu-action" type="submit" name="intent" value="preview" hx-post="{% url 'charges:preview' %}" hx-trigger="click" hx-include="closest form" hx-disabled-elt="this">Conferir cotas · dividir igualmente</button>
-          <div class="rounded-xl border border-sakura-1 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">Você continua responsável pela cobrança mesmo sem participar do rateio. A cobrança só fica ativa quando todos os convites atuais forem aceitos.</div>
+          <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-white px-4 py-2.5 font-bold text-pixu-action" type="submit" name="intent" value="preview" hx-post="{% url 'charges:preview' %}" hx-trigger="click" hx-include="closest form" hx-disabled-elt="this">{% translate "Conferir cotas · dividir igualmente" %}</button>
+          <div class="rounded-xl border border-sakura-1 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">{% translate "Você continua responsável pela cobrança mesmo sem participar do rateio. A cobrança só fica ativa quando todos os convites atuais forem aceitos." %}</div>
         </div>
       </div>
 
       <div class="flex flex-col gap-3 pt-1 sm:flex-row sm:justify-end">
-        <a class="flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-bold text-pixu-muted no-underline sm:min-w-36" href="{% url 'home' %}">Voltar</a>
-        <button class="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-5 py-3 font-extrabold text-white shadow-md sm:min-w-52" type="submit">Criar cobrança</button>
+        <a class="flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-bold text-pixu-muted no-underline sm:min-w-36" href="{% url 'home' %}">{% translate "Voltar" %}</a>
+        <button class="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-5 py-3 font-extrabold text-white shadow-md sm:min-w-52" type="submit">{% translate "Criar cobrança" %}</button>
       </div>
     </form>
   </section>

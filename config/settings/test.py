@@ -3,6 +3,7 @@ With these settings, tests run faster.
 """
 
 from .base import *  # noqa: F403
+from .base import STORAGES
 from .base import TEMPLATES
 from .base import env
 
@@ -25,6 +26,11 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+
+# Uploaded test files stay on the isolated test filesystem, never in external storage.
+STORAGES["default"] = {
+    "BACKEND": "django.core.files.storage.FileSystemStorage",
+}
 
 # DEBUGGING FOR TEMPLATES
 # ------------------------------------------------------------------------------

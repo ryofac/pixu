@@ -1,0 +1,9 @@
+{% load i18n %}
+<form class="mt-3 grid gap-2" method="post" enctype="multipart/form-data" action="{% url 'settlements:receipt_update' payment.pk %}" hx-post="{% url 'settlements:receipt_update' payment.pk %}" hx-target="#debt-{{ payment.debt_id }}" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
+  {% csrf_token %}
+  <label for="{{ form.receipt.id_for_label }}">{{ form.receipt.label }}</label>
+  {% include "settlements/partials/file_input.html" with field=form.receipt %}
+  <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.receipt.auto_id }}_help">{{ form.receipt.help_text }}</span>
+  {% if form.receipt.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.receipt.auto_id }}_errors" role="alert">{% for error in form.receipt.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+  <button class="flex min-h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 font-bold text-pixu-action" type="submit">Substituir comprovante</button>
+</form>

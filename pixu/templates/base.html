@@ -29,7 +29,7 @@
             </a>
 
             <a class="mb-4 flex min-h-12 items-center justify-center gap-2 rounded-xl bg-sakura-6 px-4 py-3 font-extrabold text-white no-underline transition hover:bg-pixu-action" href="{% url 'charges:create' %}">
-              <span class="text-xl leading-none" aria-hidden="true">＋</span> Nova cobrança
+              <span class="text-xl leading-none" aria-hidden="true">＋</span> {% translate "Nova cobrança" %}
             </a>
 
             <nav class="grid gap-1" aria-label="Navegação principal">
@@ -37,42 +37,51 @@
                  href="{% url 'home' %}"
                  {% if request.resolver_match.url_name == 'home' or request.resolver_match.namespace == 'charges' and request.resolver_match.url_name != 'invites' %}aria-current="page"{% endif %}>
                 <svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 4.75h14a1.25 1.25 0 0 1 1.25 1.25v12A1.25 1.25 0 0 1 19 19.25H5A1.25 1.25 0 0 1 3.75 18V6A1.25 1.25 0 0 1 5 4.75Z" /><path d="M7.5 8h9M7.5 12h9M7.5 16h5" /></svg>
-                Cobranças
+                {% translate "Cobranças" %}
               </a>
               <a class="flex min-h-12 items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-sm font-bold no-underline{% if request.resolver_match.namespace == 'charges' and request.resolver_match.url_name == 'invites' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted hover:bg-slate-50 hover:text-pixu-ink{% endif %}"
                  href="{% url 'charges:invites' %}"
                  {% if request.resolver_match.namespace == 'charges' and request.resolver_match.url_name == 'invites' %}aria-current="page"{% endif %}>
-                <span class="inline-flex items-center gap-3"><svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 5.5L19.5 7" /></svg>Convites</span>
+                <span class="inline-flex items-center gap-3"><svg class="size-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 5.5L19.5 7" /></svg>{% translate "Convites" %}</span>
                 <span class="{% if pending_charge_invites_count %}grid{% else %}hidden{% endif %} min-h-6 min-w-6 place-items-center rounded-full bg-sakura-2 px-1.5 text-xs font-extrabold text-pixu-action" data-pending-invites-badge aria-label="{{ pending_charge_invites_count }} convites pendentes">{{ pending_charge_invites_count }}</span>
               </a>
             </nav>
 
-            <a class="mt-auto flex min-h-16 items-center gap-3 rounded-xl border-t border-slate-200 px-2 pt-4 text-pixu-ink no-underline hover:bg-slate-50"
+            <a class="mt-auto flex min-h-16 items-center gap-3 rounded-xl border-t border-slate-200 px-2 pt-4 text-pixu-ink no-underline hover:bg-slate-50{% if request.resolver_match.namespace == 'accounts' or request.resolver_match.namespace == 'account' or request.resolver_match.url_name == 'account_email' or request.resolver_match.url_name == 'account_change_password' or request.resolver_match.url_name == 'account_set_password' or request.resolver_match.url_name == 'account_logout' %} bg-[#fff0f2] text-sakura-6{% endif %}"
                href="{% url 'accounts:detail' request.user.username %}"
-               {% if request.resolver_match.namespace == 'accounts' %}aria-current="page"{% endif %}>
+               {% if request.resolver_match.namespace == 'accounts' or request.resolver_match.namespace == 'account' or request.resolver_match.url_name == 'account_email' or request.resolver_match.url_name == 'account_change_password' or request.resolver_match.url_name == 'account_set_password' or request.resolver_match.url_name == 'account_logout' %}aria-current="page"{% endif %}>
               <span class="grid size-10 shrink-0 place-items-center rounded-full bg-sakura-2 font-extrabold text-pixu-action" aria-hidden="true">{{ request.user.name|default:request.user.username|slice:":1"|upper }}</span>
-              <span class="min-w-0"><span class="block truncate text-sm font-extrabold">{{ request.user.name|default:request.user.username }}</span><span class="block text-xs text-pixu-muted">Meu perfil</span></span>
+              <span class="min-w-0"><span class="block truncate text-sm font-extrabold">{{ request.user.name|default:request.user.username }}</span><span class="block text-xs text-pixu-muted">{% translate "Meu perfil" %}</span></span>
             </a>
           </aside>
         {% endif %}
 
         <div class="flex min-h-dvh min-w-0 flex-col{% if request.user.is_authenticated %} lg:col-start-2{% endif %}">
           <header class="sticky top-0 z-20 flex min-h-[4.5rem] items-center justify-between gap-4 border-b border-slate-200 bg-sakura-4/95 px-4 pb-2 pt-[max(.75rem,env(safe-area-inset-top))] backdrop-blur sm:px-6 lg:px-8">
-            <a class="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-sakura-6 no-underline lg:hidden" href="{% url 'home' %}" aria-label="Pixu, início">
+            {% if not request.user.is_authenticated %}
+              <a class="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-sakura-6 no-underline" href="{% url 'home' %}" aria-label="{% translate 'Pixu, início' %}">
+                <span class="grid size-8 place-items-center rounded-xl bg-sakura-6 text-white" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 5.2c1.8-2.7 5.1-.7 3.6 2.2 2.9-1.5 4.9 1.8 2.2 3.6 2.7 1.8.7 5.1-2.2 3.6 1.5 2.9-1.8 4.9-3.6 2.2-1.8 2.7-5.1.7-3.6-2.2-2.9 1.5-4.9-1.8-2.2-3.6-2.7-1.8-.7-5.1 2.2-3.6C6.9 4.5 10.2 2.5 12 5.2Z" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="#fff4f3" /></svg>
+                </span>
+                Pixu
+              </a>
+            {% else %}
+              <a class="inline-flex items-center gap-2 text-xl font-extrabold tracking-tight text-sakura-6 no-underline lg:hidden" href="{% url 'home' %}" aria-label="{% translate 'Pixu, início' %}">
               <span class="grid size-8 place-items-center rounded-xl bg-sakura-6 text-white" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M12 5.2c1.8-2.7 5.1-.7 3.6 2.2 2.9-1.5 4.9 1.8 2.2 3.6 2.7 1.8.7 5.1-2.2 3.6 1.5 2.9-1.8 4.9-3.6 2.2-1.8 2.7-5.1.7-3.6-2.2-2.9 1.5-4.9-1.8-2.2-3.6-2.7-1.8-.7-5.1 2.2-3.6C6.9 4.5 10.2 2.5 12 5.2Z" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="#fff4f3" /></svg>
               </span>
               Pixu
-            </a>
+              </a>
+            {% endif %}
             {% if request.user.is_authenticated %}
-              <span class="hidden text-sm font-bold text-pixu-muted lg:block">Organize suas cobranças com clareza</span>
+              <span class="hidden text-sm font-bold text-pixu-muted lg:block">{% translate "Organize suas cobranças com clareza" %}</span>
               <a class="ml-auto inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-bold text-pixu-ink no-underline sm:px-3" href="{% url 'accounts:detail' request.user.username %}" aria-label="Abrir perfil de {{ request.user.name|default:request.user.username }}">
                 <span class="grid size-7 place-items-center rounded-full bg-sakura-2 font-extrabold text-pixu-action" aria-hidden="true">{{ request.user.name|default:request.user.username|slice:":1"|upper }}</span>
                 <span class="hidden sm:inline">{{ request.user.name|default:request.user.username }}</span>
               </a>
             {% else %}
               <span class="flex-1 lg:hidden"></span>
-              <a class="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-pixu-ink no-underline" id="log-in-link" href="{% url 'account_login' %}">Entrar</a>
+              <a class="inline-flex min-h-11 items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-pixu-ink no-underline" id="log-in-link" href="{% url 'account_login' %}">{% translate "Entrar" %}</a>
             {% endif %}
           </header>
 
@@ -84,7 +93,7 @@
             </div>
           {% endif %}
 
-          <main class="mx-auto min-h-0 w-full max-w-7xl flex-1 px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 md:pb-10 lg:px-8 lg:pt-8" id="main">
+          <main class="mx-auto min-h-0 w-full max-w-7xl flex-1 scroll-mb-24 px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8" id="main">
             {% block main %}
               {% block content %}{% endblock content %}
             {% endblock main %}
@@ -97,20 +106,20 @@
                href="{% url 'home' %}"
                {% if request.resolver_match.url_name == 'home' or request.resolver_match.namespace == 'charges' and request.resolver_match.url_name != 'invites' %}aria-current="page"{% endif %}>
               <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 4.75h14a1.25 1.25 0 0 1 1.25 1.25v12A1.25 1.25 0 0 1 19 19.25H5A1.25 1.25 0 0 1 3.75 18V6A1.25 1.25 0 0 1 5 4.75Z" /><path d="M7.5 8h9M7.5 12h9M7.5 16h5" /></svg>
-              <span>Cobranças</span>
+              <span>{% translate "Cobranças" %}</span>
             </a>
             <a class="relative flex min-h-[3.4rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-bold no-underline{% if request.resolver_match.namespace == 'charges' and request.resolver_match.url_name == 'invites' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted{% endif %}"
                href="{% url 'charges:invites' %}"
                {% if request.resolver_match.namespace == 'charges' and request.resolver_match.url_name == 'invites' %}aria-current="page"{% endif %}>
               <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 5.5L19.5 7" /></svg>
               <span class="absolute left-[calc(50%+0.2rem)] top-0 {% if pending_charge_invites_count %}grid{% else %}hidden{% endif %} h-4 min-w-4 place-items-center rounded-full border-2 border-white bg-sakura-6 px-0.5 text-[10px] font-extrabold text-white" data-pending-invites-badge aria-label="{{ pending_charge_invites_count }} convites pendentes">{{ pending_charge_invites_count }}</span>
-              <span>Convites</span>
+              <span>{% translate "Convites" %}</span>
             </a>
-            <a class="relative flex min-h-[3.4rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-bold no-underline{% if request.resolver_match.namespace == 'accounts' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted{% endif %}"
+            <a class="relative flex min-h-[3.4rem] min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-xs font-bold no-underline{% if request.resolver_match.namespace == 'accounts' or request.resolver_match.namespace == 'account' or request.resolver_match.url_name == 'account_email' or request.resolver_match.url_name == 'account_change_password' or request.resolver_match.url_name == 'account_set_password' or request.resolver_match.url_name == 'account_logout' %} bg-[#fff0f2] text-sakura-6{% else %} text-pixu-muted{% endif %}"
                href="{% url 'accounts:detail' request.user.username %}"
-               {% if request.resolver_match.namespace == 'accounts' %}aria-current="page"{% endif %}>
+               {% if request.resolver_match.namespace == 'accounts' or request.resolver_match.namespace == 'account' or request.resolver_match.url_name == 'account_email' or request.resolver_match.url_name == 'account_change_password' or request.resolver_match.url_name == 'account_set_password' or request.resolver_match.url_name == 'account_logout' %}aria-current="page"{% endif %}>
               <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.25" /><path d="M5.5 19a6.5 6.5 0 0 1 13 0" /></svg>
-              <span>Perfil</span>
+              <span>{% translate "Perfil" %}</span>
             </a>
           </nav>
         {% endif %}

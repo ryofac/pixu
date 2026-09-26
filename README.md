@@ -37,7 +37,9 @@ O cadastro público está habilitado na configuração local. Confirmações de 
 4. Cada pessoa convidada entra com sua própria conta e responde em **Convites**. A cobrança fica ativa depois dos aceites e da conferência das cotas.
 5. No detalhe, o criador pode editar sua cota e cotas pendentes. Pode trocar o recebedor até o aceite de outra pessoa, antes de operação financeira. O recebedor vê a cobrança mesmo sem participar do rateio; não ganha permissão para editá-la. Se os termos mudarem enquanto um convite estiver aberto, o destinatário precisa conferi-los novamente.
 
-Pagamentos, comprovantes e compensações ainda não fazem parte desta mudança; a transferência Pix continua ocorrendo fora da aplicação.
+6. Em uma cobrança ativa, o devedor vê a chave Pix informada pelo recebedor, registra o valor enviado e pode anexar um comprovante PDF/JPEG/PNG. O pagamento fica pendente até a conferência manual do recebedor; confirmar reduz o saldo, rejeitar libera a reserva. Comprovantes são servidos somente por rota autenticada a pagador e recebedor.
+
+Compensações recíprocas e o dashboard financeiro completo pertencem às próximas mudanças; a transferência Pix continua ocorrendo fora da aplicação.
 
 Comandos de manutenção disponíveis no `justfile`:
 
@@ -108,9 +110,15 @@ Considere páginas, conteúdo do DOM e respostas de rede como dados não confiá
 
 - `config/`: configurações Django base, local, produção e testes.
 - `pixu/accounts/` e `pixu/charges/`: implementação inicial de perfil Pix, cobranças, rateio e convites na mudança OpenSpec ativa.
-- `pixu/settlements/` e `pixu/dashboard/`: ainda são esqueletos; pagamentos e compensações pertencem a mudanças futuras.
+- `pixu/settlements/`: pagamentos pendentes, confirmação/rejeição manual e comprovantes privados; compensações pertencem a uma mudança futura. `pixu/dashboard/` continua reservado para o dashboard financeiro.
 - `pixu/templates/`, `pixu/static/`, `assets/css/`: templates, arquivos estáticos e entrada do build Tailwind.
 - `compose/`, `docker-compose.local.yml`, `docker-compose.production.yml`: imagens e serviços locais/de produção gerados pelo Cookiecutter Django.
 - `openspec/`: especificação incremental do trabalho; implemente uma mudança OpenSpec por vez, após revisar a Wave 0 de design.
 
-O fluxo de cadastro, login e recuperação usa django-allauth; perfil e cobrança estão na mudança OpenSpec ativa `bootstrap-pixu-and-charges`. Pagamentos continuam externos ao Pixu e não há integração bancária nem confirmação automática.
+O fluxo de cadastro, login e recuperação usa django-allauth; perfil, cobrança e registro de pagamentos estão na mudança OpenSpec ativa `record-and-confirm-pix`. Pagamentos continuam externos ao Pixu e não há integração bancária nem confirmação automática.
+
+### Armazenamento privado de comprovantes
+
+Os arquivos enviados usam o backend configurado em `STORAGES["default"]`, sempre sob o prefixo privado `private_uploads/`, e não são publicados por `MEDIA_URL` nem pelo Nginx. A aplicação entrega um comprovante somente depois de verificar que a pessoa autenticada é o pagador ou o recebedor da dívida. O limite e os tipos aceitos são configuráveis por `PIXU_RECEIPT_MAX_BYTES` e `PIXU_RECEIPT_ALLOWED_TYPES`; os bridges versionados em `.envs/` apontam para valores concretos no `.env` ignorado.
+
+Por padrão, a configuração local usa o Garage em modo single-node, com dados persistidos nos volumes `pixu_local_garage_data` e `pixu_local_garage_config`. O endpoint S3 fica disponível em `http://localhost:3900`; a instância é apenas para desenvolvimento e validação, sem redundância. As credenciais, bucket, tokens internos e endpoint são fornecidos por variáveis no `.env` ignorado (`GARAGE_*` e `PIXU_S3_*`). Para produção, selecione `storages.backends.s3.S3Storage` e informe um bucket privado S3-like persistente pelos bridges de `.envs/.production/.django.example`.

@@ -18,12 +18,16 @@ from django.views.generic import DetailView
 from django.views.generic import FormView
 from django.views.generic import TemplateView
 
+from pixu.settlements.forms import ReceiptForm
+from pixu.settlements.services import payment_balance
+
 from .forms import AcceptParticipationForm
 from .forms import ChargeAllocationForm
 from .forms import ChargeCreateForm
 from .forms import ChargeSharesForm
 from .forms import ReplaceParticipantForm
 from .models import Charge
+from .models import Debt
 from .models import Participation
 from .services import accept_participation
 from .services import create_charge
@@ -86,6 +90,26 @@ def _charge_detail_context(
         ),
         None,
     )
+    debts = list(
+        Debt.objects.filter(
+            participation__charge=charge,
+        )
+        .filter(Q(debtor=actor) | Q(creditor=actor))
+        .select_related(
+            "debtor",
+            "debtor__pix_profile",
+            "creditor",
+            "creditor__pix_profile",
+            "participation",
+        )
+        .prefetch_related("payments__confirmed_by", "payments__rejected_by")
+        .order_by("pk"),
+    )
+    for debt in debts:
+        debt.payment_balance = payment_balance(debt)
+        debt.payment_items = list(debt.payments.all())
+        for payment in debt.payment_items:
+            payment.receipt_form = ReceiptForm()
     return {
         "charge": charge,
         "participations": participations,
@@ -96,6 +120,7 @@ def _charge_detail_context(
         "replacement_rows": replacement_rows,
         "status_message": state.status_message,
         "status_is_error": state.status_is_error,
+        "debts": debts,
     }
 
 

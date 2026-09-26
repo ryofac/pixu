@@ -5,8 +5,8 @@
 {% block head_title %}Entrar{% endblock head_title %}
 
 {% block content %}
-  {% element h1 %}Entre na sua conta{% endelement %}
-  {% element p %}Acesse suas cobranças e responda aos convites que enviaram para você.{% endelement %}
+  {% element h1 %}{% translate "Entre na sua conta" %}{% endelement %}
+  {% element p %}{% translate "Acesse suas cobranças e responda aos convites que enviaram para você." %}{% endelement %}
 
   {% if not SOCIALACCOUNT_ONLY %}
     {% url 'account_login' as login_url %}
@@ -17,24 +17,24 @@
         {{ redirect_field }}
       {% endslot %}
       {% slot actions %}
-        {% element button type="submit" tags="prominent,login" %}Entrar{% endelement %}
+        {% element button type="submit" tags="prominent,login" %}{% translate "Entrar" %}{% endelement %}
       {% endslot %}
     {% endelement %}
   {% endif %}
 
   <nav class="mt-5 grid gap-3 border-t border-slate-100 pt-4 text-sm font-bold sm:grid-cols-2" aria-label="Ajuda de acesso">
-    <a class="text-pixu-action underline underline-offset-2" href="{% url 'account_reset_password' %}">Esqueci minha senha</a>
-    {% if ACCOUNT_ALLOW_REGISTRATION %}<a class="text-pixu-action underline underline-offset-2 sm:text-right" href="{{ signup_url }}">Criar uma conta</a>{% endif %}
+    <a class="text-pixu-action underline underline-offset-2" href="{% url 'account_reset_password' %}">{% translate "Esqueci minha senha" %}</a>
+    {% if ACCOUNT_ALLOW_REGISTRATION %}<a class="text-pixu-action underline underline-offset-2 sm:text-right" href="{{ signup_url }}">{% translate "Criar uma conta" %}</a>{% endif %}
   </nav>
 
   {% if LOGIN_BY_CODE_ENABLED or PASSKEY_LOGIN_ENABLED %}
     {% element hr %}{% endelement %}
     {% element button_group vertical=True %}
       {% if PASSKEY_LOGIN_ENABLED %}
-        {% element button type="submit" form="mfa_login" id="passkey_login" tags="prominent,login,outline,primary" %}Entrar com chave de acesso{% endelement %}
+        {% element button type="submit" form="mfa_login" id="passkey_login" tags="prominent,login,outline,primary" %}{% translate "Entrar com chave de acesso" %}{% endelement %}
       {% endif %}
       {% if LOGIN_BY_CODE_ENABLED %}
-        {% element button href=request_login_code_url tags="prominent,login,outline,primary" %}Enviar código de acesso{% endelement %}
+        {% element button href=request_login_code_url tags="prominent,login,outline,primary" %}{% translate "Enviar código de acesso" %}{% endelement %}
       {% endif %}
     {% endelement %}
   {% endif %}

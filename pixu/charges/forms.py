@@ -8,6 +8,7 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 
 from pixu.accounts.models import User
+from pixu.contrib.currency import BrazilianDecimalField
 
 from .models import CHARGE_DESCRIPTION_MAX_LENGTH
 from .models import CHARGE_TITLE_MAX_LENGTH
@@ -24,7 +25,7 @@ class ChargeCreateForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={"rows": 3}),
     )
-    total = forms.DecimalField(
+    total = BrazilianDecimalField(
         label=_("Valor total em reais"),
         help_text=_("Use reais e centavos, por exemplo: 150,00."),
         max_digits=12,
@@ -132,7 +133,7 @@ class ChargeSharesForm(forms.Form):
             else _("Pode mudar até o aceite de outra pessoa, antes de pagamentos.")
         )
         for participation in self.participations:
-            self.fields[self.field_name(participation.pk)] = forms.DecimalField(
+            self.fields[self.field_name(participation.pk)] = BrazilianDecimalField(
                 label=participation.user.name or participation.user.username,
                 max_digits=12,
                 decimal_places=2,
@@ -192,7 +193,7 @@ class ChargeAllocationForm(forms.Form):
             total_cents, [user.pk for user in people],
         )
         for person in people:
-            self.fields[f"share_{person.pk}"] = forms.DecimalField(
+            self.fields[f"share_{person.pk}"] = BrazilianDecimalField(
                 label=person.name or person.username,
                 max_digits=12,
                 decimal_places=2,

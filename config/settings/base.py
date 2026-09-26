@@ -1,5 +1,6 @@
 # ruff: noqa: ERA001, E501
 """Base settings to build other settings files upon."""
+
 import os
 import ssl
 from pathlib import Path
@@ -24,7 +25,7 @@ DEBUG = env.bool("DJANGO_DEBUG", False)
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
 # In Windows, this must be set to your system time zone.
-TIME_ZONE = "America/Bahia"
+TIME_ZONE = "America/Fortaleza"
 # https://docs.djangoproject.com/en/dev/ref/settings/#language-code
 LANGUAGE_CODE = "pt-br"
 # https://docs.djangoproject.com/en/dev/ref/settings/#languages
@@ -182,6 +183,40 @@ MEDIA_ROOT = str(APPS_DIR / "media")
 # https://docs.djangoproject.com/en/dev/ref/settings/#media-url
 MEDIA_URL = "/media/"
 
+# PRIVATE FILE STORAGE
+# ------------------------------------------------------------------------------
+PIXU_STORAGE_BACKEND = env(
+    "PIXU_STORAGE_BACKEND",
+    default="django.core.files.storage.FileSystemStorage",
+)
+PIXU_S3_BUCKET_NAME = env("PIXU_S3_BUCKET_NAME", default="pixu-private")
+PIXU_S3_ENDPOINT_URL = env("PIXU_S3_ENDPOINT_URL", default="")
+PIXU_S3_REGION_NAME = env("PIXU_S3_REGION_NAME", default="us-east-1")
+PIXU_S3_ACCESS_KEY_ID = env("PIXU_S3_ACCESS_KEY_ID", default="")
+PIXU_S3_SECRET_ACCESS_KEY = env("PIXU_S3_SECRET_ACCESS_KEY", default="")
+PIXU_S3_ADDRESSING_STYLE = env("PIXU_S3_ADDRESSING_STYLE", default="auto")
+PIXU_S3_USE_SSL = env.bool("PIXU_S3_USE_SSL", default=True)
+
+STORAGES = {
+    "default": {"BACKEND": PIXU_STORAGE_BACKEND},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+if PIXU_STORAGE_BACKEND == "storages.backends.s3.S3Storage":
+    STORAGES["default"]["OPTIONS"] = {
+        "bucket_name": PIXU_S3_BUCKET_NAME,
+        "endpoint_url": PIXU_S3_ENDPOINT_URL or None,
+        "region_name": PIXU_S3_REGION_NAME,
+        "access_key": PIXU_S3_ACCESS_KEY_ID,
+        "secret_key": PIXU_S3_SECRET_ACCESS_KEY,
+        "addressing_style": PIXU_S3_ADDRESSING_STYLE,
+        "use_ssl": PIXU_S3_USE_SSL,
+        "querystring_auth": True,
+        "file_overwrite": False,
+        "default_acl": None,
+    }
+
 # TEMPLATES
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#templates
@@ -243,6 +278,18 @@ EMAIL_USE_TLS = env.bool("DJANGO_EMAIL_USE_TLS", default=False)
 EMAIL_USE_SSL = env.bool("DJANGO_EMAIL_USE_SSL", default=False)
 # https://docs.djangoproject.com/en/dev/ref/settings/#email-timeout
 EMAIL_TIMEOUT = 5
+
+# PRIVATE PAYMENT RECEIPTS
+# ------------------------------------------------------------------------------
+PIXU_RECEIPT_MAX_BYTES = env.int("PIXU_RECEIPT_MAX_BYTES", default=10 * 1024 * 1024)
+PIXU_RECEIPT_ALLOWED_TYPES = tuple(
+    item.strip().lower()
+    for item in env.str(
+        "PIXU_RECEIPT_ALLOWED_TYPES",
+        default="application/pdf,image/jpeg,image/png",
+    ).split(",")
+    if item.strip()
+)
 
 # ADMIN
 # ------------------------------------------------------------------------------
@@ -320,7 +367,15 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_ADAPTER = "pixu.accounts.adapters.AccountAdapter"
 # https://docs.allauth.org/en/latest/account/forms.html
-ACCOUNT_FORMS = {"signup": "pixu.accounts.forms.UserSignupForm"}
+ACCOUNT_FORMS = {
+    "add_email": "pixu.accounts.forms.UserAddEmailForm",
+    "change_password": "pixu.accounts.forms.UserChangePasswordForm",
+    "login": "pixu.accounts.forms.UserLoginForm",
+    "reset_password": "pixu.accounts.forms.UserResetPasswordForm",
+    "reset_password_from_key": "pixu.accounts.forms.UserResetPasswordKeyForm",
+    "set_password": "pixu.accounts.forms.UserSetPasswordForm",
+    "signup": "pixu.accounts.forms.UserSignupForm",
+}
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_ADAPTER = "pixu.accounts.adapters.SocialAccountAdapter"
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html

@@ -56,8 +56,24 @@ class AccountFlowTests(TestCase):
 
         assert response.status_code == 200
         self.assertContains(response, "Entre na sua conta")
+        self.assertContains(response, "Nome de usuário")
+        self.assertContains(response, "Senha")
         self.assertContains(response, "Despesas compartilhadas, com mais clareza.")
         self.assertContains(response, reverse("account_reset_password"))
+
+    def test_email_management_uses_pt_br_copy_and_profile_navigation(self):
+        user = self.create_user()
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("account_email"))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Endereços de e-mail")
+        self.assertContains(response, "Tornar principal")
+        self.assertContains(response, "Reenviar verificação")
+        self.assertContains(response, "Remover")
+        self.assertContains(response, "Meu perfil")
+        self.assertNotContains(response, "Make Primary")
 
     @override_settings(ACCOUNT_ALLOW_REGISTRATION=True)
     def test_signup_rejects_mismatched_passwords_without_creating_account(self):

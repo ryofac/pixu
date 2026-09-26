@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include
 from django.urls import path
@@ -21,10 +20,9 @@ urlpatterns = [
     path("users/", include("pixu.accounts.urls", namespace="accounts")),
     path("accounts/", include("allauth.urls")),
     path("charges/", include("pixu.charges.urls", namespace="charges")),
+    path("settlements/", include("pixu.settlements.urls", namespace="settlements")),
     # Your stuff: custom urls includes go here
     # ...
-    # Media files
-    *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]
 
 

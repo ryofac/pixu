@@ -5,8 +5,8 @@
 {% block head_title %}Criar conta{% endblock head_title %}
 
 {% block content %}
-  {% element h1 %}Crie sua conta{% endelement %}
-  {% element p %}Cadastre-se para criar cobranças e participar das que enviarem para você.{% endelement %}
+  {% element h1 %}{% translate "Crie sua conta" %}{% endelement %}
+  {% element p %}{% translate "Cadastre-se para criar cobranças e participar das que enviarem para você." %}{% endelement %}
 
   {% if not SOCIALACCOUNT_ONLY %}
     {% url 'account_signup' as action_url %}
@@ -17,11 +17,11 @@
         {{ redirect_field }}
       {% endslot %}
       {% slot actions %}
-        {% element button type="submit" tags="prominent,signup" %}Criar conta{% endelement %}
+        {% element button type="submit" tags="prominent,signup" %}{% translate "Criar conta" %}{% endelement %}
       {% endslot %}
     {% endelement %}
   {% endif %}
 
-  <p class="mt-5 border-t border-slate-100 pt-4 text-sm text-pixu-muted">Já tem uma conta? <a class="font-bold text-pixu-action underline underline-offset-2" href="{{ login_url }}">Entrar</a></p>
+  <p class="mt-5 border-t border-slate-100 pt-4 text-sm text-pixu-muted">{% translate "Já tem uma conta?" %} <a class="font-bold text-pixu-action underline underline-offset-2" href="{{ login_url }}">{% translate "Entrar" %}</a></p>
   {% if SOCIALACCOUNT_ENABLED %}{% include "socialaccount/snippets/login.html" with page_layout="entrance" %}{% endif %}
 {% endblock content %}

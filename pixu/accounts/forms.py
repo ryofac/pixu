@@ -1,3 +1,9 @@
+from allauth.account.forms import AddEmailForm
+from allauth.account.forms import ChangePasswordForm
+from allauth.account.forms import LoginForm
+from allauth.account.forms import ResetPasswordForm
+from allauth.account.forms import ResetPasswordKeyForm
+from allauth.account.forms import SetPasswordForm
 from allauth.account.forms import SignupForm
 from allauth.socialaccount.forms import SignupForm as SocialSignupForm
 from django import forms
@@ -33,6 +39,108 @@ class UserSignupForm(SignupForm):
     Default fields will be added automatically.
     Check UserSocialSignupForm for accounts created from social.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={
+                "email": _("E-mail"),
+                "username": _("Nome de usuário"),
+                "password1": _("Senha"),
+                "password2": _("Confirme a senha"),
+            },
+            placeholders={
+                "email": _("voce@exemplo.com"),
+                "username": _("Como você quer ser identificado?"),
+            },
+        )
+
+
+class UserLoginForm(LoginForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={
+                "login": _("Nome de usuário"),
+                "password": _("Senha"),
+                "remember": _("Continuar conectado"),
+            },
+            placeholders={"login": _("Nome de usuário")},
+        )
+        if "password" in self.fields:
+            self.fields["password"].help_text = ""
+
+
+class UserResetPasswordForm(ResetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={"email": _("E-mail da conta")},
+            placeholders={"email": _("voce@exemplo.com")},
+        )
+
+
+class UserChangePasswordForm(ChangePasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={
+                "oldpassword": _("Senha atual"),
+                "password1": _("Nova senha"),
+                "password2": _("Confirme a nova senha"),
+            },
+        )
+
+
+class UserSetPasswordForm(SetPasswordForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={
+                "password1": _("Nova senha"),
+                "password2": _("Confirme a nova senha"),
+            },
+        )
+
+
+class UserResetPasswordKeyForm(ResetPasswordKeyForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={
+                "password1": _("Nova senha"),
+                "password2": _("Confirme a nova senha"),
+            },
+        )
+
+
+class UserAddEmailForm(AddEmailForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_account_fields(
+            self,
+            labels={"email": _("Novo endereço de e-mail")},
+            placeholders={"email": _("voce@exemplo.com")},
+        )
+
+
+def _localize_account_fields(form, *, labels, placeholders=None):
+    placeholders = placeholders or {}
+    for name, label in labels.items():
+        field = form.fields.get(name)
+        if field is None:
+            continue
+        field.label = label
+        field.error_messages["required"] = _("Este campo é obrigatório.")
+        field.error_messages["invalid"] = _("Informe um valor válido.")
+        if name in placeholders:
+            field.widget.attrs["placeholder"] = placeholders[name]
 
 
 class UserSocialSignupForm(SocialSignupForm):

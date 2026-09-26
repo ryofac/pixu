@@ -21,7 +21,7 @@
         {% csrf_token %}
         <input type="hidden" name="expected_share_cents" value="{{ participation.share_cents }}">
         <input type="hidden" name="expected_creditor_id" value="{{ participation.charge.creditor_id }}">
-        <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-pixu-action px-4 py-2.5 font-bold text-white" type="submit">Aceitar participação</button>
+        <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-2.5 font-extrabold text-white shadow-md" type="submit">Aceitar participação</button>
       </form>
       <form class="flex-1" method="post" action="{% url 'charges:decline' participation.charge_id participation.pk %}" hx-post="{% url 'charges:decline' participation.charge_id participation.pk %}" hx-target="#invite-{{ participation.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
         {% csrf_token %}

@@ -1,4 +1,4 @@
-{% load charge_format form_fields %}
+{% load charge_format form_fields i18n %}
 <div id="charge-content">
   {% if status_message %}
     <p class="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed{% if status_is_error %} border-red-200 bg-red-50 text-pixu-danger{% else %} border-green-200 bg-green-50 text-pixu-success{% endif %}" role="{% if status_is_error %}alert{% else %}status{% endif %}" tabindex="-1" data-focus-after-swap>{{ status_message }}</p>
@@ -77,7 +77,7 @@
                 {% if row.form.replacement.errors %}<ul class="text-sm text-pixu-danger" id="{{ row.form.replacement.auto_id }}_errors" role="alert">{% for error in row.form.replacement.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
                 {% if row.form.non_field_errors %}<span class="text-sm text-pixu-danger" role="alert">{{ row.form.non_field_errors }}</span>{% endif %}
               </div>
-              <button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action px-4 py-3 font-bold text-white sm:min-w-40" type="submit">Enviar convite</button>
+              <button class="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 font-extrabold text-white shadow-md sm:min-w-40" type="submit">Enviar convite</button>
             </form>
           </article>
         {% endfor %}
@@ -87,7 +87,7 @@
     <article class="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div class="mb-2 flex items-center justify-between gap-3">
         <h2 class="text-lg font-extrabold text-pixu-ink">Participantes</h2>
-        <span class="text-xs font-bold text-pixu-muted">{{ participations|length }} pessoas</span>
+        <span class="text-xs font-bold text-pixu-muted">{% blocktranslate count people=participations|length %}{{ people }} pessoa{% plural %}{{ people }} pessoas{% endblocktranslate %}</span>
       </div>
       <div class="divide-y divide-slate-200">
         {% for participation in participations %}
@@ -102,4 +102,16 @@
       </div>
     </article>
   </div>
+
+  {% if debts %}
+    <div class="mt-5 grid gap-4 lg:mt-7">
+      <div>
+        <h2 class="text-xl font-extrabold text-pixu-ink">Pagamentos e saldos</h2>
+        <p class="mt-1 text-sm leading-relaxed text-pixu-muted">O saldo aberto só diminui depois da confirmação manual do recebedor.</p>
+      </div>
+      {% for debt in debts %}
+        {% include "settlements/partials/payment_state.html" %}
+      {% endfor %}
+    </div>
+  {% endif %}
 </div>

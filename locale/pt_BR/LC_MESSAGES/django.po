@@ -2,7 +2,6 @@
 # Copyright (C) 2026 Pixu Team
 # Pixu Team <dev@pixu.example>, 2026.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: 0.1.0\n"
@@ -11,6 +10,69 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+# django-allauth and Django form messages that can still be emitted by
+# built-in validators. Keep these translations in the project catalog so a
+# validation response never falls back to English in the pt-BR interface.
+msgid "Username"
+msgstr "Nome de usuário"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Password (again)"
+msgstr "Confirme a senha"
+
+msgid "Remember Me"
+msgstr "Continuar conectado"
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Current Password"
+msgstr "Senha atual"
+
+msgid "New Password"
+msgstr "Nova senha"
+
+msgid "New Password (again)"
+msgstr "Confirme a nova senha"
+
+msgid "This field is required."
+msgstr "Este campo é obrigatório."
+
+msgid "Enter a valid email address."
+msgstr "Informe um endereço de e-mail válido."
+
+msgid "Nenhum arquivo selecionado"
+msgstr "Nenhum arquivo selecionado"
+
+msgid "Clique para escolher um arquivo"
+msgstr "Clique para escolher um arquivo"
+
+msgid "Escolher arquivo"
+msgstr "Escolher arquivo"
+
+msgid "Escolher"
+msgstr "Escolher"
+
+msgid "Please enter a correct username and password. Note that both fields may be case-sensitive."
+msgstr "Informe um nome de usuário e uma senha corretos. Os dois campos podem diferenciar maiúsculas e minúsculas."
+
+msgid "The password is too similar to the username."
+msgstr "A senha é muito parecida com o nome de usuário."
+
+msgid "The password is too short. It must contain at least 8 characters."
+msgstr "A senha é muito curta. Ela deve ter pelo menos 8 caracteres."
+
+msgid "The password is too common."
+msgstr "A senha é muito comum."
+
+msgid "The password is entirely numeric."
+msgstr "A senha contém apenas números."
+
+msgid "Successfully signed in as %(name)s."
+msgstr "Login realizado como %(name)s."
 #: pixu/templates/account/account_inactive.html:5
 #: pixu/templates/account/account_inactive.html:8
 msgid "Account Inactive"

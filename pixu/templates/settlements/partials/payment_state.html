@@ -1,0 +1,78 @@
+{% load charge_format i18n %}
+<section id="debt-{{ debt.pk }}" class="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="debt-{{ debt.pk }}-title">
+  {% if status_message %}
+    <p class="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed{% if status_is_error %} border-red-200 bg-red-50 text-pixu-danger{% else %} border-green-200 bg-green-50 text-pixu-success{% endif %}" role="{% if status_is_error %}alert{% else %}status{% endif %}" tabindex="-1" data-focus-after-swap>{{ status_message }}</p>
+  {% endif %}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h3 class="break-words text-lg font-extrabold text-pixu-ink" id="debt-{{ debt.pk }}-title">
+        {% if debt.debtor_id == request.user.id %}{% translate "Você deve a" %} {{ debt.creditor.name|default:debt.creditor.username }}{% else %}{{ debt.debtor.name|default:debt.debtor.username }} {% translate "deve a você" %}{% endif %}
+      </h3>
+      <p class="mt-1 text-sm text-pixu-muted">{% translate "Dívida de" %} {{ debt.original_cents|brl_from_cents }}</p>
+    </div>
+    {% if debt.debtor_id == request.user.id and debt.creditor.pix_profile.pix_key %}
+      <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-pixu-ink">{% translate "Pix informado pelo recebedor" %}</span>
+    {% endif %}
+  </div>
+
+  <dl class="mt-4 grid gap-3 sm:grid-cols-3">
+    <div class="rounded-xl bg-slate-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Saldo aberto" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-ink">{{ debt.payment_balance.open_cents|brl_from_cents }}</dd></div>
+    <div class="rounded-xl bg-amber-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-pending">{% translate "Aguardando confirmação" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-pending">{{ debt.payment_balance.pending_cents|brl_from_cents }}</dd></div>
+    <div class="rounded-xl bg-green-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-success">{% translate "Pix confirmado" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-success">{{ debt.payment_balance.confirmed_cents|brl_from_cents }}</dd></div>
+  </dl>
+
+  {% if debt.debtor_id == request.user.id %}
+    {% if debt.creditor.pix_profile.pix_key %}
+      <p class="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink">Chave Pix do recebedor: <strong class="break-all">{{ debt.creditor.pix_profile.pix_key }}</strong>. Ela foi informada pelo titular; o Pixu não verifica a chave junto ao banco.</p>
+    {% else %}
+      <p class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-pixu-pending">O recebedor ainda não cadastrou uma chave Pix.</p>
+    {% endif %}
+    {% if charge.state == 'ACTIVE' and debt.payment_balance.available_cents > 0 %}
+      <a class="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-2.5 font-extrabold text-white no-underline shadow-md sm:w-auto" href="{% url 'settlements:record' debt.pk %}">Registrar pagamento</a>
+    {% endif %}
+  {% endif %}
+
+  {% if debt.payment_items %}
+    <div class="mt-5 border-t border-slate-100 pt-4">
+      <h4 class="mb-3 text-sm font-extrabold text-pixu-ink">Histórico de pagamentos</h4>
+      <div class="grid gap-3">
+        {% for payment in debt.payment_items %}
+          <article class="min-w-0 rounded-xl border border-slate-200 p-3" id="payment-{{ payment.pk }}">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <strong>{{ payment.amount_cents|brl_from_cents }}</strong>
+                <p class="text-xs text-pixu-muted">{{ payment.created_at|date:"d/m/Y H:i" }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</p>
+              </div>
+              <span class="rounded-full px-2.5 py-1 text-xs font-extrabold{% if payment.state == 'CONFIRMED' %} bg-green-100 text-pixu-success{% elif payment.state == 'REJECTED' %} bg-red-100 text-pixu-danger{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ payment.get_state_display }}</span>
+            </div>
+            {% if payment.receipt %}<a class="mt-2 inline-flex text-sm font-bold text-pixu-action" href="{% url 'settlements:receipt' payment.pk %}">Abrir comprovante privado</a>{% endif %}
+            {% if payment.state == 'PENDING' and payment.payer_id == request.user.id %}
+              {% if payment.receipt %}
+                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                  <form method="post" action="{% url 'settlements:receipt_delete' payment.pk %}" hx-post="{% url 'settlements:receipt_delete' payment.pk %}" hx-target="#debt-{{ debt.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
+                    {% csrf_token %}
+                    <button class="flex min-h-10 w-full items-center justify-center rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-bold text-pixu-danger" type="submit">Remover comprovante</button>
+                  </form>
+                </div>
+              {% endif %}
+              {% include "settlements/partials/receipt_form.html" with payment=payment form=payment.receipt_form %}
+            {% endif %}
+            {% if payment.state == 'PENDING' and payment.creditor_id == request.user.id %}
+              <p class="mt-3 text-sm leading-relaxed text-pixu-muted">Confirme somente depois de conferir o recebimento no seu banco.</p>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                <form method="post" action="{% url 'settlements:confirm' payment.pk %}" hx-post="{% url 'settlements:confirm' payment.pk %}" hx-target="#debt-{{ debt.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
+                  {% csrf_token %}
+                  <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-2.5 font-extrabold text-white shadow-md" type="submit">Confirmar recebimento</button>
+                </form>
+                <form method="post" action="{% url 'settlements:reject' payment.pk %}" hx-post="{% url 'settlements:reject' payment.pk %}" hx-target="#debt-{{ debt.pk }}" hx-swap="outerHTML" hx-disabled-elt="find button">
+                  {% csrf_token %}
+                  <button class="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-pixu-muted" type="submit">Rejeitar pagamento</button>
+                </form>
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</section>

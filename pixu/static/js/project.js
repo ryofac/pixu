@@ -39,3 +39,29 @@ document.body.addEventListener("input", (event) => {
       : "Nenhuma pessoa encontrada.";
   }
 });
+
+document.body.addEventListener("change", (event) => {
+  const input = event.target.closest("[data-file-input]");
+  if (!input) return;
+
+  const container = input.closest("[data-file-upload]");
+  const name = container?.querySelector("[data-file-name]");
+  if (!name) return;
+
+  const file = input.files?.[0];
+  name.textContent = file?.name || name.dataset.emptyLabel;
+  name.classList.toggle("text-pixu-ink", Boolean(file));
+  name.classList.toggle("text-pixu-muted", !file);
+});
+
+document.body.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-copy-text]");
+  if (!button || !navigator.clipboard) return;
+
+  await navigator.clipboard.writeText(button.dataset.copyText || "");
+  const original = button.textContent;
+  button.textContent = "Chave copiada";
+  window.setTimeout(() => {
+    button.textContent = original;
+  }, 1800);
+});
