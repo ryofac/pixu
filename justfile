@@ -40,3 +40,8 @@ manage +args:
 # pytest: Run tests with pytest.
 pytest *args:
     @docker compose run --rm django pytest {{args}}
+
+# e2e: Run Chromium browser tests in the isolated E2E container.
+e2e *args:
+    @npm run build
+    @docker compose run --build --rm e2e pytest -m e2e --browser chromium --output=test-results --tracing=retain-on-failure --screenshot=only-on-failure --video=retain-on-failure {{args}}

@@ -26,12 +26,23 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock:rw \
     uv sync --no-install-project
 
-COPY . ${APP_HOME}
+FROM python-build-stage AS e2e-browser-stage
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock:rw \
-    uv sync
+# Playwright browsers and their system libraries are present only in this target.
+ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH="/app/.venv/lib/python3.14/site-packages:$PYTHONPATH"
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN python -m playwright install --with-deps chromium
+
+FROM e2e-browser-stage AS e2e
+
+COPY . ${APP_HOME}
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked
+
+FROM python-build-stage AS local
+
+COPY . ${APP_HOME}
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked
 
 # devcontainer dependencies and utils
 RUN apt-get update && apt-get install --no-install-recommends -y \

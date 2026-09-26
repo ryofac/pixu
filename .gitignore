@@ -45,6 +45,8 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+/test-results/
+/playwright-report/
 
 # Translations
 *.mo

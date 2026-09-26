@@ -1,0 +1,39 @@
+name: E2E Chromium
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar just
+        uses: extractions/setup-just@v4
+
+      - name: Instalar dependências de assets
+        run: npm ci
+
+      - name: Executar testes de navegador
+        run: just e2e
+
+      - name: Publicar artefatos de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixu-e2e-failure-artifacts
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -10,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      target: local
     image: pixu_local_django
     container_name: pixu_local_django
     depends_on:
@@ -24,7 +25,8 @@ services:
         required: false
       - path: ./.envs/.local/.postgres
         required: false
-      - .env
+      - path: .env
+        required: false
     ports:
       - "8000:8000"
     command: /start
@@ -39,6 +41,46 @@ services:
       - garage
     ports: []
     command: /start-celeryworker
+
+  e2e-postgres:
+    image: docker.io/postgres:18
+    container_name: pixu_e2e_postgres
+    environment:
+      POSTGRES_DB: pixu_e2e
+      POSTGRES_USER: pixu_e2e
+      POSTGRES_PASSWORD: pixu_e2e
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pixu_e2e -d pixu_e2e"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  e2e:
+    build:
+      context: .
+      dockerfile: ./compose/local/django/Dockerfile
+      target: e2e
+    image: pixu_local_e2e
+    container_name: pixu_local_e2e
+    depends_on:
+      e2e-postgres:
+        condition: service_healthy
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DJANGO_DEBUG: "False"
+      DJANGO_ACCOUNT_ALLOW_REGISTRATION: "True"
+      # pytest-playwright's sync API runs an asyncio loop in the pytest thread.
+      # E2E tests are serial and the application uses synchronous Django views.
+      DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+      DATABASE_URL: postgres://pixu_e2e:pixu_e2e@e2e-postgres:5432/pixu_e2e
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      CELERY_TASK_ALWAYS_EAGER: "True"
+      CELERY_TASK_EAGER_PROPAGATES: "True"
+    volumes:
+      - /app/.venv
+      - .:/app:z
+    entrypoint: ["wait-for-it", "e2e-postgres:5432", "--strict", "--timeout=60", "--"]
+    command: ["pytest"]
 
   postgres:
     build:

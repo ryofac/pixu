@@ -49,6 +49,7 @@ dev = [
   "psycopg[c]==3.3.6",
   "pytest==9.1.1",
   "pytest-django==4.14.0",
+  "pytest-playwright==0.9.0",
   "pytest-sugar==1.1.1",
   "ruff==0.16.8",
   "sphinx==9.1.0",
@@ -149,12 +150,20 @@ addopts = [
   "--ds=config.settings.test",
   "--reuse-db",
   "--import-mode=importlib",
+  "-m",
+  "not e2e",
 ]
 minversion = "9.0"
 python_files = [
   "tests.py",
   "test_*.py",
 ]
+markers = ["e2e: testes de navegador com Chromium"]
+
+# pytest-playwright ainda declara python-slugify <9, embora os testes de
+# navegação usem apenas a API compatível; Pixu já fixa python-slugify 9.1.0.
+[tool.uv]
+override-dependencies = ["python-slugify==9.1.0"]
 
 # ==== Coverage ====
 [tool.coverage.run]

@@ -47,7 +47,10 @@ Comandos de manutenção disponíveis no `justfile`:
 just manage migrate
 just manage check
 just pytest
+just e2e
 ```
+
+`just pytest` mantém a suíte rápida sem abrir navegador. `just e2e` compila os assets, inicia um PostgreSQL descartável e executa os testes Chromium com Django em `config.settings.test`; os arquivos de banco, e-mail e comprovantes ficam isolados. Para depurar com navegador visível, acrescente `--headed` (ou `--headed --slowmo 250`). Falhas guardam trace, screenshot e vídeo em `test-results/`, ignorado pelo Git. Para repetir um cenário específico, informe o caminho do teste, por exemplo `just e2e tests/e2e/test_charges.py`.
 
 Para executar comandos Python fora do Docker:
 
