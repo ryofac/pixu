@@ -1,56 +1,82 @@
 {% extends "base.html" %}
+{% load form_fields %}
 
 {% block title %}Nova cobrança · Pixu{% endblock title %}
 
 {% block content %}
-  <section class="space-y-5 pt-2" aria-labelledby="page-title">
+  <section class="mx-auto max-w-6xl space-y-5 pt-2 lg:space-y-7 lg:pt-0" aria-labelledby="page-title">
     <div>
       <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline" href="{% url 'home' %}">‹ Cobranças</a>
       <h1 class="mb-2 text-2xl font-extrabold leading-tight text-pixu-ink" id="page-title">Nova cobrança</h1>
       <p class="text-sm leading-relaxed text-pixu-muted">Convide pessoas cadastradas e confira o rateio antes de criar.</p>
     </div>
 
-    <form class="space-y-4" method="post" novalidate>
+    <form id="charge-create-form" class="space-y-5" method="post" action="{% url 'charges:create' %}" hx-post="{% url 'charges:preview' %}" hx-trigger="input changed delay:300ms from:input[name=total], change from:input[name=invitees], change from:input[name=include_creator]" hx-target="#share-preview" hx-swap="innerHTML" hx-sync="this:replace" novalidate>
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
 
-      <div class="grid gap-2">
-        <label class="text-sm font-bold text-pixu-ink" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
-        {{ form.title }}
-        {% for error in form.title.errors %}<span class="text-sm text-pixu-danger">{{ error }}</span>{% endfor %}
-      </div>
-      <div class="grid gap-2">
-        <label class="text-sm font-bold text-pixu-ink" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
-        {{ form.description }}
-        {% for error in form.description.errors %}<span class="text-sm text-pixu-danger">{{ error }}</span>{% endfor %}
-      </div>
-      <div class="grid gap-2">
-        <label class="text-sm font-bold text-pixu-ink" for="{{ form.total.id_for_label }}">{{ form.total.label }}</label>
-        {{ form.total }}
-        <span class="text-xs leading-relaxed text-pixu-muted">Use reais e centavos, por exemplo: 150,00.</span>
-        {% for error in form.total.errors %}<span class="text-sm text-pixu-danger">{{ error }}</span>{% endfor %}
-      </div>
-
-      <fieldset class="grid gap-2 border-0 p-0">
-        <legend class="text-sm font-bold text-pixu-ink">{{ form.invitees.label }}</legend>
-        {% if form.invitees.field.queryset %}
-          <div class="grid grid-cols-2 gap-2.5">
-            {% for checkbox in form.invitees %}
-              <label class="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold has-checked:border-sakura-5 has-checked:bg-[#fff7f8]">
-                {{ checkbox.tag }}<span class="break-words">{{ checkbox.choice_label }}</span>
-              </label>
-            {% endfor %}
+      <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)] lg:gap-7">
+        <div class="grid gap-4 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <div class="grid gap-2">
+            <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+            {% render_accessible_field form.title %}
+            {% if form.title.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.title.auto_id }}_errors" role="alert">{% for error in form.title.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
           </div>
-        {% else %}
-          <p class="text-xs leading-relaxed text-pixu-muted">Não há outras contas ativas para convidar.</p>
-        {% endif %}
-        {% for error in form.invitees.errors %}<span class="text-sm text-pixu-danger">{{ error }}</span>{% endfor %}
-      </fieldset>
+          <div class="grid gap-2">
+            <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+            {% render_accessible_field form.description %}
+            {% if form.description.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.description.auto_id }}_errors" role="alert">{% for error in form.description.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="grid gap-2">
+            <label for="{{ form.total.id_for_label }}">{{ form.total.label }}</label>
+            {% render_accessible_field form.total %}
+            <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.total.auto_id }}_help">{{ form.total.help_text }}</span>
+            {% if form.total.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.total.auto_id }}_errors" role="alert">{% for error in form.total.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="grid gap-2">
+            <label for="{{ form.creditor.id_for_label }}">{{ form.creditor.label }}</label>
+            {% render_accessible_field form.creditor %}
+            <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.creditor.auto_id }}_help">{{ form.creditor.help_text }}</span>
+            {% if form.creditor.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.creditor.auto_id }}_errors" role="alert">{% for error in form.creditor.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+          <div class="grid gap-2 rounded-xl border border-slate-200 p-3">
+            <label class="flex min-h-11 items-center gap-3" for="{{ form.include_creator.id_for_label }}">{% render_accessible_field form.include_creator %} {{ form.include_creator.label }}</label>
+            <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.include_creator.auto_id }}_help">{{ form.include_creator.help_text }}</span>
+          </div>
+        </div>
 
-      <div class="rounded-xl border border-sakura-1 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">Você participa automaticamente e recebe os pagamentos. A cobrança só fica ativa quando todos os convites atuais forem aceitos.</div>
-      <div class="flex gap-3 pt-2">
-        <a class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-center font-bold text-pixu-muted no-underline" href="{% url 'home' %}">Voltar</a>
-        <button class="flex min-h-12 flex-[2] items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 font-extrabold text-white shadow-md" type="submit">Criar cobrança</button>
+        <div class="grid content-start gap-4 lg:sticky lg:top-24">
+          <fieldset class="grid gap-2 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-6"{% if form.invitees.errors %} aria-describedby="{{ form.invitees.auto_id }}_errors"{% endif %}>
+            <legend class="px-1">{{ form.invitees.label }}</legend>
+            {% if form.invitees.field.queryset %}
+              <div class="grid gap-2">
+                <label for="invitee-search">Buscar pessoa</label>
+                <input id="invitee-search" type="search" autocomplete="off" placeholder="Nome ou usuário" data-invitee-search>
+                <p class="text-xs text-pixu-muted" data-invitee-search-status aria-live="polite">{{ form.invitees.field.queryset|length }} pessoas disponíveis.</p>
+              </div>
+              <div class="grid gap-2.5 sm:grid-cols-2">
+                {% for checkbox in form.invitees %}
+                  <label class="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm has-checked:border-sakura-5 has-checked:bg-[#fff7f8]" data-invitee-option>
+                    {{ checkbox.tag }}<span class="break-words">{{ checkbox.choice_label }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="text-xs leading-relaxed text-pixu-muted">Não há outras contas ativas para convidar.</p>
+            {% endif %}
+            {% if form.invitees.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.invitees.auto_id }}_errors" role="alert">{% for error in form.invitees.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </fieldset>
+          <div id="share-preview" aria-live="polite">
+            {% include "charges/partials/share_preview.html" %}
+          </div>
+          <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-white px-4 py-2.5 font-bold text-pixu-action" type="submit" name="intent" value="preview" hx-post="{% url 'charges:preview' %}" hx-trigger="click" hx-include="closest form" hx-disabled-elt="this">Conferir cotas · dividir igualmente</button>
+          <div class="rounded-xl border border-sakura-1 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">Você continua responsável pela cobrança mesmo sem participar do rateio. A cobrança só fica ativa quando todos os convites atuais forem aceitos.</div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-3 pt-1 sm:flex-row sm:justify-end">
+        <a class="flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-bold text-pixu-muted no-underline sm:min-w-36" href="{% url 'home' %}">Voltar</a>
+        <button class="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-5 py-3 font-extrabold text-white shadow-md sm:min-w-52" type="submit">Criar cobrança</button>
       </div>
     </form>
   </section>

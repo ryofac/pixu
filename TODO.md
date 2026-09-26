@@ -22,20 +22,30 @@ Este arquivo acompanha o roadmap geral. A mudança atual do OpenSpec é `bootstr
 - [x] Documentar estados de aceite, pagamento pendente/confirmado/rejeitado e compensação.
 - [x] Criar protótipo navegável com dados fictícios.
 - [x] Registrar decisões visuais, componentes e textos em `docs/product-design.md` e revisar as referências de `docs/design/`.
-- [ ] Revisar/aprovar o protótipo e confirmar compreensão dos estados antes das telas Django.
-- [ ] Definir o escopo offline-first: leitura sem rede, rascunhos locais e se aceite/recusa de convites pode entrar em fila de sincronização.
-- [ ] Validar se “Pix pendente”, “saldo aberto” e “compensado” são compreendidos sem explicação.
+- [x] Revisar o protótipo e incorporar o retorno do usuário: desktop tem navegação lateral e composição própria; celular mantém navegação inferior.
+- [x] Definir esta versão como online, sem cache pessoal nem fila offline para aceite/recusa.
+- [ ] Validar com usuários se “Pix pendente”, “saldo aberto” e “compensado” são compreendidos sem explicação.
 
 ## OpenSpec — `bootstrap-pixu-and-charges`
 
 - [x] Fechar o escopo conforme R01–R02, R04–R06 e R16–R17 do briefing atualizado.
 - [x] Criar `proposal.md`, specs de `accounts` e `charges`, `design.md` e `tasks.md` com critérios verificáveis.
 - [x] Validar os artefatos com `openspec validate bootstrap-pixu-and-charges --strict`.
-- [ ] Revisar/aprovar os artefatos antes de iniciar implementação.
-- [ ] Aplicar a mudança e validar seus cenários após aprovação explícita do plano.
+- [x] Revisar os artefatos e receber instrução explícita para continuar a implementação.
+- [ ] Concluir implementação e validação dos cenários da mudança atual.
 
 ## Próximos lotes, conforme o briefing
 
 - [ ] Planejar e implementar `record-and-confirm-pix` (R03, R07–R10, R14, R16).
 - [ ] Planejar e implementar `offset-reciprocal-debts` (R11–R14).
-- [ ] Planejar e implementar `complete-product-experience` (R01–R03, R15–R17).
+- [ ] Planejar e implementar `complete-product-experience` (R01–R03, R15–R17), incluindo tema escuro conforme o backlog abaixo.
+
+## Tema escuro — backlog de `complete-product-experience`
+
+**Estado:** mapeado, não implementado. Contrato de experiência e critérios de aceite em [product-design, seção 2.4](docs/product-design.md#24-temas-claro-escuro-e-sistema--planejado). Ao planejar `complete-product-experience`, incorporar os itens abaixo aos seus artefatos OpenSpec, preservando os identificadores para rastreabilidade. Estes itens não integram a contagem de tarefas de `bootstrap-pixu-and-charges`.
+
+- [ ] TEMA-01 — Definir e registrar tokens semânticos para os temas claro e escuro: fundo, superfícies, texto, bordas, ações, foco e estados. Revisar contraste e apresentação da marca provisória nos dois temas antes de implementar as telas.
+- [ ] TEMA-02 — Implementar seletor acessível **Claro / Escuro / Sistema**, disponível antes e depois do login, com **Sistema** como padrão. Salvar somente a preferência visual no navegador; respeitar mudanças do sistema quando essa opção estiver ativa, aplicar a escolha antes da primeira pintura e manter fallback utilizável sem JavaScript ou armazenamento local.
+- [ ] TEMA-03 — Adaptar entrada pública, login, cadastro, confirmação, recuperação, perfil e formulários compartilhados aos dois temas, incluindo ajuda, erros, estados desabilitados e foco visível.
+- [ ] TEMA-04 — Adaptar navegação, cobranças, convites, detalhes e as telas de pagamentos/dashboard disponíveis naquele lote. Verificar que fragmentos HTMX novos herdam o tema vigente e que alternar tema preserva dados digitados e o estado da página.
+- [ ] TEMA-05 — Validar claro/escuro/sistema em celular e desktop: contraste, teclado, recarga, navegação entre páginas, preferência salva, mudança de aparência do sistema, ausência de flash do tema incorreto e fallback com armazenamento indisponível. Registrar evidências no checklist OpenSpec do lote antes de marcá-lo concluído.

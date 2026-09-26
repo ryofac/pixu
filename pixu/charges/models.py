@@ -7,6 +7,9 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+CHARGE_TITLE_MAX_LENGTH = 120
+CHARGE_DESCRIPTION_MAX_LENGTH = 1000
+
 
 class Charge(models.Model):
     class State(models.TextChoices):
@@ -17,10 +20,20 @@ class Charge(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="created_charges",
-        verbose_name=_("criador e recebedor"),
+        verbose_name=_("criador"),
     )
-    title = models.CharField(_("título"), max_length=120)
-    description = models.TextField(_("descrição"), blank=True, max_length=1000)
+    creditor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="receivable_charges",
+        verbose_name=_("recebedor"),
+    )
+    title = models.CharField(_("título"), max_length=CHARGE_TITLE_MAX_LENGTH)
+    description = models.TextField(
+        _("descrição"),
+        blank=True,
+        max_length=CHARGE_DESCRIPTION_MAX_LENGTH,
+    )
     total_cents = models.PositiveBigIntegerField(_("valor total em centavos"))
     state = models.CharField(
         _("estado"),
@@ -28,7 +41,11 @@ class Charge(models.Model):
         default=State.AWAITING_ACCEPTANCE,
         max_length=24,
     )
-    created_at = models.DateTimeField(_("criada em"), default=timezone.now, editable=False)
+    created_at = models.DateTimeField(
+        _("criada em"),
+        default=timezone.now,
+        editable=False,
+    )
     locked_at = models.DateTimeField(_("bloqueada em"), null=True, blank=True)
 
     class Meta:
@@ -75,7 +92,11 @@ class Participation(models.Model):
         default=State.PENDING,
         max_length=12,
     )
-    invited_at = models.DateTimeField(_("convidada em"), default=timezone.now, editable=False)
+    invited_at = models.DateTimeField(
+        _("convidada em"),
+        default=timezone.now,
+        editable=False,
+    )
     accepted_at = models.DateTimeField(_("aceita em"), null=True, blank=True)
     declined_at = models.DateTimeField(_("recusada em"), null=True, blank=True)
 
@@ -123,7 +144,11 @@ class Debt(models.Model):
         verbose_name=_("recebedor"),
     )
     original_cents = models.PositiveBigIntegerField(_("valor original em centavos"))
-    created_at = models.DateTimeField(_("criada em"), default=timezone.now, editable=False)
+    created_at = models.DateTimeField(
+        _("criada em"),
+        default=timezone.now,
+        editable=False,
+    )
 
     class Meta:
         ordering = ["-created_at", "-pk"]

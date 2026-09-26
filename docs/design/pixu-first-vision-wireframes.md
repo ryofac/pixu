@@ -5,23 +5,23 @@
 
 Este documento traduz os requisitos R01–R06 em jornadas e wireframes. O brief e os artefatos OpenSpec continuam sendo a fonte normativa das regras. Os pagamentos Pix e as compensações aparecem apenas como estados futuros descritos no brief; não fazem parte das telas implementadas nesta mudança.
 
-Os wireframes priorizam o celular e usam navegação inferior. Eles não especificam nem demonstram funcionamento offline; a política de dados em cache e sincronização segue pendente.
+Os wireframes mostram uma estrutura para celular e outra para desktop. A primeira versão exige conexão para consultar dados e executar ações; não há cache offline ou fila de sincronização.
 
 ## 1. Jornada do criador
 
 1. Cria conta com e-mail, nome de usuário e senha.
 2. Confirma o e-mail pelo link enviado pelo ambiente.
 3. Entra e, se quiser, cadastra a chave Pix fornecida por ele no perfil.
-4. Abre “Nova cobrança”, informa título e total, e seleciona contas já cadastradas.
-5. Confere a prévia: sua própria participação mais a cota de cada convidado. O centavo residual segue a ordem estável por identificador persistente.
+4. Abre “Nova cobrança”, informa título e total, escolhe quem recebe (inicialmente ele mesmo), decide se participa do rateio e seleciona contas já cadastradas.
+5. Confere e edita as cotas na prévia. A divisão inicial inclui somente as pessoas selecionadas; o centavo residual segue a ordem estável por identificador persistente. “Conferir cotas” funciona também sem JavaScript.
 6. Confirma a cobrança. Os participantes convidados recebem convites pendentes e nenhuma dívida entra nos saldos enquanto faltar aceite.
-7. Acompanha as respostas. Pode substituir uma participação recusada antes da primeira operação financeira e ajustar somente cotas ainda pendentes e a própria cota.
+7. Acompanha as respostas. Pode substituir uma participação recusada antes da primeira operação financeira e ajustar somente cotas ainda pendentes e a própria cota. Pode trocar o recebedor até o aceite de outra pessoa, antes de operação financeira.
 
 ## 2. Jornada do participante
 
 1. Entra na conta e abre “Convites”.
-2. Confere o título, o valor total, os participantes e a própria cota.
-3. Aceita ou recusa. Recusar não cria dívida. Aceitar cria uma dívida uma única vez.
+2. Confere o título, o valor total, o recebedor, os participantes e a própria cota.
+3. Aceita ou recusa. Recusar não cria dívida. Aceitar cria uma dívida uma única vez, exceto para o próprio recebedor. Se cota ou recebedor mudar enquanto o convite estiver aberto, a tela exige nova conferência antes do aceite.
 4. Enquanto algum convite atual estiver pendente, a cobrança permanece aguardando aceite. Após o último aceite e a conferência do total das cotas, ela fica ativa.
 
 ## 3. Wireframes
@@ -40,13 +40,16 @@ Os wireframes priorizam o celular e usam navegação inferior. Eles não especif
 │ [ Encontro na casa da Ana   ] │
 │ Valor total                   │
 │ [ R$ 150,00                 ] │
+│ Quem recebe                  │
+│ [ Ryan                     ▾] │
+│ [x] Também participo          │
 │ Convidar pessoas              │
 │ [ ] Ana          [ ] Bruno   │
 │                               │
 │ Prévia do rateio              │
-│ Ryan (criador)       R$ 50,00 │
-│ Ana · pendente       R$ 50,00 │
-│ Bruno · pendente     R$ 50,00 │
+│ Ryan (criador)     [ 50,00 ]  │
+│ Ana · pendente     [ 50,00 ]  │
+│ Bruno · pendente   [ 50,00 ]  │
 │ Total                R$ 150,00│
 │                               │
 │ [     Criar cobrança       ]  │
@@ -64,6 +67,7 @@ Os wireframes priorizam o celular e usam navegação inferior. Eles não especif
 |                               |
 | Churrasco de sábado           |
 | Criada por Ryan               |
+| Quem recebe: Ryan             |
 | Total da cobrança  R$ 150,00  |
 | Sua cota            R$ 50,00  |
 |                               |
@@ -105,9 +109,38 @@ Os wireframes priorizam o celular e usam navegação inferior. Eles não especif
 └───────────────────────────────┘
 ```
 
-### 3.4 Telas maiores
+### 3.4 Cobranças — desktop
 
-O conteúdo permanece centralizado em uma coluna confortável. A navegação inferior pode ter largura contida e alinhada ao conteúdo; não se converte em sidebar.
+```text
+┌────────────────────────┬───────────────────────────────────────────────────────┐
+│ PiXu                   │ Cobranças                         Ryan · Perfil      │
+│                        ├───────────────────────────────────────────────────────┤
+│ ▣ Cobranças            │ Organize despesas compartilhadas.   [Nova cobrança] │
+│ ✉ Convites         2   │                                                       │
+│                        │ ┌──────────────────────┐ ┌──────────────────────┐   │
+│                        │ │ Churrasco de sábado  │ │ Viagem de domingo    │   │
+│                        │ │ Ativa                │ │ Aguardando aceite    │   │
+│                        │ │ Total   R$ 150,00    │ │ Total    R$ 90,00    │   │
+│                        │ │ Sua cota R$ 50,00    │ │ Sua cota R$ 30,00    │   │
+│                        │ └──────────────────────┘ └──────────────────────┘   │
+│                        │                                                       │
+│                        │ ┌──────────────────────┐ ┌──────────────────────┐   │
+│                        │ │ ...                  │ │ ...                  │   │
+│                        │ └──────────────────────┘ └──────────────────────┘   │
+│                        │                                                       │
+│ 👤 Perfil              │                                                       │
+└────────────────────────┴───────────────────────────────────────────────────────┘
+```
+
+Em `lg`, a navegação muda para uma coluna lateral fixa, o conteúdo ocupa o espaço restante e listas usam mais colunas quando houver largura. A página não simula um telefone. O breakpoint vem das variantes nativas do Tailwind.
+
+### 3.5 Detalhe e formulários — desktop
+
+No detalhe, resumo da cobrança e participantes aparecem lado a lado; ações de aceite ficam junto ao resumo. A criação da cobrança mantém título, descrição e valor agrupados, com convidados e prévia em uma coluna adjacente. Formulários de perfil e autenticação ficam centralizados com largura máxima legível.
+
+### 3.6 Celular
+
+No celular, todas as telas permanecem em uma coluna, com cabeçalho compacto, botões empilhados quando necessário e navegação inferior fixa. Conteúdo e ações recebem espaço inferior para não ficarem encobertos.
 
 ## 4. Matriz de estados
 
@@ -122,6 +155,8 @@ O conteúdo permanece centralizado em uma coluna confortável. A navegação inf
 | Cobrança | Ativa | Todas as participações atuais foram aceitas e as cotas fecham o total | Pagamentos pertencem a uma mudança posterior |
 | Cota | Editável | Cotas próprias e de participações pendentes | Criador pode ajustar antes de aceite/operação |
 | Cota | Imutável | Cota aceita ou cobrança bloqueada por operação financeira | Não pode alterar nesta versão |
+| Recebedor | Editável | Conta selecionada, inicialmente o criador | Criador altera antes de aceite de outra pessoa e operação financeira |
+| Recebedor | Imutável | Aceite de outra pessoa ou cobrança bloqueada | Preservar quem foi indicado para receber |
 
 ## 5. Estados financeiros planejados para telas futuras
 

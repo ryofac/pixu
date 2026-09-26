@@ -23,13 +23,14 @@
   html {
     min-width: 320px;
     min-height: 100%;
-    background: #090909;
+    background: #fff4f3;
   }
 
   body {
     min-width: 320px;
     min-height: 100dvh;
     margin: 0;
+    background: #fff4f3;
     font-family: var(--font-app);
   }
 

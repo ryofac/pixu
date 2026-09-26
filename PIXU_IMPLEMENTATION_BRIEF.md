@@ -22,7 +22,7 @@ Construir uma aplicação web utilizável para dividir despesas entre amigos e a
 | Frontend obrigatório | **HTMX para interações dinâmicas e Tailwind CSS instalado, configurado e compilado dentro do projeto.** O Tailwind não pode depender de CDN em desenvolvimento nem na entrega. |
 | Processo de design | Definir fluxos, estados, wireframes e componentes antes de implementar visualmente as telas em Django. Registrar as decisões em `docs/product-design.md`. |
 | Identidade | Cadastro, login, recuperação de senha e edição de perfil/chave Pix reais via Django auth e funcionalidades associadas. Contas de exemplo existem apenas em fixtures locais e testes. |
-| Cobrança | O criador é o único recebedor; a divisão igualitária inclui sua própria cota; pode editar os valores antes de operações financeiras. |
+| Cobrança | Um recebedor selecionável por cobrança, inicialmente o criador. A participação do criador no rateio é opcional, marcada por padrão. Cotas podem ser ajustadas na criação e, depois, conforme aceites e bloqueios. |
 | Participação | O criador convida usuários cadastrados por identificador; o destinatário vê o convite na aplicação e aceita antes de assumir a dívida. |
 | Pagamento | Transferência Pix é feita fora do Pixu. O pagador registra valor e pode anexar comprovante privado; o recebedor confirma ou rejeita. |
 | Confirmação | A primeira versão exige confirmação explícita do recebedor. Confirmação automática só poderá ser adicionada em uma mudança posterior baseada em verificação real. |
@@ -37,7 +37,7 @@ O Pixu registra obrigações e pagamentos informados pelas pessoas, sem moviment
 ## 2. Linguagem do domínio
 
 - **Cobrança (`Charge`):** descrição da despesa coletiva, valor total e único recebedor. Não equivale ao saldo de uma pessoa.
-- **Participação (`Participation`):** pessoa selecionada, sua cota e aceite. A participação do criador é automaticamente aceita, sem dívida contra si mesmo.
+- **Participação (`Participation`):** pessoa selecionada, sua cota e aceite. Se incluída, a participação do criador é automaticamente aceita. Ninguém deve a si mesmo; se o recebedor for outra pessoa, o criador participante também tem uma dívida.
 - **Dívida (`Debt`):** obrigação de um usuário pagar a outro por uma participação aceita. Existe uma dívida separada para cada participante pagador.
 - **Pagamento (`Payment`):** registro de um Pix informado pelo pagador, vinculado a uma dívida. Só reduz saldo após confirmação explícita do recebedor; o comprovante anexado ajuda na conferência, mas não valida o Pix sozinho.
 - **Compensação (`Compensation`):** evento que reduz, em igual quantia, duas dívidas abertas em sentidos opostos. Não é Pix e não transfere dinheiro.
@@ -51,7 +51,7 @@ Os identificadores `Rxx` são estáveis para rastrear requisitos, testes e taref
 
 ### 3.1 Identidade e participação
 
-**R01 — Contas e acesso.** Uma pessoa DEVE poder criar conta, entrar, sair, recuperar acesso por e-mail configurado e editar sua chave Pix. O sistema DEVE exigir login para cobranças, saldos e comprovantes. Usuários só DEVEM acessar cobranças de que são criadores ou participantes. Ações de confirmar/rejeitar Pix são exclusivas do recebedor; aceitar/recusar convite, registrar Pix e aceitar compensação são exclusivas do próprio participante. A autorização DEVE ser validada no servidor em toda requisição HTMX ou convencional.
+**R01 — Contas e acesso.** Uma pessoa DEVE poder criar conta, entrar, sair, recuperar acesso por e-mail configurado e editar sua chave Pix. O sistema DEVE exigir login para cobranças, saldos e comprovantes. Usuários só DEVEM acessar cobranças de que são criadores, recebedores ou participantes. Ações de confirmar/rejeitar Pix são exclusivas do recebedor; aceitar/recusar convite, registrar Pix e aceitar compensação são exclusivas do próprio participante. A autorização DEVE ser validada no servidor em toda requisição HTMX ou convencional.
 
 **R02 — Convite interno e aceite.** O criador escolhe contas já registradas; cada destinatário recebe uma participação `PENDING` visível em “Convites”. Ele pode aceitar ou recusar. Aceitar gera sua dívida exatamente uma vez; repetir aceite não duplica nada. Até que todos os convidados ativos aceitem, a cobrança permanece `AWAITING_ACCEPTANCE`, suas dívidas não entram nos totais e ninguém pode pagar ou compensar. Em caso de recusa, o criador pode substituir o destinatário e ajustar cotas ainda não aceitas antes da primeira operação financeira. A cobrança só fica `ACTIVE` depois de todos os aceites e a soma das cotas continuar igual ao total.
 
@@ -59,11 +59,11 @@ Os identificadores `Rxx` são estáveis para rastrear requisitos, testes e taref
 
 ### 3.2 Cobrança e divisão
 
-**R04 — Criação.** Um usuário autenticado DEVE poder criar cobrança com título, descrição opcional, valor positivo em centavos e participantes existentes. O criador é incluído automaticamente e é o único recebedor. O mesmo usuário não pode ser incluído duas vezes.
+**R04 — Criação.** Um usuário autenticado DEVE poder criar cobrança com título, descrição opcional, valor positivo em centavos e participantes existentes. O recebedor é uma conta ativa selecionável, inicialmente o criador, e não precisa participar do rateio. O criador pode desmarcar sua participação; continua sendo o autor e responsável por editar a cobrança. Deve existir ao menos um participante e o mesmo usuário não pode ser incluído duas vezes.
 
-**R05 — Divisão igualitária.** A divisão padrão DEVE incluir o criador, preservar o total exato e produzir cotas inteiras em centavos. Para centavos residuais, usar uma ordem determinística estável entre participantes e mostrar as cotas antes de confirmar. A cota do criador NÃO gera dívida contra ele mesmo.
+**R05 — Divisão igualitária.** A divisão padrão DEVE considerar somente as pessoas incluídas no rateio, preservar o total exato e produzir cotas inteiras em centavos. Para centavos residuais, usar uma ordem determinística estável entre participantes e mostrar as cotas antes de confirmar. Uma participação do recebedor NÃO gera dívida contra ele mesmo. A participação do criador é aceita ao criar e gera dívida se o recebedor for outra pessoa.
 
-**R06 — Edição manual.** Antes de qualquer pagamento registrado ou compensação executada, o criador pode editar cotas de participações ainda pendentes e sua própria cota; a soma das cotas DEVE ser exatamente o total e nenhuma cota pode ser negativa. Depois do aceite, a cota daquele participante fica imutável, ainda que as cotas pendentes possam ser ajustadas. O formulário deve impedir combinações que não fechem o total. Para mudar uma cota já aceita será necessário criar outra cobrança nesta versão.
+**R06 — Edição manual.** Na criação, o criador pode ajustar todas as cotas. Antes de qualquer pagamento registrado ou compensação executada, pode editar cotas de participações ainda pendentes e sua própria cota; a soma das cotas DEVE ser exatamente o total e nenhuma cota pode ser negativa. Depois do aceite de outra pessoa, a cota dela fica imutável, ainda que as cotas pendentes possam ser ajustadas. O recebedor pode ser alterado apenas antes de qualquer aceite de outra pessoa e antes de operação financeira. Se a edição afetar a dívida do próprio criador, essa dívida é sincronizada na mesma transação. O formulário deve impedir combinações que não fechem o total. Para mudar uma cota já aceita por outra pessoa ou seu recebedor será necessário criar outra cobrança nesta versão.
 
 **R07 — Bloqueio.** Desde o primeiro pagamento registrado, inclusive pendente, ou da primeira compensação aplicada, a cobrança DEVE bloquear alteração de valor total, participantes e cotas. Esse bloqueio é definitivo nesta versão, mesmo que o pagamento seja rejeitado, para manter o histórico coerente.
 
@@ -93,6 +93,8 @@ Os identificadores `Rxx` são estáveis para rastrear requisitos, testes e taref
 
 **R17 — Frontend e design.** A interface DEVE usar **Django templates + HTMX + Tailwind CSS configurado no repositório**. O build local do Tailwind DEVE gerar CSS para desenvolvimento e para a entrega, incluindo as classes usadas em páginas e fragmentos HTMX. NÃO usar Tailwind por CDN como solução do projeto. As decisões de navegação, estados, linguagem visual e componentes DEVEM constar em `docs/product-design.md` antes da implementação das telas. HTMX não pode substituir validação ou autorização no servidor.
 
+No lote `complete-product-experience`, R17 também DEVE incluir temas Claro/Escuro/Sistema, com Sistema como padrão, preferência visual persistida no navegador, cobertura das páginas e fragmentos HTMX e validação de legibilidade em celular e desktop. O contrato e os critérios de aceite ficam na seção 2.4 de `docs/product-design.md`; o backlog rastreável está em `TODO.md` (`TEMA-01` a `TEMA-05`). Esse trabalho está planejado e não integra a entrega de `bootstrap-pixu-and-charges`.
+
 ## 4. Cenários Given / When / Then de referência
 
 1. **Divisão:** dado Ryan, Ana e Bruno e cobrança de R$ 150,00, quando Ryan confirma a divisão igual, então cada cota é R$ 50,00; depois dos aceites de Ana e Bruno a cobrança fica `ACTIVE` e existem apenas Ana→Ryan R$ 50,00 e Bruno→Ryan R$ 50,00.
@@ -120,9 +122,9 @@ Os identificadores `Rxx` são estáveis para rastrear requisitos, testes e taref
 | Entidade | Campos essenciais | Restrições |
 | --- | --- | --- |
 | `User`/`PixProfile` | usuário Django, e-mail para recuperação, chave Pix cadastrada | Exposição da chave apenas a quem participa de uma obrigação de pagamento; uma chave principal por usuário nesta versão. |
-| `Charge` | criador/recebedor, título, descrição, total_centavos, estado, criado_em, bloqueado_em | Total > 0; recebedor = criador; `AWAITING_ACCEPTANCE` até todos os aceites, depois `ACTIVE`; bloquear edição após a primeira operação. |
+| `Charge` | criador, recebedor, título, descrição, total_centavos, estado, criado_em, bloqueado_em | Total > 0; um recebedor, inicialmente o criador; `AWAITING_ACCEPTANCE` até todos os aceites, depois `ACTIVE`; bloquear edição após a primeira operação. |
 | `Participation` | cobrança, usuário, cota_centavos, estado (`PENDING`, `ACCEPTED`, `DECLINED`), aceito_em | Unicidade `(charge, user)` para participações ativas; soma das cotas válidas = total ao ativar a cobrança. Convite recusado não gera dívida. |
-| `Debt` | participação, devedor, recebedor, valor_original_centavos | Uma por participação aceita que não seja do criador; devedor ≠ recebedor; identidade estável. |
+| `Debt` | participação, devedor, recebedor, valor_original_centavos | Uma por participação aceita que não seja do recebedor; devedor ≠ recebedor; identidade estável após aceite de outra pessoa ou operação financeira. |
 | `Payment` | dívida, pagador, recebedor, valor_centavos, estado, referência_texto, comprovante_privado, confirmado_por, criado_em, confirmado_em | Valor > 0; `PENDING` reserva; `CONFIRMED` liquida; `REJECTED` libera. Um pagamento registrado se refere a uma dívida. |
 | `Compensation` | dívida_alvo, dívida_inversa, valor_centavos, iniciado_por, criado_em | Dívidas opostas e distintas; valor > 0; dois saldos reduzidos atomicamente. |
 
@@ -186,7 +188,7 @@ Uma mudança por vez. O agente deve criar os artefatos, revisar suas contradiç�
 | 1 | `bootstrap-pixu-and-charges` | Cadastro, login, recuperação de senha, criação e rateio de cobrança, convites internos, aceites/recusas, ativação, dívidas e testes; Tailwind configurado nos templates iniciais. | R01–R02, R04–R06, R16–R17 |
 | 2 | `record-and-confirm-pix` | Perfil e chave Pix, Pix parcial, anexo privado opcional, reserva, confirmação manual, rejeição, status e bloqueio de edição. | R03, R07–R10, R14, R16 |
 | 3 | `offset-reciprocal-debts` | Sugestão, aceite e compensação transacional de dívidas recíprocas, sem carteira virtual. | R11–R14 |
-| 4 | `complete-product-experience` | Dashboard, convites, histórico e telas HTMX responsivas; fluxo integral percorrido com contas recém-criadas e sem intervenção no banco. | R01–R03, R15–R17 |
+| 4 | `complete-product-experience` | Dashboard, convites, histórico e telas HTMX responsivas; temas Claro/Escuro/Sistema com preferência persistida e validação visual; fluxo integral percorrido com contas recém-criadas e sem intervenção no banco. | R01–R03, R15–R17 |
 
 ### 8.1 Critério de conclusão de cada mudança
 

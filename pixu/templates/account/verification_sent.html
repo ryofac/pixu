@@ -1,0 +1,11 @@
+{% extends "account/base_entrance.html" %}
+
+{% load allauth i18n %}
+
+{% block head_title %}Confirme seu e-mail{% endblock head_title %}
+
+{% block content %}
+  {% element h1 %}Confira seu e-mail{% endelement %}
+  {% element p %}Enviamos uma mensagem para confirmar seu endereço. Abra o link nela para concluir o cadastro. Se não encontrar a mensagem, verifique também a pasta de spam.{% endelement %}
+  <a class="inline-flex min-h-11 items-center font-bold text-pixu-action underline underline-offset-2" href="{% url 'account_login' %}">Voltar para entrar</a>
+{% endblock content %}

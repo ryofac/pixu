@@ -6,7 +6,7 @@ Esta capacidade permite criar cobranças compartilhadas e converter convites ace
 
 ### Requirement: Criador pode criar cobrança com rateio exato
 
-The system SHALL permitir a uma pessoa autenticada criar uma cobrança com título, descrição opcional, valor positivo em centavos e usuários já cadastrados. O criador SHALL ser incluído automaticamente como participante e único recebedor. Uma pessoa não pode aparecer mais de uma vez na mesma cobrança.
+The system SHALL permitir a uma pessoa autenticada criar uma cobrança com título, descrição opcional, valor positivo em centavos e usuários já cadastrados. O recebedor único SHALL ser selecionável entre contas ativas, inicialmente o criador. A participação do criador SHALL ser opcional e marcada por padrão; desmarcá-la não transfere autoria nem permissão de edição. Uma pessoa não pode aparecer mais de uma vez na mesma cobrança e o rateio SHALL conter ao menos uma pessoa.
 
 #### Scenario: Prévia e criação de cobrança
 - **WHEN** o criador informa dados válidos e seleciona participantes existentes
@@ -16,9 +16,29 @@ The system SHALL permitir a uma pessoa autenticada criar uma cobrança com títu
 - **WHEN** o valor não pode ser dividido igualmente em centavos inteiros
 - **THEN** o sistema distribui os centavos residuais por uma ordem determinística dos participantes, e a soma das cotas permanece igual ao total
 
-#### Scenario: Criador não deve a si mesmo
-- **WHEN** o sistema calcula a cota do criador
-- **THEN** a cota é incluída no rateio e nenhuma dívida é criada do criador para si próprio
+#### Scenario: Recebedor não deve a si mesmo
+- **WHEN** uma participação do recebedor é aceita
+- **THEN** a cota é incluída no rateio e nenhuma dívida é criada contra ele mesmo
+
+#### Scenario: Criador fora do rateio
+- **WHEN** o criador desmarca sua participação e seleciona outras pessoas
+- **THEN** somente as pessoas selecionadas dividem o total e o criador mantém autoria e acesso à cobrança
+
+#### Scenario: Criador participante com outro recebedor
+- **WHEN** o criador participa e escolhe outra conta ativa como recebedor
+- **THEN** sua cota é aceita na criação e gera uma dívida própria para o recebedor escolhido; os demais convites continuam pendentes
+
+#### Scenario: Cotas manuais na criação
+- **WHEN** o criador ajusta as cotas na prévia para valores não negativos cuja soma fecha o total
+- **THEN** esses valores são persistidos sem recalcular o rateio igualitário
+
+#### Scenario: Prévia sem JavaScript
+- **WHEN** o criador solicita conferir cotas por POST convencional
+- **THEN** o sistema apresenta campos editáveis e não persiste cobrança até a confirmação
+
+#### Scenario: Cotas ou recebedor inválidos
+- **WHEN** cotas manuais não fecham o total, faltam participantes ou o recebedor não é uma conta ativa cadastrada
+- **THEN** o sistema preserva as entradas, mostra erros e não cria cobrança, participações nem dívidas
 
 #### Scenario: Dados inválidos ou participante repetido
 - **WHEN** o criador informa valor não positivo, título inválido, usuário inexistente ou participante duplicado
@@ -26,7 +46,7 @@ The system SHALL permitir a uma pessoa autenticada criar uma cobrança com títu
 
 ### Requirement: Participantes podem aceitar ou recusar convite
 
-The system SHALL apresentar convites recebidos como `PENDING` e permitir que somente o destinatário do convite os aceite ou recuse. Um aceite SHALL criar uma única dívida ligada à participação; convite recusado não cria dívida.
+The system SHALL apresentar convites recebidos como `PENDING`, incluindo o recebedor e a cota, e permitir que somente o destinatário do convite os aceite ou recuse. Um aceite SHALL criar uma única dívida ligada à participação para o recebedor selecionado, exceto quando o participante é o próprio recebedor; convite recusado não cria dívida.
 
 #### Scenario: Aceite cria dívida uma única vez
 - **WHEN** o destinatário aceita um convite pendente
@@ -44,6 +64,10 @@ The system SHALL apresentar convites recebidos como `PENDING` e permitir que som
 - **WHEN** uma pessoa tenta aceitar ou recusar convite endereçado a outro usuário
 - **THEN** o servidor nega a ação e não altera a participação
 
+#### Scenario: Convite aberto antes de alteração dos termos
+- **WHEN** o destinatário tenta aceitar uma cota ou recebedor diferente do que foi exibido em seu convite
+- **THEN** o servidor preserva o convite pendente, exibe os termos atuais e pede nova conferência, sem criar dívida
+
 ### Requirement: Cobrança só ativa após todos os convites atuais serem aceitos
 
 The system SHALL manter uma cobrança com convites ativos ainda sem resposta no estado `AWAITING_ACCEPTANCE`. Enquanto estiver nesse estado, suas dívidas não participam dos totais e não podem ser pagas. A cobrança SHALL passar para `ACTIVE` somente quando todos os convites ativos forem aceitos e a soma das cotas válidas corresponder ao total.
@@ -58,11 +82,11 @@ The system SHALL manter uma cobrança com convites ativos ainda sem resposta no 
 
 #### Scenario: Cobrança sem convidados ativos
 - **WHEN** uma cobrança contém somente a participação do criador
-- **THEN** ela fica `ACTIVE` sem criar dívida contra o próprio criador
+- **THEN** ela fica `ACTIVE` e só cria dívida se o recebedor for outra pessoa
 
 ### Requirement: Criador só pode ajustar cotas ainda não aceitas
 
-The system SHALL permitir ao criador alterar sua própria cota e cotas de participações pendentes antes de qualquer pagamento registrado ou compensação aplicada. A soma SHALL permanecer igual ao total e nenhuma cota pode ser negativa. A cota de participante aceito SHALL permanecer imutável nesta mudança.
+The system SHALL permitir ao criador alterar sua própria cota e cotas de participações pendentes antes de qualquer pagamento registrado ou compensação aplicada. A soma SHALL permanecer igual ao total e nenhuma cota pode ser negativa. A cota de outra pessoa que aceitou SHALL permanecer imutável nesta mudança. A dívida do próprio criador, quando existente, SHALL acompanhar ajustes permitidos na mesma transação.
 
 #### Scenario: Ajuste de cotas pendentes válido
 - **WHEN** o criador altera cotas próprias e pendentes para valores não negativos cuja soma é o total
@@ -76,12 +100,32 @@ The system SHALL permitir ao criador alterar sua própria cota e cotas de partic
 - **WHEN** o criador tenta editar a cota de uma participação aceita
 - **THEN** o servidor preserva a cota e informa que ela não pode ser alterada
 
+### Requirement: Recebedor pode ser alterado antes dos aceites
+
+The system SHALL permitir ao criador trocar o recebedor por outra conta ativa somente antes do aceite de qualquer outra pessoa e antes de operação financeira. A troca SHALL ser atômica com os ajustes de cota e dívida própria, usando o mesmo bloqueio da cobrança que os aceites.
+
+#### Scenario: Troca antes dos aceites
+- **WHEN** o criador escolhe outro recebedor sem aceites de outras pessoas nem operação financeira
+- **THEN** a cobrança e eventual dívida do criador passam a apontar ao novo recebedor, sem gerar dívida contra si mesmo
+
+#### Scenario: Troca depois de aceite ou bloqueio
+- **WHEN** o criador tenta trocar o recebedor depois do aceite de outra pessoa ou de operação financeira
+- **THEN** o servidor rejeita a troca sem alterar o recebedor, as cotas ou as dívidas
+
+#### Scenario: Aceite simultâneo com troca de recebedor
+- **WHEN** aceite e troca de recebedor são enviados concorrentemente
+- **THEN** as operações são serializadas e nenhuma dívida aceita permanece apontando a um recebedor diferente da cobrança
+
 ### Requirement: Acesso e formulários de cobrança são protegidos no servidor
 
 The system SHALL exigir autenticação para acessar cobranças e convites, autorizar cada ação pela identidade e papel da pessoa em toda requisição convencional ou HTMX, validar entradas no backend, exigir CSRF, escapar texto renderizado e limitar título, descrição e referência.
 
+#### Scenario: Recebedor fora do rateio consulta cobrança
+- **WHEN** o recebedor selecionado não é criador nem participante e abre a cobrança
+- **THEN** o servidor permite leitura, mas recusa edição de cotas, troca de recebedor e substituição de convidados
+
 #### Scenario: Pessoa não participante consulta cobrança
-- **WHEN** uma pessoa autenticada que não é criadora nem participante tenta acessar uma cobrança
+- **WHEN** uma pessoa autenticada que não é criadora, recebedora nem participante tenta acessar uma cobrança
 - **THEN** o servidor nega acesso sem revelar detalhes privados da cobrança
 
 #### Scenario: Formulário HTMX inválido

@@ -1,10 +1,10 @@
 volumes:
   pixu_local_postgres_data: {}
   pixu_local_postgres_data_backups: {}
-  
+  pixu_local_redis_data: {}
 
 services:
-  django:
+  django: &django
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
@@ -12,6 +12,7 @@ services:
     container_name: pixu_local_django
     depends_on:
       - postgres
+      - redis
     volumes:
       - /app/.venv
       - .:/app:z
@@ -20,9 +21,20 @@ services:
         required: false
       - path: ./.envs/.local/.postgres
         required: false
+      - .env
     ports:
-      - '8000:8000'
+      - "8000:8000"
     command: /start
+
+  celeryworker:
+    <<: *django
+    image: pixu_local_celeryworker
+    container_name: pixu_local_celeryworker
+    depends_on:
+      - postgres
+      - redis
+    ports: []
+    command: /start-celeryworker
 
   postgres:
     build:
@@ -36,3 +48,9 @@ services:
     env_file:
       - path: ./.envs/.local/.postgres
         required: false
+
+  redis:
+    image: docker.io/redis:7.2
+    container_name: pixu_local_redis
+    volumes:
+      - pixu_local_redis_data:/data

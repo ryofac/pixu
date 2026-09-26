@@ -1,11 +1,11 @@
 ## Why
 
-O scaffold Django já existe, mas ainda não permite que uma pessoa crie uma conta e estabeleça obrigações compartilhadas. A primeira mudança torna utilizáveis os fluxos de conta e de cobrança, com convites consentidos e rateio exato antes de avançar para pagamentos.
+O scaffold Django e parte do domínio de contas e cobranças já existem. Esta mudança completa os fluxos de conta e cobrança, com convites consentidos e rateio exato, e organiza a interface para celular e computador antes de avançar para pagamentos.
 
 ## What Changes
 
 - Habilitar cadastro público, login/logout, recuperação de senha por e-mail e edição de perfil e chave Pix fornecida pelo usuário.
-- Criar cobranças com título, descrição opcional, valor em centavos, participantes existentes, prévia de divisão igualitária e edição manual de cotas.
+- Criar cobranças com título, descrição opcional, valor em centavos, participantes existentes, prévia editável de divisão igualitária e edição manual de cotas. Separar autoria, recebedor único selecionável (inicialmente o criador) e participação opcional do criador no rateio.
 - Modelar convites pendentes, aceitos e recusados; permitir substituição de participante recusado antes da primeira operação financeira.
 - Criar cada dívida uma única vez no aceite e ativar a cobrança somente depois que todos os convites ativos forem aceitos.
 - Implementar páginas e fragmentos HTMX responsivos conforme `docs/product-design.md`, usando o build local de Tailwind já preparado no scaffold.

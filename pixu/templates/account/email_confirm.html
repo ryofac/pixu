@@ -1,0 +1,28 @@
+{% extends "account/base_entrance.html" %}
+
+{% load account allauth i18n %}
+
+{% block head_title %}Confirmar e-mail{% endblock head_title %}
+
+{% block content %}
+  {% element h1 %}Confirmar e-mail{% endelement %}
+  {% if confirmation %}
+    {% user_display confirmation.email_address.user as user_display %}
+    {% if can_confirm %}
+      {% element p %}Confirme que {{ confirmation.email_address.email }} é o endereço de e-mail de {{ user_display }}.{% endelement %}
+      {% url 'account_confirm_email' confirmation.key as action_url %}
+      {% element form method="post" action=action_url %}
+        {% slot actions %}
+          {% csrf_token %}
+          {{ redirect_field }}
+          {% element button type="submit" %}Confirmar e-mail{% endelement %}
+        {% endslot %}
+      {% endelement %}
+    {% else %}
+      {% element p %}Este endereço já está confirmado por outra conta. Entre na conta correta ou solicite um novo link.{% endelement %}
+    {% endif %}
+  {% else %}
+    {% element p %}Este link de confirmação expirou ou não é válido. Entre na sua conta e solicite uma nova confirmação nas configurações de e-mail.{% endelement %}
+    <a class="font-bold text-pixu-action underline underline-offset-2" href="{% url 'account_login' %}">Ir para o login</a>
+  {% endif %}
+{% endblock content %}

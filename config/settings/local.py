@@ -13,7 +13,7 @@ SECRET_KEY = env(
     default="rGxDt7YFVAsvl30MTo0cRg9tF2VCcpFTzbrdC8EeshgnjXHdpUs81i6AlzsRp2Gl",
 )
 # https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]  # noqa: S104
+ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1", "192.168.100.10"]  # noqa: S104
 
 # CACHES
 # ------------------------------------------------------------------------------
@@ -70,3 +70,4 @@ INSTALLED_APPS += ["django_extensions"]
 
 # Your stuff...
 # ------------------------------------------------------------------------------
+ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", True)

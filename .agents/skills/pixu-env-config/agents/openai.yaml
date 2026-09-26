@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pixu Environment Config"
+  short_description: "Padroniza configs via .envs e .env"
+  default_prompt: "Use $pixu-env-config ao adicionar ou alterar configurações de ambiente no Pixu."

@@ -70,6 +70,8 @@
       .toast { display: none; position: fixed; z-index: 4; left: 50%; bottom: calc(5rem + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(25rem, calc(100% - 2rem)); padding: 1rem; color: white; background: #243142; border-radius: .75rem; box-shadow: 0 8px 24px #0003; }
       .toast.visible { display: block; }
       .split { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+      .charge-columns { display: grid; gap: 1rem; }
+      .sidebar-brand { display: none; }
       @media (max-width: 380px) {
         .nav { gap: 0; }
         .nav button { font-size: .86rem; }
@@ -77,6 +79,16 @@
         .invite { grid-template-columns: 1fr; }
         .invite .actions { margin-top: 0; }
         .split { grid-template-columns: 1fr; }
+      }
+      @media (min-width: 64rem) {
+        .topbar { margin-left: 16rem; padding: .9rem 2rem; }
+        .topbar .brand { display: none; }
+        .layout { width: auto; max-width: 84rem; min-height: calc(100dvh - 4.5rem); margin: 0 0 0 16rem; padding: 2rem 2.5rem 3rem; }
+        .nav { inset: 0 auto 0 0; transform: none; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: .35rem; width: 16rem; padding: 1.5rem 1rem; border-top: 0; border-right: 1px solid var(--border); }
+        .sidebar-brand { display: inline-flex; margin: .25rem .5rem 2rem; }
+        .nav button { min-height: 3.25rem; padding: .75rem 1rem; text-align: left; }
+        .charge-columns { grid-template-columns: minmax(0, 1.1fr) minmax(18rem, .9fr); align-items: start; gap: 2rem; }
+        .toast { left: calc(50% + 8rem); bottom: 1rem; }
       }
       @media (prefers-reduced-motion: no-preference) {
         .card { animation: enter .18s ease-out; }
@@ -92,6 +104,7 @@
     </header>
     <div class="layout">
       <nav class="nav" aria-label="Navegação principal">
+        <a class="brand sidebar-brand" href="#" aria-label="Pixu, início">PiXu</a>
         <button type="button" data-go="charges" aria-current="page">Nova cobrança</button>
         <button type="button" data-go="invites">Convites</button>
         <button type="button" data-go="profile">Perfil</button>
@@ -104,6 +117,8 @@
             <h1 id="title-charges">Nova cobrança</h1>
             <p class="muted">Convide pessoas cadastradas e confira o rateio antes de criar.</p>
             <form id="charge-form">
+              <div class="charge-columns">
+                <div>
               <label class="field">Título
                 <input id="charge-title" name="title" maxlength="120" value="Churrasco de sábado" required>
               </label>
@@ -114,6 +129,16 @@
                 <input id="charge-amount" name="amount" inputmode="decimal" value="150,00" aria-describedby="amount-help" required>
                 <span class="muted" id="amount-help">Exemplo: 150,00</span>
               </label>
+              <label class="field">Quem recebe
+                <select id="charge-creditor" name="creditor">
+                  <option value="1">Ryan (você)</option>
+                  <option value="2">Ana</option>
+                  <option value="3">Bruno</option>
+                </select>
+              </label>
+              <label class="check-pill"><input id="include-creator" type="checkbox" checked> Também participo do rateio</label>
+                </div>
+                <div>
               <fieldset class="field" style="border:0;padding:0">
                 <legend>Convidar pessoas já cadastradas</legend>
                 <div class="check-row">
@@ -122,8 +147,11 @@
                 </div>
               </fieldset>
               <div id="share-preview" aria-live="polite"></div>
+                </div>
+              </div>
               <div class="actions">
                 <button class="button secondary" type="button" data-go="invites">Ver convites</button>
+                <button class="button secondary" type="button" id="reset-shares">Dividir igualmente</button>
                 <button class="button primary" type="submit">Criar cobrança</button>
               </div>
             </form>
@@ -137,7 +165,7 @@
             <article class="invite" id="invite-demo">
               <div>
                 <h2>Viagem de domingo</h2>
-                <div class="muted">Criada por Ana · Total R$ 90,00 · Sua cota R$ 30,00</div>
+                <div class="muted">Criada por Ana · Quem recebe: Ana · Total R$ 90,00 · Sua cota R$ 30,00</div>
                 <p>Participantes: Ana, você e Bruno</p>
                 <span class="status" id="invite-status">Pendente</span>
               </div>
@@ -221,41 +249,52 @@
       screenButtons.forEach((button) => button.addEventListener("click", () => goTo(button.dataset.go)));
 
       function parseCents(value) {
-        const normalized = value.trim().replace(/\./g, "").replace(",", ".");
-        const amount = Number(normalized);
-        if (!Number.isFinite(amount) || amount <= 0) return null;
-        return Math.round(amount * 100);
+        const match = value.trim().match(/^(\d+)(?:,(\d{1,2}))?$/);
+        if (!match) return null;
+        const cents = Number(match[1]) * 100 + Number((match[2] || "").padEnd(2, "0"));
+        return Number.isSafeInteger(cents) ? cents : null;
       }
 
       function renderSharePreview() {
         const cents = parseCents(document.getElementById("charge-amount").value);
         const selectedIds = Array.from(document.querySelectorAll('input[name="invite"]:checked')).map((input) => Number(input.value));
-        const group = participants.filter((person) => person.id === 1 || selectedIds.includes(person.id)).sort((a, b) => a.id - b.id);
+        if (document.getElementById("include-creator").checked) selectedIds.push(1);
+        const group = participants.filter((person) => selectedIds.includes(person.id)).sort((a, b) => a.id - b.id);
         const preview = document.getElementById("share-preview");
-        if (cents === null) {
-          preview.innerHTML = '<p class="muted">Informe um valor positivo para ver a prévia.</p>';
+        if (cents === null || cents <= 0 || group.length === 0) {
+          preview.innerHTML = '<p class="muted">Informe um valor positivo e inclua ao menos uma pessoa.</p>';
           return;
         }
         const base = Math.floor(cents / group.length);
         const remainder = cents % group.length;
         const rows = group.map((person, index) => {
           const share = base + (index < remainder ? 1 : 0);
-          return "<tr><th scope=\"row\">" + person.name + "</th><td>" + formatter.format(share / 100) + "</td></tr>";
+          const value = Math.floor(share / 100) + "," + String(share % 100).padStart(2, "0");
+          return '<tr><th scope="row"><label for="demo-share-' + person.id + '">' + person.name + '</label></th><td><input id="demo-share-' + person.id + '" data-demo-share inputmode="decimal" value="' + value + '"></td></tr>';
         }).join("");
         preview.innerHTML = "<h2>Prévia do rateio</h2><table class=\"summary\"><tbody>" + rows + "</tbody><tfoot><tr><th scope=\"row\">Total</th><td>" + formatter.format(cents / 100) + "</td></tr></tfoot></table><p class=\"muted\">A cobrança fica aguardando o aceite de todos os convidados.</p>";
       }
       document.getElementById("charge-amount").addEventListener("input", renderSharePreview);
+      document.getElementById("include-creator").addEventListener("change", renderSharePreview);
+      document.getElementById("reset-shares").addEventListener("click", renderSharePreview);
       document.querySelectorAll('input[name="invite"]').forEach((input) => input.addEventListener("change", renderSharePreview));
       renderSharePreview();
 
       document.getElementById("charge-form").addEventListener("submit", (event) => {
         event.preventDefault();
         const title = document.getElementById("charge-title").value.trim();
-        if (!title || parseCents(document.getElementById("charge-amount").value) === null) {
+        const total = parseCents(document.getElementById("charge-amount").value);
+        if (!title || total === null || total <= 0) {
           showToast("Revise o título e informe um valor positivo.");
           return;
         }
-        showToast("Demonstração: cobrança criada e convites enviados como pendentes.");
+        const shares = [...document.querySelectorAll("[data-demo-share]")].map((input) => parseCents(input.value));
+        if (!shares.length || shares.some((amount) => amount === null) || shares.reduce((sum, amount) => sum + amount, 0) !== total) {
+          showToast("As cotas precisam fechar o total da cobrança.");
+          return;
+        }
+        const recipient = document.getElementById("charge-creditor").selectedOptions[0].textContent;
+        showToast("Demonstração: cobrança criada. Quem recebe: " + recipient + ".");
       });
 
       document.querySelectorAll("[data-invite]").forEach((button) => button.addEventListener("click", () => {

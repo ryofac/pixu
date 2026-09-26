@@ -48,7 +48,9 @@ class PixProfileForm(forms.ModelForm):
         model = PixProfile
         fields = ["pix_key"]
         help_texts = {
-            "pix_key": _("Chave informada por você; o Pixu não a verifica junto ao banco."),
+            "pix_key": _(
+                "Chave informada por você; o Pixu não a verifica junto ao banco.",
+            ),
         }
 
     def __init__(self, *args, **kwargs):
@@ -67,7 +69,9 @@ class AccountProfileForm(forms.Form):
         label=_("Chave Pix principal"),
         max_length=255,
         required=False,
-        help_text=_("A chave é informada por você. O Pixu não verifica a chave junto ao banco."),
+        help_text=_(
+            "A chave é informada por você. O Pixu não verifica a chave junto ao banco.",
+        ),
         widget=forms.TextInput(
             attrs={
                 "autocomplete": "off",

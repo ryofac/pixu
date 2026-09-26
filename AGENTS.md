@@ -35,6 +35,7 @@
 - `pixu-dev-tools` para Cookiecutter Django, Docker Compose, uv, npm, Tailwind e HTMX.
 
 <!-- ai-memory:start -->
+
 ## Long-term memory (ai-memory)
 
 This project uses [ai-memory](https://github.com/akitaonrails/ai-memory)
@@ -43,10 +44,10 @@ for cross-session continuity.
 **Default to the current project - always.** Every ai-memory tool
 auto-scopes to the project resolved from your session's working
 directory. **Do NOT pass `project`, `workspace`, or `cwd` arguments unless
-the user explicitly references a *different* project by name** (e.g. "what
+the user explicitly references a _different_ project by name** (e.g. "what
 did we decide in the `other-app` project?"). Phrases like "this project",
 "here", "we", "our work", and "where did we leave off" all mean the
-*current* project, so call tools with no scoping args.
+_current_ project, so call tools with no scoping args.
 
 This default assumes the MCP client can identify the current agent
 session. Static MCP clients in parallel sessions for the same user cannot
@@ -99,7 +100,7 @@ Many projects use CLAUDE.md for Claude Code and
 AGENTS.md for Codex / OpenCode / Cursor / Gemini CLI / Grok Build CLI / Kimi Code / Kiro CLI / Command Code,
 but if the project says one file is canonical, use that file.
 
-If the rule is a standing *user/team* preference that should apply to
+If the rule is a standing _user/team_ preference that should apply to
 every project (tech choices, code style, personal conventions), save it
 to ai-memory's reserved global scope instead — the durable-pages skill
 covers how. Default memory reads surface global-scope pages in every
