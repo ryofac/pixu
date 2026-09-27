@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load charge_format i18n %}
+
+{% block title %}{% translate "Cobranças" %} · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="space-y-5 pt-2 lg:space-y-7 lg:pt-0" aria-labelledby="page-title">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 class="mb-2 text-2xl font-extrabold leading-tight text-pixu-ink" id="page-title">{% translate "Cobranças" %}</h1>
+        <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Organize despesas compartilhadas e acompanhe os convites." %}</p>
+      </div>
+      <a class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pixu-action-solid px-4 py-3 text-center font-extrabold text-white no-underline shadow-sm transition hover:brightness-110 sm:w-auto sm:min-w-48" href="{% url 'charges:create' %}"><span aria-hidden="true">＋</span> {% translate "Nova cobrança" %}</a>
+    </div>
+
+    <div class="space-y-3" aria-labelledby="charges-heading">
+      <h2 class="text-lg font-extrabold text-pixu-ink" id="charges-heading">{% translate "Suas cobranças" %}</h2>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {% for charge in charges %}
+          <a class="block rounded-[20px] border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised hover:shadow-md focus-visible:ring-2 focus-visible:ring-pixu-focus sm:p-5" href="{% url 'charges:detail' charge.pk %}">
+            <div class="flex items-center justify-between gap-3">
+              <strong class="min-w-0 break-words">{{ charge.title }}</strong>
+              <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if charge.state == 'ACTIVE' %} bg-green-50 text-pixu-success{% else %} bg-amber-50 text-pixu-pending{% endif %}">{{ charge.get_state_display }}</span>
+            </div>
+            <p class="mb-3 mt-2 text-sm text-pixu-muted">
+              {% if charge.creator_id == request.user.id %}{% translate "Criada por você" %}{% else %}{% translate "Criada por" %} {{ charge.creator.name|default:charge.creator.username }}{% endif %}
+            </p>
+            <p class="mb-3 text-sm text-pixu-muted">{% translate "Quem recebe" %}: {% if charge.creditor_id == request.user.id %}{% translate "você" %}{% else %}{{ charge.creditor.name|default:charge.creditor.username }}{% endif %}</p>
+            <div class="flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Total" %}</span><strong>{{ charge.total_cents|brl_from_cents }}</strong></div>
+            {% for participation in charge.participations.all %}
+              {% if participation.user_id == request.user.id %}
+                <div class="mt-2 flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Sua cota" %}</span><strong class="text-pixu-action">{{ participation.share_cents|brl_from_cents }}</strong></div>
+              {% endif %}
+            {% endfor %}
+          </a>
+        {% empty %}
+          <div class="rounded-[20px] border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-8 text-center md:col-span-2 xl:col-span-3">
+            <h3 class="mb-2 font-extrabold text-pixu-ink">{% translate "Nenhuma cobrança por aqui" %}</h3>
+            <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% translate "Crie uma cobrança para organizar uma despesa em grupo." %}</p>
+            <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2 font-bold text-pixu-action no-underline" href="{% url 'charges:create' %}">{% translate "Criar cobrança" %}</a>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+{% endblock content %}

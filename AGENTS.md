@@ -33,6 +33,7 @@
 - `grill-me` e `grilling` para entrevistar o usuário sobre planos e decisões quando ele pedir uma revisão crítica.
 - `chrome-devtools` para depurar páginas e automatizar o Chrome via MCP.
 - `pixu-dev-tools` para Cookiecutter Django, Docker Compose, uv, npm, Tailwind e HTMX.
+- `pixu-doc-screenshots` para capturar e revisar screenshots da interface em `docs/screenshots/` usando Playwright E2E.
 
 <!-- ai-memory:start -->
 

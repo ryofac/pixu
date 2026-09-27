@@ -6,7 +6,7 @@
 
   <div class="grid items-start gap-5 lg:grid-cols-[minmax(18rem,.9fr)_minmax(0,1.1fr)] xl:gap-7">
     <div class="grid min-w-0 content-start gap-4">
-      <article class="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
         <div class="flex items-center justify-between gap-3 text-sm">
           <span class="text-pixu-muted">Estado</span>
           <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if charge.state == 'ACTIVE' %} bg-green-100 text-pixu-success{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ charge.get_state_display }}</span>
@@ -25,21 +25,21 @@
             <strong class="text-pixu-action">{{ my_participation.share_cents|brl_from_cents }}</strong>
           </div>
         {% endif %}
-        {% if charge.description %}<p class="mt-4 border-t border-slate-100 pt-4 text-sm leading-relaxed text-pixu-muted">{{ charge.description }}</p>{% endif %}
+        {% if charge.description %}<p class="mt-4 border-t border-pixu-border pt-4 text-sm leading-relaxed text-pixu-muted">{{ charge.description }}</p>{% endif %}
       </article>
 
       {% if my_participation and my_participation.state == 'PENDING' %}
-        <div class="rounded-xl border border-sakura-1 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink">{% if my_participation.user_id == charge.creditor_id %}Você é o recebedor; sua cota não gera dívida contra você.{% else %}Ao aceitar, você concorda com sua cota e com o pagamento a {{ charge.creditor.name|default:charge.creditor.username }}.{% endif %} A cobrança aguarda a resposta de todos os participantes atuais.</div>
+        <div class="rounded-xl border border-sakura-1 bg-pixu-info-surface px-4 py-3 text-sm leading-relaxed text-pixu-ink">{% if my_participation.user_id == charge.creditor_id %}Você é o recebedor; sua cota não gera dívida contra você.{% else %}Ao aceitar, você concorda com sua cota e com o pagamento a {{ charge.creditor.name|default:charge.creditor.username }}.{% endif %} A cobrança aguarda a resposta de todos os participantes atuais.</div>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
           <form method="post" action="{% url 'charges:accept' charge.pk my_participation.pk %}" hx-post="{% url 'charges:accept' charge.pk my_participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
             {% csrf_token %}
             <input type="hidden" name="expected_share_cents" value="{{ my_participation.share_cents }}">
             <input type="hidden" name="expected_creditor_id" value="{{ charge.creditor_id }}">
-            <button class="flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 font-extrabold text-white shadow-md" type="submit">Aceitar participação</button>
+            <button class="flex min-h-12 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110" type="submit">Aceitar participação</button>
           </form>
           <form method="post" action="{% url 'charges:decline' charge.pk my_participation.pk %}" hx-post="{% url 'charges:decline' charge.pk my_participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
             {% csrf_token %}
-            <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-pixu-muted" type="submit">Recusar convite</button>
+            <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted hover:text-pixu-ink" type="submit">Recusar convite</button>
           </form>
         </div>
       {% elif my_participation and my_participation.state == 'ACCEPTED' %}
@@ -47,7 +47,7 @@
       {% endif %}
 
       {% if can_edit %}
-        <article class="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
           <h2 class="mb-1 text-lg font-extrabold text-pixu-ink">Cotas e recebedor</h2>
           <p class="mb-4 text-sm leading-relaxed text-pixu-muted">Cotas já aceitas por outras pessoas não mudam. A soma precisa continuar igual ao total.</p>
           <form class="grid gap-4" method="post" action="{% url 'charges:edit_shares' charge.pk %}" hx-post="{% url 'charges:edit_shares' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
@@ -61,12 +61,12 @@
                 {% if field.errors %}<ul class="text-sm text-pixu-danger" id="{{ field.auto_id }}_errors" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
               </div>
             {% endfor %}
-            <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-white px-4 py-2.5 font-bold text-pixu-action" type="submit">Salvar alterações</button>
+            <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-pixu-surface px-4 py-2.5 font-bold text-pixu-action hover:bg-sakura-2" type="submit">Salvar alterações</button>
           </form>
         </article>
 
         {% for row in replacement_rows %}
-          <article class="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
             <h2 class="mb-1 text-base font-extrabold text-pixu-ink">Substituir convite recusado</h2>
             <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{{ row.participation.user.name|default:row.participation.user.username }} recusou. A nova pessoa recebe a cota de {{ row.participation.share_cents|brl_from_cents }}.</p>
             <form class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" method="post" action="{% url 'charges:replace_participant' charge.pk row.participation.pk %}" hx-post="{% url 'charges:replace_participant' charge.pk row.participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
@@ -77,19 +77,19 @@
                 {% if row.form.replacement.errors %}<ul class="text-sm text-pixu-danger" id="{{ row.form.replacement.auto_id }}_errors" role="alert">{% for error in row.form.replacement.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
                 {% if row.form.non_field_errors %}<span class="text-sm text-pixu-danger" role="alert">{{ row.form.non_field_errors }}</span>{% endif %}
               </div>
-              <button class="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 font-extrabold text-white shadow-md sm:min-w-40" type="submit">Enviar convite</button>
+              <button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110 sm:min-w-40" type="submit">Enviar convite</button>
             </form>
           </article>
         {% endfor %}
       {% endif %}
     </div>
 
-    <article class="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <article class="min-w-0 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
       <div class="mb-2 flex items-center justify-between gap-3">
         <h2 class="text-lg font-extrabold text-pixu-ink">Participantes</h2>
         <span class="text-xs font-bold text-pixu-muted">{% blocktranslate count people=participations|length %}{{ people }} pessoa{% plural %}{{ people }} pessoas{% endblocktranslate %}</span>
       </div>
-      <div class="divide-y divide-slate-200">
+      <div class="divide-y divide-pixu-border">
         {% for participation in participations %}
           <div class="flex items-center justify-between gap-4 py-3 sm:py-4">
             <div class="min-w-0">

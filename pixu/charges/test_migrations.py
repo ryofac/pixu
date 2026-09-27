@@ -8,6 +8,7 @@ class ChargeCreditorMigrationTests(TransactionTestCase):
         previous = [("charges", "0001_initial")]
         current = [("charges", "0002_charge_creditor")]
         executor = MigrationExecutor(connection)
+        latest = executor.loader.graph.leaf_nodes()
         executor.migrate(previous)
         try:
             apps = executor.loader.project_state(previous).apps
@@ -44,4 +45,4 @@ class ChargeCreditorMigrationTests(TransactionTestCase):
             assert migrated_debt.original_cents == debt.original_cents
             assert migrated_debt.participation_id == participation.pk
         finally:
-            MigrationExecutor(connection).migrate(current)
+            MigrationExecutor(connection).migrate(latest)

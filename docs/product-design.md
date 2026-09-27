@@ -1,9 +1,9 @@
 # Pixu — decisões de produto e interface
 
-**Status:** direção responsiva revisada com o usuário; identidade da logo ainda pendente; tema escuro mapeado para `complete-product-experience`, não implementado
+**Status:** direção responsiva revisada com o usuário; logo System Core e temas claro/escuro/sistema implementados; teste de compreensão dos termos com usuários ainda pendente
 
-**Escopo desta entrega:** contas, perfil Pix, cobranças, participações e convites.  
-**Fontes normativas:** `PIXU_IMPLEMENTATION_BRIEF.md` e a mudança `bootstrap-pixu-and-charges`.
+**Escopo visual:** entrada pública, dashboard, perfil, cobranças, convites, pagamentos e compensações.
+**Fontes normativas:** `PIXU_IMPLEMENTATION_BRIEF.md` e a mudança ativa `openspec/changes/complete-product-experience`.
 
 ## 1. Princípios
 
@@ -19,11 +19,11 @@
 
 ### 2.1 Referências visuais
 
-Os materiais existentes em `docs/design/` são explorações visuais, não contratos de comportamento. A referência mobile sugere uma identidade Sakura, cards arredondados e navegação simples. Esta proposta preserva a paleta e a abordagem mobile-first, mas corrige a hierarquia de estados e remove dos fluxos atuais pagamento, compensação, dashboard financeiro e confirmação automática. O protótipo desta Wave 0 é autocontido e não carrega Tailwind, fontes ou ícones por CDN.
+Os materiais existentes em `docs/design/` são referências visuais, não contratos de comportamento. A direção Sakura e os cartões arredondados foram preservados, com hierarquia de estados e layouts próprios para desktop. A aplicação inclui os fluxos financeiros aprovados em mudanças OpenSpec posteriores; não há confirmação automática. O protótipo da Wave 0 é autocontido e não carrega Tailwind, fontes ou ícones por CDN.
 
-### 2.2 Logo — definição pendente
+### 2.2 Logo — System Core aprovada
 
-A logo atual está inconsistente entre a aplicação e os materiais de exploração: a aplicação usa um símbolo Sakura simplificado em SVG inline com o nome “Pixu”, enquanto referências antigas variam o desenho, incluem uma moldura em losango e usam a grafia “PiXu”. Nenhuma dessas versões está aprovada como identidade final. Antes de consolidar o acabamento visual, definir uma versão canônica da marca — símbolo, wordmark/grafia e variações de uso. Até essa revisão, tratar a marca existente como provisória; esta nota não escolhe nem redesenha uma alternativa.
+A versão canônica é a **System Core Logo** apresentada em [`pixu_logo_system.html`](design/pixu_logo_system.html): flor Sakura de cinco pétalas com núcleo Pix em X, moldura de losango arredondada e wordmark **PiXu**. O gradiente Sakura permanece no símbolo e o recorte do núcleo acompanha a superfície para manter contraste nos temas claro e escuro. Ao integrar, reproduzir o desenho como SVG local, sem carregar as dependências CDN da página de demonstração; não substituir a marca por outra variação dos protótipos antigos.
 
 ### 2.3 Paleta, tipografia e ícones
 
@@ -47,9 +47,9 @@ A logo atual está inconsistente entre a aplicação e os materiais de exploraç
 
 Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser decorativos com `aria-hidden="true"`. Não depender de carregar uma fonte externa para entender navegação ou status.
 
-### 2.4 Temas claro, escuro e sistema — planejado
+### 2.4 Temas claro, escuro e sistema — implementados
 
-**Lote responsável:** `complete-product-experience`. **Rastreabilidade:** tarefas `TEMA-01` a `TEMA-05` no [TODO](../TODO.md#tema-escuro--backlog-de-complete-product-experience). Esta seção registra o trabalho futuro; a entrega atual `bootstrap-pixu-and-charges` ainda oferece somente tema claro.
+**Lote responsável:** `complete-product-experience`. **Rastreabilidade:** itens `TEMA-01` a `TEMA-05` no [TODO](../TODO.md#tema-escuro--complete-product-experience). A validação técnica passou; a rodada separada de compreensão dos termos financeiros com três pessoas segue pendente na tarefa 4.2 da mudança.
 
 #### Comportamento previsto
 
@@ -61,10 +61,40 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 
 #### Cobertura visual
 
-- Definir tokens próprios para os dois temas antes de implementar: fundo, superfícies, texto principal e secundário, bordas, ações, foco e estados de sucesso, aviso e erro. Os valores da seção 2.3 são a referência clara; a paleta escura ainda precisa ser definida e revisada em `TEMA-01`.
+- Definir tokens próprios para os dois temas: fundo, superfícies, texto principal e secundário, bordas, ações, foco e estados de sucesso, aviso e erro. Os valores da seção 2.3 e a tabela escura abaixo estão aplicados ao CSS.
 - Implementar com tokens e variantes de tema do Tailwind compilado localmente. Preservar a identidade Sakura, sem tratar o tema escuro como simples inversão de cores.
-- Cobrir navegação, páginas públicas, autenticação, perfil, formulários, cobranças, convites, estados vazios e fragmentos HTMX. Incluir também as telas de pagamentos, compensações e dashboard disponíveis quando o lote for executado.
-- Verificar legibilidade da marca provisória em ambos os fundos; essa adaptação não aprova nem substitui a decisão pendente sobre a logo.
+- Cobrir navegação, páginas públicas, autenticação, perfil, formulários, cobranças, convites, pagamentos, compensações, dashboard, estados vazios e fragmentos HTMX.
+- A System Core Logo está implementada como SVG local; seu recorte e losango acompanham os dois temas sem perder o gradiente Sakura.
+
+#### Tokens do tema escuro
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `canvas` | `#0F172A` | Fundo principal |
+| `surface` | `#1E293B` | Cartões, formulários e navegação |
+| `surface-raised` | `#273449` | Superfícies elevadas e hover |
+| `text` | `#F8FAFC` | Texto principal |
+| `text-muted` | `#CBD5E1` | Texto secundário |
+| `border` | `#475569` | Bordas e separadores |
+| `brand` | `#FFA7A6` | Detalhes Sakura e links sobre fundo escuro |
+| `brand-action` | `#B91649` | Ação primária com texto branco |
+| `focus` | `#93C5FD` | Indicador de foco visível |
+| `success` | `#86EFAC` | Confirmações e estados positivos |
+| `warning` | `#FCD34D` | Pendências e atenção |
+| `danger` | `#FDA4AF` | Recusas e erros |
+
+Os tons escuros são uma superfície azul-ardósia, não uma inversão literal do tema claro. Os pares de texto/ação e superfícies de estado foram exercitados nos testes de navegador; badges e estados mantêm rótulos, não dependem somente de cor.
+
+### 2.5 Landing page pública
+
+**Referências revisadas:** [`pixu_landing_page.html`](design/pixu_landing_page.html) para composição e conteúdo; [`pixu_logo_system.html`](design/pixu_logo_system.html) para a marca aprovada. São referências visuais, não arquivos para servir diretamente: substituir URLs `#` pelas rotas reais, localizar para pt-BR e manter o build local.
+
+- Preservar o fluxo visual da página: cabeçalho com marca, seletor de tema e entrada; hero com chamada e cadastro; ilustração decorativa; dois cartões curtos de benefícios. A ilustração flutuante fica oculta em mobile, enquanto a chamada e os dois caminhos de conta permanecem disponíveis.
+- Em viewport largo, hero em duas colunas; em mobile, conteúdo em uma coluna, CTAs empilhados e sem navegação autenticada. Usuário autenticado vê o dashboard ao abrir a rota inicial.
+- Manter paleta Sakura, gradientes suaves e superfícies translúcidas com contraste suficiente nos dois temas. Usar os tokens definidos nesta seção, fonte de sistema e ícones SVG locais/inline; não carregar Tailwind, fontes ou icon fonts por CDN.
+- Todo conteúdo visível é pt-BR. Valores ilustrativos usam reais e deixam claro que são demonstração; os cartões não prometem pagamento, confirmação automática ou movimentação de dinheiro.
+- A ilustração é estática e puramente decorativa, sem movimento contínuo. Se houver animação futura, respeitar `prefers-reduced-motion: reduce` e não criar/remover nós continuamente para simular chuva de pétalas.
+- O seletor segue a regra **Claro / Escuro / Sistema** da seção 2.4, inicia em Sistema e persiste apenas a preferência visual no navegador. A preferência deve ser aplicada antes da primeira pintura; sem JavaScript, a página continua legível e acompanha o sistema por CSS.
 
 #### Critérios de aceite
 
@@ -72,7 +102,7 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 2. Voltar para Sistema retoma o acompanhamento automático; mudar a aparência do dispositivo só altera a página quando Sistema estiver selecionado.
 3. Trocar tema não apaga campos preenchidos nem altera estado de cobranças ou convites. Uma atualização HTMX mantém a aparência correta.
 4. As telas previstas são revisadas nos dois temas em celular e desktop, com texto, bordas, foco e estados legíveis; erros e estados permanecem identificáveis sem depender somente de cor.
-5. O seletor funciona por teclado e comunica sua opção atual. Carregamento, armazenamento indisponível e ausência de JavaScript têm os fallbacks definidos acima; não há flash do tema incorreto quando a preferência salva pode ser lida.
+5. O seletor funciona por teclado e comunica sua opção atual. Carregamento, armazenamento indisponível e ausência de JavaScript têm os fallbacks definidos acima; não há flash do tema incorreto quando a preferência salva pode ser lida. Esses critérios foram cobertos na E2E mobile/desktop e na suíte Django.
 
 ## 3. Navegação e telas
 
@@ -81,7 +111,7 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 - Cadastro por e-mail, nome de usuário e senha; exibir erros no campo correspondente.
 - Confirmação de e-mail informa que uma mensagem foi enviada e explica o próximo passo.
 - Login, logout e recuperação seguem o fluxo django-allauth existente.
-- Após login, encaminhar para a página de cobranças/convites definida no produto, sem mostrar totais que ainda não existem nesta mudança.
+- Após login, encaminhar para o dashboard autenticado; a lista completa permanece disponível em **Cobranças** (`/charges/`).
 
 ### Perfil
 
@@ -114,13 +144,13 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 - Permitir ao criador trocar o recebedor antes de qualquer aceite de outra pessoa e de operação financeira. Após esse limite, mostrar o recebedor sem edição e explicar o bloqueio. O recebedor tem acesso à cobrança mesmo sem participar do rateio, mas não recebe permissão de edição por esse papel.
 - Se o criador participa e escolhe outro recebedor, sua própria dívida é criada junto da cobrança e acompanha os ajustes permitidos de sua cota.
 - Para o destinatário, expor somente ações do convite destinado a ele.
-- Não mostrar ações de pagamento ou compensação nesta mudança.
+- Exibir ações de pagamento e compensação conforme o papel financeiro e o estado da dívida, seguindo os fluxos descritos na seção 8.
 
 ### Estrutura para desktop
 
-- A partir de `lg`, usar uma navegação vertical fixa à esquerda, com marca, cobranças, convites e perfil. O contador de convites pendentes continua visível.
+- A partir de `lg`, usar uma navegação vertical fixa à esquerda, com marca, Início (dashboard), cobranças, convites e perfil. O contador de convites pendentes continua visível.
 - A partir de `lg`, remover o enquadramento de telefone, o fundo escuro externo e a navegação inferior. A área principal ocupa o espaço restante e alinha o conteúdo em uma largura máxima confortável.
-- No celular, manter cabeçalho compacto e navegação inferior fixa. A navegação inferior respeita a área segura e nunca cobre ações ou conteúdo.
+- No celular, manter cabeçalho compacto e navegação inferior fixa com Início, Cobranças, Convites e Perfil. A navegação inferior respeita a área segura e nunca cobre ações ou conteúdo.
 - Listas de cobranças e convites podem usar duas colunas em `md` e três em `xl`. O detalhe da cobrança organiza o resumo e os participantes em colunas em `lg`; formulários permanecem em uma coluna estreita ou se dividem quando há campos independentes.
 - A página pública de entrada não mostra a navegação autenticada; em telas largas, apresenta a chamada principal e os benefícios em duas colunas.
 
@@ -134,7 +164,7 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 - **Resumo de cotas:** mostra somente as pessoas incluídas, cada valor editável na criação e a soma final; distingue criador, recebedor e participantes.
 - **Aviso informativo:** explica confirmação de e-mail, origem da chave Pix ou efeito do aceite sem tom alarmista.
 
-Tom direto e acolhedor. Preferir “Sua participação foi aceita” a mensagens genéricas como “Sucesso”. Não usar texto que sugira transferência, verificação bancária ou quitação nesta mudança.
+Tom direto e acolhedor. Preferir “Sua participação foi aceita” a mensagens genéricas como “Sucesso”. A interface não deve sugerir transferência, verificação bancária ou confirmação automática pelo Pixu.
 
 ## 5. Estados, validação e HTMX
 
@@ -160,11 +190,11 @@ Tom direto e acolhedor. Preferir “Sua participação foi aceita” a mensagens
 
 A primeira versão é online. Páginas, convites e dados de cobrança vêm do servidor; criar, editar, aceitar ou recusar exige conexão. A interface só confirma uma mudança depois da resposta do servidor. Não implementar PWA, cache de dados pessoais, rascunhos locais nem fila de ações offline neste lote. Suporte offline exigiria mudança OpenSpec própria para sincronização, idempotência e conflitos.
 
-A persistência futura da preferência visual de tema, descrita na seção 2.4, armazena somente a escolha de aparência. Ela não habilita uso offline nem armazenamento de contas, cobranças ou formulários no navegador.
+A persistência da preferência visual de tema, descrita na seção 2.4, armazena somente a escolha de aparência. Ela não habilita uso offline nem armazenamento de contas, cobranças ou formulários no navegador.
 
-## 8. Telas de pagamentos e compensações futuras
+## 8. Pagamentos e compensações
 
-Estes padrões orientam futuras mudanças do OpenSpec e não ampliam o escopo desta tela inicial:
+Estes padrões orientam as telas financeiras implementadas em mudanças OpenSpec próprias:
 
 - Pagamento Pix fica pendente até confirmação manual do recebedor; comprovante não é tratado como verificação.
 - Um pagamento pertence a uma dívida. Pagamentos parciais são mostrados em linhas próprias.
@@ -178,4 +208,4 @@ Estes padrões orientam futuras mudanças do OpenSpec e não ampliam o escopo de
 - Protótipo navegável local: `docs/design/pixu-first-vision-prototype.html`.
 - Este documento define os tokens, componentes, textos, responsividade, acessibilidade e padrões HTMX/Tailwind.
 
-Decisões desta revisão: “convite pendente”, “cobrança ativa” e “dívida criada” são estados distintos; a navegação e a composição do desktop são próprias, sem moldura de celular; esta versão exige conexão para qualquer ação que altere estado. O protótipo e os wireframes foram atualizados para refletir a navegação lateral em telas largas. A hierarquia semântica está documentada, mas ainda não passou por teste com usuários.
+Decisões desta revisão: “convite pendente”, “cobrança ativa” e “dívida criada” são estados distintos; a navegação e a composição do desktop são próprias, sem moldura de celular; esta versão exige conexão para qualquer ação que altere estado. O protótipo e os wireframes foram atualizados para refletir a navegação lateral em telas largas. A hierarquia semântica está documentada e implementada; ainda falta verificar com três pessoas a compreensão espontânea de “Pix pendente”, “saldo aberto” e “compensado”.

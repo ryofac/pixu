@@ -65,3 +65,55 @@ document.body.addEventListener("click", async (event) => {
     button.textContent = original;
   }, 1800);
 });
+
+const THEME_PREFERENCE_KEY = "pixu-theme-preference";
+const THEME_PREFERENCES = ["light", "dark", "system"];
+const systemThemeQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+
+function applyThemePreference(preference, persist = true) {
+  if (!THEME_PREFERENCES.includes(preference)) preference = "system";
+
+  const resolvedTheme =
+    preference === "system"
+      ? systemThemeQuery?.matches
+        ? "dark"
+        : "light"
+      : preference;
+  const root = document.documentElement;
+  root.dataset.themePreference = preference;
+  root.dataset.theme = resolvedTheme;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", resolvedTheme === "dark" ? "#0F172A" : "#FFF4F3");
+
+  document.querySelectorAll("[data-theme-selector]").forEach((selector) => {
+    selector.value = preference;
+  });
+
+  if (persist) {
+    try {
+      window.localStorage.setItem(THEME_PREFERENCE_KEY, preference);
+    } catch {
+      try {
+        window.sessionStorage.setItem(THEME_PREFERENCE_KEY, preference);
+      } catch {
+        // Keep the choice active for the current page when all storage is blocked.
+      }
+    }
+  }
+}
+
+document.addEventListener("change", (event) => {
+  const selector = event.target.closest("[data-theme-selector]");
+  if (selector) applyThemePreference(selector.value);
+});
+
+document.querySelectorAll("[data-theme-selector]").forEach((selector) => {
+  selector.value = document.documentElement.dataset.themePreference || "system";
+});
+
+systemThemeQuery?.addEventListener("change", () => {
+  if (document.documentElement.dataset.themePreference === "system") {
+    applyThemePreference("system", false);
+  }
+});

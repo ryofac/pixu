@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Pixu · rateio com clareza{% endblock title %}
+
+{% block content %}
+  {# Fundo decorativo com orbes difusas em degradê suave #}
+  <div class="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+    <div class="absolute -left-16 -top-16 size-80 rounded-full bg-sakura-2/40 blur-3xl filter sm:size-96"></div>
+    <div class="absolute right-0 top-1/4 size-80 rounded-full bg-sakura-3/25 blur-3xl filter sm:size-96"></div>
+    <div class="absolute -bottom-16 left-1/4 size-80 rounded-full bg-sakura-1/40 blur-3xl filter sm:size-96"></div>
+  </div>
+
+  {# Hero Section #}
+  <section class="grid gap-8 pt-2 sm:gap-10 lg:grid-cols-12 lg:items-center lg:gap-12 lg:py-6" aria-labelledby="page-title" aria-label="Combinar o rateio fica mais simples.">
+    {# DIV 1: introduction #}
+    <div class="min-w-0 lg:col-span-6">
+      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-pixu-border bg-sakura-2 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-pixu-action shadow-sm backdrop-blur-sm">
+        <svg class="size-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z"/></svg>
+        <span>Despesas em grupo, com clareza</span>
+      </div>
+
+      <h1 class="mb-5 max-w-3xl text-4xl font-black leading-tight tracking-tight text-pixu-ink sm:text-5xl lg:text-6xl" id="page-title">
+        Combinar o <span class="bg-gradient-to-r from-pixu-action to-sakura-3 bg-clip-text text-transparent">rateio</span> fica mais simples.
+      </h1>
+
+      <p class="mb-8 max-w-2xl text-base leading-relaxed text-pixu-muted sm:text-lg lg:text-xl">
+        Crie cobranças, convide as pessoas e acompanhe quem já respondeu. A amizade continua, mas agora sem ninguém esquecer de pagar o churrasco.
+      </p>
+
+      <div class="flex flex-col gap-3.5 sm:flex-row sm:items-center">
+        <a class="inline-flex min-h-14 items-center justify-center gap-2.5 rounded-2xl bg-pixu-action-solid px-7 py-3.5 text-center text-base font-extrabold text-[#ffffff] no-underline shadow-lg shadow-[#B91649]/25 transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 hover:shadow-xl sm:text-lg" href="{% url 'account_signup' %}">
+          <span class="text-[#ffffff]">Criar minha conta</span>
+          <svg class="size-5 text-[#ffffff]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a class="inline-flex min-h-14 items-center justify-center rounded-2xl border-2 border-pixu-border bg-pixu-surface/80 px-6 py-3.5 text-center text-base font-bold text-pixu-ink no-underline shadow-sm backdrop-blur-md transition-all duration-300 hover:border-pixu-action hover:bg-pixu-surface" href="{% url 'account_login' %}">
+          Já tenho uma conta
+        </a>
+      </div>
+
+      <p class="mt-6 max-w-2xl text-xs leading-relaxed text-pixu-muted">
+        O Pixu organiza as obrigações: pagamentos acontecem fora do aplicativo e são confirmados manualmente por quem recebe.
+      </p>
+    </div>
+
+    {# DIV 2: benefits (ilustração de produto em desktop, cartões em mobile) #}
+    <div class="w-full lg:col-span-6">
+      {# Ilustração flutuante: OCULTA em mobile (390px), VISÍVEL apenas a partir de lg (>=1024px) #}
+      <div class="relative hidden min-h-[460px] w-full items-center justify-center overflow-visible py-6 lg:flex" aria-hidden="true">
+        {# Orbe central brilhante #}
+        <div class="pointer-events-none absolute size-72 rounded-full bg-sakura-3/20 blur-3xl filter" aria-hidden="true"></div>
+
+        {# Diamante rotacionado em 45º com flor Sakura central #}
+        <div class="relative z-10 flex size-48 rotate-45 items-center justify-center rounded-[2.5rem] border-4 border-white/30 bg-gradient-to-tr from-[#E11D48] to-[#F43F5E] shadow-2xl shadow-[#E11D48]/35 transition-transform duration-500 hover:scale-105" aria-hidden="true">
+          <svg class="size-24 -rotate-45 text-[#ffffff] drop-shadow-md" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5.2c1.8-2.7 5.1-.7 3.6 2.2 2.9-1.5 4.9 1.8 2.2 3.6 2.7 1.8.7 5.1-2.2 3.6 1.5 2.9-1.8 4.9-3.6 2.2-1.8 2.7-5.1.7-3.6-2.2-2.9 1.5-4.9-1.8-2.2-3.6-2.7-1.8-.7-5.1 2.2-3.6C6.9 4.5 10.2 2.5 12 5.2Z" fill="#ffffff"/>
+            <circle cx="12" cy="12" r="1.6" fill="#FFF4F3"/>
+          </svg>
+        </div>
+
+        {# Card flutuante 1 (topo-esquerdo) - Cota confirmada #}
+        <div class="absolute -left-8 top-12 z-20 -rotate-6 rounded-2xl border border-pixu-border bg-pixu-surface/95 px-6 py-4 shadow-xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 hover:rotate-0" aria-hidden="true">
+          <div class="flex items-center gap-3">
+            <div class="grid size-10 place-items-center rounded-full bg-sakura-2 text-sm font-extrabold text-pixu-action">A</div>
+            <div>
+              <div class="text-sm font-bold text-pixu-ink">Ana Pagou</div>
+              <div class="text-xs font-black text-pixu-action">R$ 50,00</div>
+            </div>
+          </div>
+        </div>
+
+        {# Card flutuante 2 (baixo-direito) - Conta Fechada / Tudo liquidado #}
+        <div class="absolute -right-4 bottom-12 z-20 rotate-6 rounded-2xl border border-pixu-border bg-pixu-surface/95 px-6 py-4 shadow-xl shadow-slate-900/10 backdrop-blur-xl transition-transform duration-300 hover:rotate-0" aria-hidden="true">
+          <div class="flex items-center gap-3">
+            <div class="grid size-10 place-items-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400">
+              <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            </div>
+            <div>
+              <div class="text-sm font-bold text-pixu-ink">Conta Fechada</div>
+              <div class="text-xs text-pixu-muted">Tudo liquidado</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Em mobile (<1024px): cartões curtos de benefícios (a ilustração flutuante fica oculta conforme product-design.md) #}
+      <div class="grid gap-4 sm:grid-cols-2 lg:hidden">
+        <div class="rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6">
+          <h2 class="mb-2 text-lg font-extrabold text-pixu-ink">Cada pessoa entende a sua parte</h2>
+          <p class="text-sm leading-relaxed text-pixu-muted">Confira o total, a sua cota e quem já respondeu antes de assumir uma dívida. Transparência total para o grupo.</p>
+        </div>
+        <div class="rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6">
+          <h2 class="mb-2 text-lg font-extrabold text-pixu-ink">Sem confirmações implícitas</h2>
+          <p class="text-sm leading-relaxed text-pixu-muted">Uma dívida só é criada quando a pessoa aceita ativamente o convite. A cobrança entra em vigor apenas após as respostas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# Seção de Recursos (Feature Cards de produto em viewport largo) #}
+  <section class="mt-12 hidden pb-10 sm:mt-16 sm:pb-14 lg:mt-20 lg:block" aria-label="Diferenciais do Pixu">
+    <div class="grid gap-6 sm:grid-cols-2 lg:gap-8">
+      {# Card 1 #}
+      <article class="group rounded-[2rem] border border-pixu-border bg-pixu-surface/85 p-7 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-md sm:p-9">
+        <div class="mb-5 grid size-14 place-items-center rounded-2xl bg-sakura-2 text-pixu-action transition-transform duration-300 group-hover:scale-105">
+          <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <h2 class="mb-3 text-xl font-black tracking-tight text-pixu-ink sm:text-2xl">Cada pessoa entende a sua parte</h2>
+        <p class="text-sm leading-relaxed text-pixu-muted sm:text-base">Confira o total, a sua cota e quem já respondeu antes de assumir uma dívida. Transparência total para o grupo.</p>
+      </article>
+
+      {# Card 2 #}
+      <article class="group rounded-[2rem] border border-pixu-border bg-pixu-surface/85 p-7 shadow-sm backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-md sm:p-9">
+        <div class="mb-5 grid size-14 place-items-center rounded-2xl bg-sakura-2 text-pixu-action transition-transform duration-300 group-hover:scale-105">
+          <svg class="size-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m11 17 2 2a1 1 0 0 0 1.42 0l4.58-4.59a1 1 0 0 0 0-1.41l-2.83-2.83a1 1 0 0 0-1.41 0L13.5 11.4"/>
+            <path d="m18 10 3.3-3.3a1 1 0 0 0 0-1.41l-2.6-2.6a1 1 0 0 0-1.41 0L13.5 6.5"/>
+            <path d="m2 12 5.5-5.5a1 1 0 0 1 1.41 0l2.6 2.6a1 1 0 0 1 0 1.41L8 14"/>
+            <path d="M6 16l-3.3 3.3a1 1 0 0 0 0 1.41l2.6 2.6a1 1 0 0 0 1.41 0L10.5 19.5"/>
+          </svg>
+        </div>
+        <h2 class="mb-3 text-xl font-black tracking-tight text-pixu-ink sm:text-2xl">Sem confirmações implícitas</h2>
+        <p class="text-sm leading-relaxed text-pixu-muted sm:text-base">Uma dívida só é criada quando a pessoa aceita ativamente o convite. A cobrança entra em vigor apenas após as respostas.</p>
+      </article>
+    </div>
+  </section>
+{% endblock content %}

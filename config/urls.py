@@ -5,10 +5,10 @@ from django.urls import path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 
-from pixu.charges.views import ChargeListView
+from pixu.dashboard.views import HomeView
 
 urlpatterns = [
-    path("", ChargeListView.as_view(), name="home"),
+    path("", HomeView.as_view(), name="home"),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),

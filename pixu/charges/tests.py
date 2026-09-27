@@ -605,7 +605,7 @@ class ChargeViewTests(TestCase):
             self.client.get(reverse("charges:detail", args=[self.charge.pk])),
             "Churrasco",
         )
-        self.assertContains(self.client.get(reverse("home")), "Churrasco")
+        self.assertContains(self.client.get(reverse("charges:list")), "Churrasco")
         response = self.client.post(
             reverse("charges:edit_shares", args=[self.charge.pk]),
             {"creditor": self.outsider.pk},

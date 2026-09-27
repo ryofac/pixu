@@ -6,7 +6,7 @@
 {% block content %}
   <section class="mx-auto max-w-6xl space-y-5 pt-2 lg:space-y-7 lg:pt-0" aria-labelledby="page-title">
     <div>
-      <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline" href="{% url 'home' %}">‹ Cobranças</a>
+      <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline" href="{% url 'charges:list' %}">‹ Cobranças</a>
       <h1 class="mb-2 text-2xl font-extrabold leading-tight text-pixu-ink" id="page-title">Nova cobrança</h1>
       <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Convide pessoas cadastradas e confira o rateio antes de criar." %}</p>
     </div>
@@ -16,7 +16,7 @@
       {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
 
       <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)] lg:gap-7">
-        <div class="grid gap-4 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div class="grid gap-4 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
           <div class="grid gap-2">
             <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
             {% render_accessible_field form.title %}
@@ -39,14 +39,14 @@
             <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.creditor.auto_id }}_help">{{ form.creditor.help_text }}</span>
             {% if form.creditor.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.creditor.auto_id }}_errors" role="alert">{% for error in form.creditor.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
           </div>
-          <div class="grid gap-2 rounded-xl border border-slate-200 p-3">
+          <div class="grid gap-2 rounded-xl border border-pixu-border p-3">
             <label class="flex min-h-11 items-center gap-3" for="{{ form.include_creator.id_for_label }}">{% render_accessible_field form.include_creator %} {{ form.include_creator.label }}</label>
             <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.include_creator.auto_id }}_help">{{ form.include_creator.help_text }}</span>
           </div>
         </div>
 
         <div class="grid content-start gap-4 lg:sticky lg:top-24">
-          <fieldset class="grid gap-2 rounded-[20px] border border-slate-200 bg-white p-4 sm:p-6"{% if form.invitees.errors %} aria-describedby="{{ form.invitees.auto_id }}_errors"{% endif %}>
+          <fieldset class="grid gap-2 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 sm:p-6"{% if form.invitees.errors %} aria-describedby="{{ form.invitees.auto_id }}_errors"{% endif %}>
             <legend class="px-1">{{ form.invitees.label }}</legend>
             {% if form.invitees.field.queryset %}
               <div class="grid gap-2">
@@ -56,7 +56,7 @@
               </div>
               <div class="grid gap-2.5 sm:grid-cols-2">
                 {% for checkbox in form.invitees %}
-                  <label class="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-sm has-checked:border-sakura-5 has-checked:bg-[#fff7f8]" data-invitee-option>
+                  <label class="flex min-h-12 min-w-0 items-center gap-2 rounded-xl border border-pixu-border bg-pixu-surface p-3 text-sm has-checked:border-sakura-5 has-checked:bg-sakura-2" data-invitee-option>
                     {{ checkbox.tag }}<span class="break-words">{{ checkbox.choice_label }}</span>
                   </label>
                 {% endfor %}
@@ -69,14 +69,14 @@
           <div id="share-preview" aria-live="polite">
             {% include "charges/partials/share_preview.html" %}
           </div>
-          <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-white px-4 py-2.5 font-bold text-pixu-action" type="submit" name="intent" value="preview" hx-post="{% url 'charges:preview' %}" hx-trigger="click" hx-include="closest form" hx-disabled-elt="this">{% translate "Conferir cotas · dividir igualmente" %}</button>
-          <div class="rounded-xl border border-sakura-1 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">{% translate "Você continua responsável pela cobrança mesmo sem participar do rateio. A cobrança só fica ativa quando todos os convites atuais forem aceitos." %}</div>
+          <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-pixu-surface px-4 py-2.5 font-bold text-pixu-action hover:bg-sakura-2" type="submit" name="intent" value="preview" hx-post="{% url 'charges:preview' %}" hx-trigger="click" hx-include="closest form" hx-disabled-elt="this">{% translate "Conferir cotas · dividir igualmente" %}</button>
+          <div class="rounded-xl border border-sakura-1 bg-pixu-info-surface px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">{% translate "Você continua responsável pela cobrança mesmo sem participar do rateio. A cobrança só fica ativa quando todos os convites atuais forem aceitos." %}</div>
         </div>
       </div>
 
       <div class="flex flex-col gap-3 pt-1 sm:flex-row sm:justify-end">
-        <a class="flex min-h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-center font-bold text-pixu-muted no-underline sm:min-w-36" href="{% url 'home' %}">{% translate "Voltar" %}</a>
-        <button class="flex min-h-12 items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-5 py-3 font-extrabold text-white shadow-md sm:min-w-52" type="submit">{% translate "Criar cobrança" %}</button>
+        <a class="flex min-h-12 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 text-center font-bold text-pixu-muted no-underline hover:text-pixu-ink sm:min-w-36" href="{% url 'charges:list' %}">{% translate "Voltar" %}</a>
+        <button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-5 py-3 font-extrabold text-white shadow-md transition hover:brightness-110 sm:min-w-52" type="submit">{% translate "Criar cobrança" %}</button>
       </div>
     </form>
   </section>

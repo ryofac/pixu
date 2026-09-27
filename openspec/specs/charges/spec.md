@@ -25,6 +25,20 @@ Desde o primeiro pagamento registrado, inclusive quando estiver `PENDING` e mesm
 - **WHEN** o criador edita uma cobrança ativa ou aguardando aceite sem pagamento registrado nem compensação aplicada
 - **THEN** as regras anteriores de aceites e cotas continuam sendo aplicadas e a alteração válida é persistida
 
+### Requirement: Bloqueio de edição após compensação
+
+Ao aplicar uma compensação, o sistema MUST bloquear definitivamente a edição estrutural das duas cobranças envolvidas, incluindo total, participantes, cotas e recebedor, mantendo o histórico e os valores das dívidas coerentes.
+
+#### Scenario: Compensação bloqueia as duas cobranças
+
+- **WHEN** uma compensação é aplicada entre dívidas de cobranças distintas
+- **THEN** ambas as cobranças ficam bloqueadas para edição e tentativas posteriores são recusadas pelo servidor sem alterar dados
+
+#### Scenario: Repetição não altera o bloqueio
+
+- **WHEN** o pedido de compensação já aplicado é reenviado
+- **THEN** nenhuma cobrança é alterada novamente e o bloqueio permanece associado às duas operações financeiras registradas
+
 ### Requirement: Valores monetários em pt-BR
 
 Os formulários de criação, prévia e edição de cobrança MUST aceitar a representação monetária pt-BR com vírgula decimal, como `150,00`, e MUST normalizar o valor no servidor para centavos inteiros. A interface MUST exibir valores em reais com duas casas e vírgula decimal; erros de entrada MUST ser apresentados em pt-BR. A validação MUST continuar server-side em POST convencional e HTMX.

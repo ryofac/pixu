@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="pixu-sakura-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFA7A6" />
+      <stop offset="40%" stop-color="#F25477" />
+      <stop offset="100%" stop-color="#EC275F" />
+    </linearGradient>
+    <filter id="pixu-logo-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" />
+    </filter>
+    <path id="pixu-sakura-petal" d="M 0 0 C -22 -20, -25 -48, -12 -58 L 0 -48 L 12 -58 C 25 -48, 22 -20, 0 0 Z" />
+    <path id="pixu-mini-petal" d="M 0 0 C -10 -10, -12 -24, -6 -29 L 0 -24 L 6 -29 C 12 -24, 10 -10, 0 0 Z" />
+  </defs>
+
+  <symbol id="pixu-logo-symbol" viewBox="0 0 160 160">
+    <rect x="32" y="32" width="96" height="96" rx="22" transform="rotate(45 80 80)" fill="var(--pixu-logo-diamond, #D4E0EE)" />
+    <circle cx="80" cy="85" r="30" fill="#EC275F" opacity=".25" filter="url(#pixu-logo-glow)" />
+    <g transform="translate(80 80) scale(.8)">
+      <use href="#pixu-sakura-petal" fill="url(#pixu-sakura-gradient)" />
+      <use href="#pixu-sakura-petal" transform="rotate(72)" fill="url(#pixu-sakura-gradient)" />
+      <use href="#pixu-sakura-petal" transform="rotate(144)" fill="url(#pixu-sakura-gradient)" />
+      <use href="#pixu-sakura-petal" transform="rotate(216)" fill="url(#pixu-sakura-gradient)" />
+      <use href="#pixu-sakura-petal" transform="rotate(288)" fill="url(#pixu-sakura-gradient)" />
+    </g>
+    <g transform="translate(80 80)" fill="none" stroke="var(--pixu-logo-cutout, #FFF4F3)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M -18 -18 L -3 -3 M 18 -18 L 3 -3 M -18 18 L -3 3 M 18 18 L 3 3" />
+      <circle r="3.5" fill="var(--pixu-logo-cutout, #FFF4F3)" stroke="none" />
+    </g>
+    <use href="#pixu-mini-petal" transform="translate(135 35) rotate(45) scale(.36)" fill="#FFA7A6" opacity=".6" />
+    <use href="#pixu-mini-petal" transform="translate(20 110) rotate(-110) scale(.5)" fill="#F25477" opacity=".4" />
+  </symbol>
+
+  <title>Pixu — System Core Logo</title>
+  <use href="#pixu-logo-symbol" />
+</svg>

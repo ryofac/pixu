@@ -7,11 +7,11 @@
   {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
   {% if attrs.type %}type="{{ attrs.type }}"{% endif %}
   class="inline-flex min-h-12 w-full items-center justify-center rounded-xl px-4 py-3 text-center font-extrabold no-underline shadow-sm transition active:scale-95
-    {% if 'success' in attrs.tags %}bg-green-700 text-white
-    {% elif 'warning' in attrs.tags %}bg-amber-100 text-pixu-pending
-    {% elif 'secondary' in attrs.tags %}border border-slate-200 bg-white text-pixu-ink
-    {% elif 'danger' in attrs.tags %}border border-red-200 bg-white text-pixu-danger
-    {% else %}bg-gradient-to-r from-sakura-5 to-sakura-6 text-white{% endif %}"
+    {% if 'success' in attrs.tags %}border border-green-200 bg-green-50 text-pixu-success
+    {% elif 'warning' in attrs.tags %}border border-amber-200 bg-amber-50 text-pixu-pending
+    {% elif 'secondary' in attrs.tags %}border border-pixu-border bg-pixu-surface text-pixu-ink hover:bg-slate-50
+    {% elif 'danger' in attrs.tags %}border border-red-200 bg-red-50 text-pixu-danger
+    {% else %}bg-pixu-action-solid text-white hover:brightness-110{% endif %}"
 >
   {% slot %}{% endslot %}
 </{% if attrs.href %}a{% else %}button{% endif %}>

@@ -237,7 +237,8 @@ class AccountFlowTests(TestCase):
             {"login": user.username, "password": TEST_PASSWORD},
         )
         assert response.request["PATH_INFO"] == reverse("home")
-        self.assertContains(response, "Suas cobranças")
+        self.assertContains(response, "Seu resumo")
+        self.assertContains(response, reverse("charges:list"))
         assert int(self.client.session["_auth_user_id"]) == user.pk
 
         profile = self.client.get(user.get_absolute_url())

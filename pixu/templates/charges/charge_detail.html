@@ -5,7 +5,7 @@
 {% block content %}
   <section class="mx-auto max-w-6xl space-y-5 pt-2 lg:space-y-6 lg:pt-0" aria-labelledby="page-title">
     <header>
-      <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline hover:underline" href="{% url 'home' %}">‹ Cobranças</a>
+      <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline hover:underline" href="{% url 'charges:list' %}">‹ Cobranças</a>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
           <h1 class="break-words text-2xl font-extrabold leading-tight text-pixu-ink sm:text-3xl" id="page-title">{{ charge.title }}</h1>

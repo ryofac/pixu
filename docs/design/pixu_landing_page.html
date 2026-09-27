@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="scroll-smooth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Pixu · Despesas em Grupo</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Nunito', 'sans-serif'] },
+          colors: {
+            sakura: {
+              1: '#D4E0EE', 2: '#FFDBDB', 3: '#FFA7A6',
+              4: '#FFF4F3', 5: '#F25477', 6: '#EC275F',
+            },
+            dark: { bg: '#0F172A', card: '#1E293B', border: '#334155' }
+          },
+          animation: {
+            'blob': 'blob 7s infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'float-delayed': 'float 6s ease-in-out 3s infinite',
+          },
+          keyframes: {
+            blob: {
+              '0%': { transform: 'translate(0px, 0px) scale(1)' },
+              '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+              '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+              '100%': { transform: 'translate(0px, 0px) scale(1)' },
+            },
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-20px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ========================================================
+       Efeito de Pétalas de Sakura a cair (CSS Animation)
+       ======================================================== */
+    .sakura-petal {
+      position: absolute;
+      background: linear-gradient(135deg, var(--sakura-2) 0%, var(--sakura-5) 100%);
+      border-radius: 15px 0px 15px 0px;
+      opacity: 0.6;
+      pointer-events: none;
+      z-index: 0;
+      animation: fall linear infinite, sway ease-in-out infinite alternate;
+    }
+
+    .dark .sakura-petal {
+      background: linear-gradient(135deg, var(--sakura-5) 0%, var(--sakura-6) 100%);
+      opacity: 0.4;
+      box-shadow: 0 0 10px rgba(236, 39, 95, 0.5);
+    }
+
+    @keyframes fall {
+      0% { top: -10%; opacity: 0; transform: rotate(0deg); }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { top: 110%; transform: rotate(360deg); opacity: 0; }
+    }
+    @keyframes sway {
+      0% { margin-left: 0px; }
+      100% { margin-left: 50px; }
+    }
+
+    /* Efeito de Vidro (Glassmorphism) */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .dark .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+  </style>
+</head>
+<body class="bg-sakura-4 dark:bg-dark-bg text-gray-900 dark:text-gray-100 min-h-screen relative overflow-x-hidden transition-colors duration-500">
+
+  <!-- ========================================================
+       MASH GRADIENT BACKGROUND (Bolas de cor difusas)
+       ======================================================== -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute top-0 -left-4 w-72 h-72 bg-sakura-2 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob dark:bg-sakura-6 dark:mix-blend-screen dark:opacity-20"></div>
+    <div class="absolute top-0 -right-4 w-72 h-72 bg-sakura-3 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-2000 dark:bg-sakura-5 dark:mix-blend-screen dark:opacity-20"></div>
+    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-sakura-1 rounded-full mix-blend-multiply filter blur-3xl opacity-70 animate-blob animation-delay-4000 dark:bg-blue-900 dark:mix-blend-screen dark:opacity-30"></div>
+  </div>
+
+  <!-- Contentor Global das Pétalas -->
+  <div id="sakura-container" class="fixed inset-0 overflow-hidden pointer-events-none z-0"></div>
+
+  <!-- ========================================================
+       CABEÇALHO
+       ======================================================== -->
+  <header class="fixed top-0 w-full z-50 glass-card border-b-0 shadow-sm transition-colors duration-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-20">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-3 text-2xl font-black text-sakura-6 tracking-tight no-underline group">
+          <div class="relative w-10 h-10 flex items-center justify-center bg-sakura-6 text-white rounded-xl transform group-hover:rotate-12 transition-transform duration-300 shadow-lg shadow-sakura-6/30">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M12 5.2c1.8-2.7 5.1-.7 3.6 2.2 2.9-1.5 4.9 1.8 2.2 3.6 2.7 1.8.7 5.1-2.2 3.6 1.5 2.9-1.8 4.9-3.6 2.2-1.8 2.7-5.1.7-3.6-2.2-2.9 1.5-4.9-1.8-2.2-3.6-2.7-1.8-.7-5.1 2.2-3.6C6.9 4.5 10.2 2.5 12 5.2Z" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="#fff4f3" /></svg>
+          </div>
+          PiXu
+        </a>
+
+        <!-- Botões -->
+        <div class="flex items-center gap-4">
+          <button id="theme-toggle" class="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+            <i class="ph ph-moon text-2xl" id="theme-icon"></i>
+          </button>
+          <a href="#" class="hidden sm:flex items-center justify-center px-6 py-2.5 rounded-full border-2 border-sakura-6 text-sakura-6 font-bold hover:bg-sakura-6 hover:text-white transition-all duration-300">
+            Entrar na conta
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================
+       MENSAGEM DE ALERTA FLASH (Glassmorphism)
+       ======================================================== -->
+  <!-- Escondido por defeito, demonstração de como ficaria o alerta do Django -->
+  <!-- <div class="relative z-20 max-w-2xl mx-auto mt-28 px-4">
+    <div class="glass-card bg-green-50/50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300 px-4 py-3 rounded-xl flex items-center gap-3 shadow-sm">
+      <i class="ph-fill ph-check-circle text-xl"></i>
+      <span class="font-semibold text-sm">You have signed out.</span>
+    </div>
+  </div> -->
+
+  <!-- ========================================================
+       HERO SECTION (Split Layout)
+       ======================================================== -->
+  <main class="relative z-10 pt-32 pb-16 sm:pt-40 sm:pb-24 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
+
+      <!-- Coluna da Esquerda (Texto & Botões) -->
+      <div class="lg:col-span-6 text-center lg:text-left">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sakura-2/80 dark:bg-sakura-6/20 text-sakura-6 font-extrabold text-xs tracking-wide uppercase mb-6 shadow-sm ring-1 ring-sakura-5/20 backdrop-blur-sm">
+          <i class="ph-fill ph-sparkle"></i> Despesas em grupo, com clareza
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white leading-tight mb-6 tracking-tight">
+          Combinar o <span class="text-transparent bg-clip-text bg-gradient-to-r from-sakura-5 to-sakura-6">rateio</span> fica mais simples.
+        </h1>
+
+        <p class="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+          Crie cobranças, convide as pessoas e acompanhe quem já respondeu. A amizade continua, mas agora sem ninguém esquecer de pagar o churrasco.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+          <a href="#" class="flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 text-white font-extrabold text-lg shadow-lg shadow-sakura-6/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-sakura-6/40 transition-all duration-300">
+            Criar minha conta <i class="ph-bold ph-arrow-right"></i>
+          </a>
+          <a href="#" class="sm:hidden flex items-center justify-center px-8 py-4 rounded-xl glass-card text-gray-900 dark:text-white font-bold text-lg border-2 border-transparent hover:border-sakura-5 transition-all duration-300">
+            Entrar na conta
+          </a>
+        </div>
+      </div>
+
+      <!-- Coluna da Direita (Ilustração Visual Chamativa) -->
+      <div class="hidden lg:block lg:col-span-6 relative h-[500px]">
+        <!-- O diamante do Pixu a flutuar rodeado por elementos de interface -->
+        <div class="absolute inset-0 flex items-center justify-center animate-float">
+
+          <!-- Fundo brilhante -->
+          <div class="absolute w-64 h-64 bg-sakura-5 rounded-full filter blur-[100px] opacity-40 dark:opacity-30"></div>
+
+          <!-- Elemento Central -->
+          <div class="relative z-10 w-48 h-48 bg-gradient-to-tr from-sakura-5 to-sakura-6 rounded-[2rem] transform rotate-45 flex items-center justify-center shadow-2xl shadow-sakura-6/50 border-4 border-white/20">
+            <svg class="-rotate-45 text-white w-24 h-24" viewBox="0 0 24 24" fill="none"><path d="M12 5.2c1.8-2.7 5.1-.7 3.6 2.2 2.9-1.5 4.9 1.8 2.2 3.6 2.7 1.8.7 5.1-2.2 3.6 1.5 2.9-1.8 4.9-3.6 2.2-1.8 2.7-5.1.7-3.6-2.2-2.9 1.5-4.9-1.8-2.2-3.6-2.7-1.8-.7-5.1 2.2-3.6C6.9 4.5 10.2 2.5 12 5.2Z" fill="currentColor" /><circle cx="12" cy="12" r="1.5" fill="#fff4f3" /></svg>
+          </div>
+
+          <!-- Card de UI Flutuante 1 (Cota) -->
+          <div class="absolute -left-10 top-20 glass-card px-6 py-4 rounded-2xl shadow-xl animate-float-delayed transform -rotate-6">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-sakura-2 flex items-center justify-center text-sakura-6 font-bold">A</div>
+              <div>
+                <div class="text-sm font-bold dark:text-white">Ana Pagou</div>
+                <div class="text-xs text-sakura-6 font-black">50,00 €</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card de UI Flutuante 2 (Confirmação) -->
+          <div class="absolute -right-4 bottom-24 glass-card px-6 py-4 rounded-2xl shadow-xl animate-float transform rotate-6" style="animation-delay: 1.5s;">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400">
+                <i class="ph-bold ph-check"></i>
+              </div>
+              <div>
+                <div class="text-sm font-bold dark:text-white">Conta Fechada</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Tudo liquidado</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================
+       SECÇÃO DE RECURSOS (Feature Cards)
+       ======================================================== -->
+  <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+    <div class="grid sm:grid-cols-2 gap-6 lg:gap-10">
+
+      <!-- Card 1 -->
+      <div class="glass-card p-8 sm:p-10 rounded-[2rem] hover:-translate-y-2 transition-transform duration-300 group">
+        <div class="w-14 h-14 rounded-2xl bg-sakura-2 dark:bg-sakura-6/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <i class="ph-fill ph-users-three text-3xl text-sakura-6"></i>
+        </div>
+        <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-4">Cada pessoa entende a sua parte</h2>
+        <p class="text-gray-600 dark:text-gray-400 leading-relaxed text-lg">
+          Confira o total, a sua cota e quem já respondeu antes de assumir uma dívida. Transparência total para o grupo.
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="glass-card p-8 sm:p-10 rounded-[2rem] hover:-translate-y-2 transition-transform duration-300 group">
+        <div class="w-14 h-14 rounded-2xl bg-sakura-2 dark:bg-sakura-6/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+          <i class="ph-fill ph-handshake text-3xl text-sakura-6"></i>
+        </div>
+        <h2 class="text-2xl font-black text-gray-900 dark:text-white mb-4">Sem confirmações implícitas</h2>
+        <p class="text-gray-600 dark:text-gray-400 leading-relaxed text-lg">
+          Uma dívida só é criada quando a pessoa aceita ativamente o convite. A cobrança entra em vigor apenas após as respostas.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================
+       SCRIPTS (Tema e Pétalas de Sakura)
+       ======================================================== -->
+  <script>
+    // Lógica do Dark Mode
+    const themeBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const html = document.documentElement;
+
+    let isDark = false;
+
+    themeBtn.addEventListener('click', () => {
+      isDark = !isDark;
+      if(isDark) {
+        html.classList.add('dark');
+        themeIcon.classList.replace('ph-moon', 'ph-sun');
+      } else {
+        html.classList.remove('dark');
+        themeIcon.classList.replace('ph-sun', 'ph-moon');
+      }
+    });
+
+    // Lógica para gerar Pétalas de Sakura (Chuva de flores)
+    function createSakura() {
+      const container = document.getElementById('sakura-container');
+      const petal = document.createElement('div');
+
+      petal.classList.add('sakura-petal');
+
+      // Tamanho e posição aleatórios
+      const size = Math.random() * 15 + 10; // entre 10px e 25px
+      petal.style.width = `${size}px`;
+      petal.style.height = `${size}px`;
+      petal.style.left = `${Math.random() * 100}vw`;
+
+      // Duração e atrasos aleatórios para ser orgânico
+      const fallDuration = Math.random() * 5 + 5; // 5s a 10s
+      const swayDuration = Math.random() * 2 + 2; // 2s a 4s
+      const delay = Math.random() * 5;
+
+      petal.style.animationDuration = `${fallDuration}s, ${swayDuration}s`;
+      petal.style.animationDelay = `${delay}s, ${delay}s`;
+
+      container.appendChild(petal);
+
+      // Remover a pétala do DOM quando terminar de cair para poupar memória
+      setTimeout(() => {
+        petal.remove();
+      }, (fallDuration + delay) * 1000);
+    }
+
+    // Criar uma nova pétala a cada 300ms (ajuste para aumentar/diminuir a densidade)
+    setInterval(createSakura, 300);
+  </script>
+</body>
+</html>

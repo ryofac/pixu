@@ -5,32 +5,165 @@
 @theme {
   --font-app: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --color-sakura-1: #d4e0ee;
-  --color-sakura-2: #ffdbdb;
+  --color-sakura-1: var(--pixu-info-border);
+  --color-sakura-2: var(--pixu-sakura-soft);
   --color-sakura-3: #ffa7a6;
-  --color-sakura-4: #fff4f3;
-  --color-sakura-5: #f25477;
-  --color-sakura-6: #ec275f;
-  --color-pixu-action: #b91649;
-  --color-pixu-ink: #2d3748;
-  --color-pixu-muted: #718096;
-  --color-pixu-pending: #805400;
-  --color-pixu-success: #276749;
-  --color-pixu-danger: #a12632;
+  --color-sakura-4: var(--pixu-canvas);
+  --color-sakura-5: var(--pixu-brand);
+  --color-sakura-6: var(--pixu-brand);
+  --color-pixu-canvas: var(--pixu-canvas);
+  --color-pixu-surface: var(--pixu-surface);
+  --color-pixu-surface-raised: var(--pixu-surface-raised);
+  --color-pixu-border: var(--pixu-border);
+  --color-pixu-action: var(--pixu-brand);
+  --color-pixu-action-solid: var(--pixu-brand-action);
+  --color-pixu-ink: var(--pixu-text);
+  --color-pixu-muted: var(--pixu-text-muted);
+  --color-pixu-pending: var(--pixu-warning);
+  --color-pixu-success: var(--pixu-success);
+  --color-pixu-danger: var(--pixu-danger);
+  --color-pixu-info: var(--pixu-info);
+  --color-pixu-success-surface: var(--pixu-success-surface);
+  --color-pixu-warning-surface: var(--pixu-warning-surface);
+  --color-pixu-danger-surface: var(--pixu-danger-surface);
+  --color-pixu-info-surface: var(--pixu-info-surface);
+  --color-pixu-focus: var(--pixu-focus);
 }
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --pixu-canvas: #fff4f3;
+    --pixu-surface: #ffffff;
+    --pixu-surface-raised: #fffafa;
+    --pixu-text: #2d3748;
+    --pixu-text-muted: #5b6573;
+    --pixu-border: #e8d5d8;
+    --pixu-border-subtle: #f2e5e6;
+    --pixu-border-strong: #d7c2c6;
+    --pixu-brand-action: #b91649;
+    --pixu-brand: #ec275f;
+    --pixu-success: #176b45;
+    --pixu-success-surface: #eaf6ef;
+    --pixu-success-border: #b7dec6;
+    --pixu-warning: #805400;
+    --pixu-warning-surface: #fff4d6;
+    --pixu-warning-border: #e8d59f;
+    --pixu-danger: #a12632;
+    --pixu-danger-surface: #fff0f0;
+    --pixu-danger-border: #eec1c4;
+    --pixu-info: #2d3748;
+    --pixu-info-surface: #eef4fa;
+    --pixu-info-border: #c9d8e8;
+    --pixu-focus: #1d5ca8;
+    --pixu-sakura-soft: #ffdbdb;
+    --pixu-logo-diamond: #d4e0ee;
+    --pixu-logo-cutout: #fff4f3;
+
+    /* Existing utility classes resolve to theme-aware semantic values. */
+    --color-slate-50: var(--pixu-surface-raised);
+    --color-slate-100: var(--pixu-border-subtle);
+    --color-slate-200: var(--pixu-border);
+    --color-slate-300: var(--pixu-border-strong);
+    --color-slate-500: var(--pixu-text-muted);
+    --color-slate-700: var(--pixu-text);
+    --color-slate-800: var(--pixu-text);
+    --color-sky-700: var(--pixu-focus);
+    --color-green-50: var(--pixu-success-surface);
+    --color-green-100: var(--pixu-success-surface);
+    --color-green-200: var(--pixu-success-border);
+    --color-green-700: var(--pixu-success);
+    --color-green-800: var(--pixu-success);
+    --color-amber-50: var(--pixu-warning-surface);
+    --color-amber-100: var(--pixu-warning-surface);
+    --color-amber-200: var(--pixu-warning-border);
+    --color-amber-700: var(--pixu-warning);
+    --color-amber-800: var(--pixu-warning);
+    --color-red-50: var(--pixu-danger-surface);
+    --color-red-100: var(--pixu-danger-surface);
+    --color-red-200: var(--pixu-danger-border);
+    --color-red-700: var(--pixu-danger);
+    --color-red-800: var(--pixu-danger);
+    --color-blue-50: var(--pixu-info-surface);
+    --color-blue-100: var(--pixu-info-border);
+    --color-blue-200: var(--pixu-info-border);
+    --color-blue-700: var(--pixu-info);
+    --color-blue-800: var(--pixu-info);
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --pixu-canvas: #0f172a;
+    --pixu-surface: #1e293b;
+    --pixu-surface-raised: #273449;
+    --pixu-text: #f8fafc;
+    --pixu-text-muted: #cbd5e1;
+    --pixu-border: #475569;
+    --pixu-border-subtle: #334155;
+    --pixu-border-strong: #64748b;
+    --pixu-brand-action: #b91649;
+    --pixu-brand: #ffa7a6;
+    --pixu-success: #86efac;
+    --pixu-success-surface: #123526;
+    --pixu-success-border: #2c6a49;
+    --pixu-warning: #fcd34d;
+    --pixu-warning-surface: #422f11;
+    --pixu-warning-border: #705318;
+    --pixu-danger: #fda4af;
+    --pixu-danger-surface: #451f2a;
+    --pixu-danger-border: #743743;
+    --pixu-info: #cbd5e1;
+    --pixu-info-surface: #1e344b;
+    --pixu-info-border: #355675;
+    --pixu-focus: #93c5fd;
+    --pixu-sakura-soft: #512739;
+    --pixu-logo-diamond: #273449;
+    --pixu-logo-cutout: #0f172a;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      color-scheme: dark;
+      --pixu-canvas: #0f172a;
+      --pixu-surface: #1e293b;
+      --pixu-surface-raised: #273449;
+      --pixu-text: #f8fafc;
+      --pixu-text-muted: #cbd5e1;
+      --pixu-border: #475569;
+      --pixu-border-subtle: #334155;
+      --pixu-border-strong: #64748b;
+      --pixu-brand-action: #b91649;
+      --pixu-brand: #ffa7a6;
+      --pixu-success: #86efac;
+      --pixu-success-surface: #123526;
+      --pixu-success-border: #2c6a49;
+      --pixu-warning: #fcd34d;
+      --pixu-warning-surface: #422f11;
+      --pixu-warning-border: #705318;
+      --pixu-danger: #fda4af;
+      --pixu-danger-surface: #451f2a;
+      --pixu-danger-border: #743743;
+      --pixu-info: #cbd5e1;
+      --pixu-info-surface: #1e344b;
+      --pixu-info-border: #355675;
+      --pixu-focus: #93c5fd;
+      --pixu-sakura-soft: #512739;
+      --pixu-logo-diamond: #273449;
+      --pixu-logo-cutout: #0f172a;
+    }
+  }
+
   html {
     min-width: 320px;
     min-height: 100%;
-    background: #fff4f3;
+    background: var(--pixu-canvas);
   }
 
   body {
     min-width: 320px;
     min-height: 100dvh;
     margin: 0;
-    background: #fff4f3;
+    background: var(--pixu-canvas);
     font-family: var(--font-app);
   }
 
@@ -48,7 +181,7 @@
   input[type="search"],
   select,
   textarea {
-    @apply min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-pixu-ink;
+    @apply min-h-12 w-full rounded-xl border border-slate-300 bg-pixu-surface px-3.5 py-3 text-pixu-ink;
   }
 
   textarea {
@@ -75,7 +208,45 @@
   }
 
   :focus-visible {
-    outline: 3px solid #1d5ca8;
+    outline: 3px solid var(--pixu-focus);
     outline-offset: 3px;
+  }
+
+  .pixu-logo-symbol {
+    --pixu-logo-cutout: var(--pixu-canvas);
+    --pixu-logo-diamond: var(--pixu-surface-raised);
+  }
+
+  html[data-theme="dark"] .theme-icon-light {
+    display: none !important;
+  }
+  html[data-theme="dark"] .theme-icon-dark {
+    display: block !important;
+  }
+  html:not([data-theme="dark"]) .theme-icon-light {
+    display: block !important;
+  }
+  html:not([data-theme="dark"]) .theme-icon-dark {
+    display: none !important;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme]) .theme-icon-light {
+      display: none !important;
+    }
+    html:not([data-theme]) .theme-icon-dark {
+      display: block !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

@@ -215,15 +215,12 @@ def _detail_response(request, charge, context, *, invalid=False):
     )
 
 
-class ChargeListView(TemplateView):
-    template_name = "pages/home.html"
+class ChargeListView(LoginRequiredMixin, TemplateView):
+    template_name = "pages/charge_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        if self.request.user.is_authenticated:
-            context["charges"] = _visible_charges(self.request.user)
-        else:
-            context["charges"] = Charge.objects.none()
+        context["charges"] = _visible_charges(self.request.user)
         return context
 
 

@@ -1,0 +1,25 @@
+{% load i18n %}
+<div class="relative inline-flex items-center">
+  <label class="sr-only" for="theme-preference">{% translate "Aparência" %}</label>
+  <span class="pointer-events-none absolute left-3 z-10 flex items-center" aria-hidden="true">
+    {# Ícone do Sol (Tema Claro) #}
+    <svg class="theme-icon-light size-3.5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    </svg>
+    {# Ícone da Lua (Tema Escuro) #}
+    <svg class="theme-icon-dark size-3.5 shrink-0 text-sakura-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+    </svg>
+  </span>
+  <select class="min-h-10 cursor-pointer appearance-none rounded-full border border-pixu-border bg-pixu-surface/90 py-1.5 pl-8.5 pr-8 text-xs font-bold text-pixu-ink shadow-sm backdrop-blur-sm transition-all hover:border-pixu-action hover:bg-pixu-surface focus-visible:outline-3 focus-visible:outline-solid focus-visible:outline-pixu-focus" id="theme-preference" data-theme-selector>
+    <option value="system">{% translate "Tema: Sistema" %}</option>
+    <option value="light">{% translate "Tema: Claro" %}</option>
+    <option value="dark">{% translate "Tema: Escuro" %}</option>
+  </select>
+  <span class="pointer-events-none absolute right-2.5 z-10 flex items-center text-pixu-muted" aria-hidden="true">
+    <svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  </span>
+</div>

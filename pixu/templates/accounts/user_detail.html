@@ -10,7 +10,7 @@
     </header>
 
     <div class="grid items-start gap-5{% if object == request.user %} lg:grid-cols-[minmax(15rem,.7fr)_minmax(0,1.3fr)]{% else %} lg:max-w-md{% endif %}">
-      <article class="rounded-[20px] border border-slate-200 bg-white p-6 text-center shadow-sm">
+      <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-6 text-center shadow-sm">
         <div class="mx-auto mb-4 grid size-20 place-items-center rounded-full bg-sakura-2 text-4xl font-extrabold text-sakura-6" aria-hidden="true">{{ object.name|default:object.username|slice:":1"|upper }}</div>
         <h2 class="mb-1 text-lg font-extrabold text-pixu-ink">{{ object.name|default:object.username }}</h2>
         <p class="text-sm text-pixu-muted">@{{ object.username }}</p>
@@ -18,7 +18,7 @@
 
       {% if object == request.user %}
         <div class="grid gap-4">
-          <article class="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
         <h2 class="mb-2 text-lg font-extrabold text-pixu-ink">Chave Pix principal</h2>
         {% if pix_profile and pix_profile.pix_key %}
           <p class="break-all font-bold text-pixu-ink">{{ pix_profile.pix_key }}</p>
@@ -29,11 +29,11 @@
           </article>
 
           <div class="grid gap-3 sm:grid-cols-2">
-            <a class="flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 font-extrabold text-white no-underline shadow-md" href="{% url 'accounts:update' %}">Editar perfil</a>
-            <a class="flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-pixu-muted no-underline" href="{% url 'account_email' %}">Gerenciar e-mail</a>
+            <a class="flex min-h-12 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white no-underline shadow-md transition hover:brightness-110" href="{% url 'accounts:update' %}">Editar perfil</a>
+            <a class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted no-underline hover:text-pixu-ink" href="{% url 'account_email' %}">Gerenciar e-mail</a>
             <form class="sm:col-span-2" method="post" action="{% url 'account_logout' %}">
               {% csrf_token %}
-              <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-pixu-muted" type="submit">Sair da conta</button>
+              <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted hover:text-pixu-ink" type="submit">Sair da conta</button>
             </form>
           </div>
         </div>

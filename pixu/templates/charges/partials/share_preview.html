@@ -1,6 +1,6 @@
 {% load charge_format form_fields i18n %}
 {% if allocation_form %}
-  <section class="rounded-2xl border border-sakura-1 bg-blue-50 p-4 sm:p-5" aria-labelledby="share-preview-title">
+  <section class="rounded-2xl border border-sakura-1 bg-pixu-info-surface p-4 sm:p-5" aria-labelledby="share-preview-title">
     <h2 class="mb-3 text-base font-extrabold text-pixu-ink" id="share-preview-title">{% translate "Prévia do rateio" %}</h2>
     <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% translate "Ajuste cada cota em reais. A soma precisa fechar o total da cobrança." %}</p>
     {% if allocation_form.non_field_errors %}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ allocation_form.non_field_errors }}</div>{% endif %}
@@ -23,7 +23,7 @@
     {% for error in preview_errors %}<p>{{ error }}</p>{% endfor %}
   </div>
 {% else %}
-  <div class="rounded-xl border border-dashed border-slate-300 bg-white/70 px-4 py-4 text-sm leading-relaxed text-pixu-muted" role="status">
+  <div class="rounded-xl border border-dashed border-slate-300 bg-pixu-surface/70 px-4 py-4 text-sm leading-relaxed text-pixu-muted" role="status">
     {% translate "Informe o valor e escolha as pessoas para conferir a divisão antes de criar." %}
   </div>
 {% endif %}

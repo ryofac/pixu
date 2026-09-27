@@ -12,7 +12,7 @@
     </div>
 
     <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
-      <form class="grid gap-4 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6" method="post" novalidate>
+      <form class="grid gap-4 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6" method="post" novalidate>
         {% csrf_token %}
         {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
         {% for field in form %}
@@ -23,9 +23,9 @@
             {% if field.errors %}<ul class="grid gap-1 text-sm text-pixu-danger" id="{{ field.auto_id }}_errors" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
           </div>
         {% endfor %}
-        <button class="flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-3 font-extrabold text-white shadow-md sm:w-auto sm:px-8" type="submit">Salvar alterações</button>
+        <button class="flex min-h-12 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110 sm:w-auto sm:px-8" type="submit">Salvar alterações</button>
       </form>
-      <aside class="rounded-[20px] border border-sakura-1 bg-blue-50 p-4 sm:p-6">
+      <aside class="rounded-[20px] border border-sakura-1 bg-pixu-info-surface p-4 sm:p-6">
         <h2 class="mb-2 font-extrabold text-pixu-ink">Sobre sua chave Pix</h2>
         <p class="text-sm leading-relaxed text-pixu-ink">A chave é informada por você. O Pixu não a verifica junto ao banco. Nesta versão, qualquer pagamento acontece fora da aplicação.</p>
       </aside>

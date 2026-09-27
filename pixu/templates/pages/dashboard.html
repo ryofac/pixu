@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load charge_format i18n %}
+
+{% block title %}Início · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="space-y-8 pt-2 lg:pt-0" aria-labelledby="page-title">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="mb-1 text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% translate "Seu resumo" %}</p>
+        <h1 class="text-3xl font-black tracking-tight text-pixu-ink sm:text-4xl" id="page-title">{% translate "Olá," %} {{ request.user.name|default:request.user.username }}</h1>
+        <p class="mt-1.5 text-sm leading-relaxed text-pixu-muted">{% translate "Acompanhe suas obrigações e atividades recentes." %}</p>
+      </div>
+      <a class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pixu-action-solid px-5 py-3 text-center text-sm font-extrabold text-[#ffffff] no-underline shadow-sm transition-all hover:brightness-110 hover:shadow-md sm:w-auto sm:min-w-48" href="{% url 'charges:create' %}">
+        <span class="text-lg leading-none" aria-hidden="true">＋</span>
+        <span>{% translate "Nova cobrança" %}</span>
+      </a>
+    </header>
+
+    <section class="grid gap-4 md:grid-cols-3" aria-label="Resumo de saldos">
+      <article class="group rounded-2xl border border-pixu-border bg-pixu-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% translate "A receber" %}</h2>
+          <div class="grid size-8 place-items-center rounded-lg bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300" aria-hidden="true">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m17 7-10 10M17 17V7H7"/></svg>
+          </div>
+        </div>
+        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-success" data-balance="receivable">{{ receivable_cents|brl_from_cents }}</p>
+        <p class="mt-2 text-xs leading-relaxed text-pixu-muted">{% translate "Soma bruta das dívidas ativas em seu favor." %}</p>
+      </article>
+
+      <article class="group rounded-2xl border border-pixu-border bg-pixu-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% translate "A pagar" %}</h2>
+          <div class="grid size-8 place-items-center rounded-lg bg-sakura-2 text-sakura-6 dark:bg-sakura-6/20 dark:text-sakura-3" aria-hidden="true">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M7 17V7h10"/></svg>
+          </div>
+        </div>
+        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-action" data-balance="payable">{{ payable_cents|brl_from_cents }}</p>
+        <p class="mt-2 text-xs leading-relaxed text-pixu-muted">{% translate "Soma bruta das suas dívidas ativas." %}</p>
+      </article>
+
+      <article class="group rounded-2xl border border-pixu-border bg-pixu-surface p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md sm:p-6">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% translate "Potencial de compensação" %}</h2>
+          <div class="grid size-8 place-items-center rounded-lg bg-blue-50 text-sky-700 dark:bg-blue-950/40 dark:text-sky-300" aria-hidden="true">
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
+          </div>
+        </div>
+        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-ink" data-balance="compensation-potential">{{ compensation_potential_cents|brl_from_cents }}</p>
+        <p class="mt-2 text-xs leading-relaxed text-pixu-muted">{% translate "Estimativa separada; não é dinheiro nem altera os outros totais." %}</p>
+      </article>
+    </section>
+
+    <section class="space-y-3" aria-labelledby="pending-invites-title">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-xl font-extrabold text-pixu-ink" id="pending-invites-title">{% translate "Convites pendentes" %}</h2>
+        <a class="text-sm font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:invites' %}">{% translate "Ver convites" %}</a>
+      </div>
+      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {% for invitation in pending_invites %}
+          <a class="rounded-2xl border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised" href="{% url 'charges:detail' invitation.charge_id %}#invite-{{ invitation.pk }}">
+            <span class="text-xs font-bold uppercase tracking-wide text-pixu-pending">{% translate "Convite pendente" %}</span>
+            <h3 class="mt-1 break-words font-extrabold text-pixu-ink">{{ invitation.charge.title }}</h3>
+            <p class="mt-1 text-sm text-pixu-muted">{% translate "Enviado por" %} {{ invitation.charge.creator.name|default:invitation.charge.creator.username }}</p>
+            <p class="mt-2 text-sm font-bold text-pixu-action">{% translate "Sua cota" %}: {{ invitation.share_cents|brl_from_cents }}</p>
+          </a>
+        {% empty %}
+          <div class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-5 md:col-span-2 xl:col-span-3">
+            <p class="font-bold text-pixu-ink">{% translate "Você não tem convites pendentes." %}</p>
+            <p class="mt-1 text-sm text-pixu-muted">{% translate "Quando alguém convidar você para uma cobrança, ela aparecerá aqui." %}</p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="grid gap-7 xl:grid-cols-2">
+      <section class="space-y-3" aria-labelledby="created-charges-title">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-xl font-extrabold text-pixu-ink" id="created-charges-title">{% translate "Cobranças criadas por você" %}</h2>
+          <a class="text-sm font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:list' %}">{% translate "Todas" %}</a>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          {% for charge in created_charges %}
+            <a class="min-w-0 rounded-2xl border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised" href="{% url 'charges:detail' charge.pk %}">
+              <span class="inline-flex rounded-full bg-pixu-surface-raised px-2.5 py-1 text-xs font-bold text-pixu-ink">{{ charge.get_state_display }}</span>
+              <h3 class="mt-2 break-words font-extrabold text-pixu-ink">{{ charge.title }}</h3>
+              <p class="mt-1 text-sm text-pixu-muted">{% translate "Recebedor" %}: {{ charge.creditor.name|default:charge.creditor.username }}</p>
+              <p class="mt-3 text-sm font-bold text-pixu-ink">{{ charge.total_cents|brl_from_cents }}</p>
+            </a>
+          {% empty %}
+            <div class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-5 md:col-span-2">
+              <p class="font-bold text-pixu-ink">{% translate "Você ainda não criou cobranças." %}</p>
+              <a class="mt-2 inline-flex min-h-10 items-center font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:create' %}">{% translate "Criar a primeira cobrança" %}</a>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="space-y-3" aria-labelledby="participated-charges-title">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-xl font-extrabold text-pixu-ink" id="participated-charges-title">{% translate "Cobranças de que você participa" %}</h2>
+          <a class="text-sm font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:list' %}">{% translate "Todas" %}</a>
+        </div>
+        <div class="grid gap-3 md:grid-cols-2">
+          {% for charge in participated_charges %}
+            <a class="min-w-0 rounded-2xl border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised" href="{% url 'charges:detail' charge.pk %}">
+              <span class="inline-flex rounded-full bg-pixu-surface-raised px-2.5 py-1 text-xs font-bold text-pixu-ink">{{ charge.get_state_display }}</span>
+              <h3 class="mt-2 break-words font-extrabold text-pixu-ink">{{ charge.title }}</h3>
+              <p class="mt-1 text-sm text-pixu-muted">{% translate "Criada por" %}: {{ charge.creator.name|default:charge.creator.username }}</p>
+              <p class="mt-3 text-sm font-bold text-pixu-ink">{% translate "Total" %}: {{ charge.total_cents|brl_from_cents }}</p>
+            </a>
+          {% empty %}
+            <div class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-5 md:col-span-2">
+              <p class="font-bold text-pixu-ink">{% translate "Você ainda não participa de outras cobranças." %}</p>
+              <p class="mt-1 text-sm text-pixu-muted">{% translate "Cobranças para as quais você aceitar um convite aparecerão aqui." %}</p>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+  </section>
+{% endblock content %}

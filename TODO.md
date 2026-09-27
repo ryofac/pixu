@@ -1,6 +1,6 @@
 # TODO do Pixu
 
-Este arquivo acompanha o roadmap geral. A mudança ativa do OpenSpec é `offset-reciprocal-debts`; suas tarefas e evidências ficam em `openspec/changes/offset-reciprocal-debts/tasks.md`.
+Este arquivo acompanha o roadmap geral. Mudanças OpenSpec em andamento ficam em `openspec/changes/`; mudanças concluídas são arquivadas em `openspec/changes/archive/`.
 
 ## Concluído
 
@@ -24,30 +24,34 @@ Este arquivo acompanha o roadmap geral. A mudança ativa do OpenSpec é `offset-
 - [x] Registrar decisões visuais, componentes e textos em `docs/product-design.md` e revisar as referências de `docs/design/`.
 - [x] Revisar o protótipo e incorporar o retorno do usuário: desktop tem navegação lateral e composição própria; celular mantém navegação inferior.
 - [x] Definir esta versão como online, sem cache pessoal nem fila offline para aceite/recusa.
-- [ ] Validar com usuários se “Pix pendente”, “saldo aberto” e “compensado” são compreendidos sem explicação.
+
+## Testes beta
+
+- [ ] Validar com três pessoas se “Pix pendente”, “saldo aberto” e “compensado” são compreendidos sem explicação prévia; registrar confusões e ajustar os textos se forem recorrentes. Esta validação foi planejada para a fase beta e não bloqueia o encerramento da implementação.
 
 ## OpenSpec — lotes concluídos
 
 - [x] `bootstrap-pixu-and-charges` — contas, perfil, cobranças, convites e responsividade (arquivado em 25/09/2026).
 - [x] `record-and-confirm-pix` — pagamentos manuais, comprovantes privados em storage S3-like/Garage e revisão visual/i18n (arquivado em 26/09/2026).
 - [x] `add-frontend-integration-tests` — infraestrutura e auditoria E2E da interface em mobile e desktop (arquivado em 26/09/2026).
+- [x] `offset-reciprocal-debts` — compensações auditáveis, concorrência e saldos recíprocos (arquivado e sincronizado em 26/09/2026).
+- [x] `complete-product-experience` — landing page, dashboard, temas claro/escuro/sistema, refinamentos de interface e documentação (arquivado em 27/09/2026).
 
-## OpenSpec — `offset-reciprocal-debts` (mudança ativa)
+## Tema escuro — `complete-product-experience`
 
-- [x] Criar proposta, design, specs delta e tarefas para compensações recíprocas; validar com `openspec validate offset-reciprocal-debts --strict`.
-- [x] Implementar eventos auditáveis, cálculo de saldos, elegibilidade, aplicação transacional e fluxo acessível no detalhe da cobrança.
-- [x] Validar concorrência no PostgreSQL, jornadas HTTP/E2E nos breakpoints mobile e desktop, suíte Django relevante e `git diff --check`.
+**Estado:** implementação e validação técnica concluídas (11/11 tarefas). A validação com pessoas usuárias está planejada para a fase beta e acompanhada separadamente acima.
 
-## Próximo lote mapeado, conforme o briefing
+- [x] Implementar a System Core Logo local, a landing page, o dashboard e os temas claro/escuro/sistema.
+- [x] Adaptar telas públicas e autenticadas, formulários, pagamentos, compensações e fragmentos HTMX aos dois temas.
+- [x] Validar fluxos integrados em 390×844 e 1440×900; `just e2e`: 24 testes passaram.
+- [x] Validar a suíte Django; `just pytest`: 85 testes passaram. Corrigir o teardown do teste de migração que deixava apps dependentes sem tabelas.
+- [x] Validar `openspec validate complete-product-experience --strict`, build local e `git diff --check`.
+- [x] Transferir a validação de linguagem com três pessoas, sem explicação prévia dos termos, para os testes beta.
 
-- [ ] Planejar e implementar `complete-product-experience` (R01–R03, R15–R17), incluindo tema escuro conforme o backlog abaixo.
+Itens técnicos `TEMA-01` a `TEMA-05` implementados e validados:
 
-## Tema escuro — backlog de `complete-product-experience`
-
-**Estado:** mapeado, não implementado. Contrato de experiência e critérios de aceite em [product-design, seção 2.4](docs/product-design.md#24-temas-claro-escuro-e-sistema--planejado). Ao planejar `complete-product-experience`, incorporar os itens abaixo aos seus artefatos OpenSpec, preservando os identificadores para rastreabilidade. Estes itens não integram a contagem de tarefas de `bootstrap-pixu-and-charges`.
-
-- [ ] TEMA-01 — Definir e registrar tokens semânticos para os temas claro e escuro: fundo, superfícies, texto, bordas, ações, foco e estados. Revisar contraste e apresentação da marca provisória nos dois temas antes de implementar as telas.
-- [ ] TEMA-02 — Implementar seletor acessível **Claro / Escuro / Sistema**, disponível antes e depois do login, com **Sistema** como padrão. Salvar somente a preferência visual no navegador; respeitar mudanças do sistema quando essa opção estiver ativa, aplicar a escolha antes da primeira pintura e manter fallback utilizável sem JavaScript ou armazenamento local.
-- [ ] TEMA-03 — Adaptar entrada pública, login, cadastro, confirmação, recuperação, perfil e formulários compartilhados aos dois temas, incluindo ajuda, erros, estados desabilitados e foco visível.
-- [ ] TEMA-04 — Adaptar navegação, cobranças, convites, detalhes e as telas de pagamentos/dashboard disponíveis naquele lote. Verificar que fragmentos HTMX novos herdam o tema vigente e que alternar tema preserva dados digitados e o estado da página.
-- [ ] TEMA-05 — Validar claro/escuro/sistema em celular e desktop: contraste, teclado, recarga, navegação entre páginas, preferência salva, mudança de aparência do sistema, ausência de flash do tema incorreto e fallback com armazenamento indisponível. Registrar evidências no checklist OpenSpec do lote antes de marcá-lo concluído.
+- [x] TEMA-01 — Definir tokens semânticos claro/escuro para fundo, superfícies, texto, bordas, ações, foco e estados; revisar contraste e marca.
+- [x] TEMA-02 — Implementar seletor acessível **Claro / Escuro / Sistema**, preferência Sistema por padrão, armazenamento somente local, mudança automática do sistema e fallback sem storage/JavaScript.
+- [x] TEMA-03 — Adaptar landing, login, cadastro, confirmação, recuperação, perfil e formulários compartilhados.
+- [x] TEMA-04 — Adaptar navegação, cobranças, convites, detalhes, pagamentos, dashboard e fragmentos HTMX; preservar formulários e estado da página ao alternar.
+- [x] TEMA-05 — Validar temas em celular e desktop: contraste, teclado, recarga, navegação, persistência, preferência de sistema e storage indisponível; evidências na checklist OpenSpec.
