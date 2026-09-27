@@ -1,6 +1,6 @@
 # TODO do Pixu
 
-Este arquivo acompanha o roadmap geral. A mudança atual do OpenSpec é `bootstrap-pixu-and-charges`; suas tarefas detalhadas ficam em `openspec/changes/bootstrap-pixu-and-charges/tasks.md`.
+Este arquivo acompanha o roadmap geral. A mudança ativa do OpenSpec é `offset-reciprocal-debts`; suas tarefas e evidências ficam em `openspec/changes/offset-reciprocal-debts/tasks.md`.
 
 ## Concluído
 
@@ -26,18 +26,20 @@ Este arquivo acompanha o roadmap geral. A mudança atual do OpenSpec é `bootstr
 - [x] Definir esta versão como online, sem cache pessoal nem fila offline para aceite/recusa.
 - [ ] Validar com usuários se “Pix pendente”, “saldo aberto” e “compensado” são compreendidos sem explicação.
 
-## OpenSpec — `bootstrap-pixu-and-charges`
+## OpenSpec — lotes concluídos
 
-- [x] Fechar o escopo conforme R01–R02, R04–R06 e R16–R17 do briefing atualizado.
-- [x] Criar `proposal.md`, specs de `accounts` e `charges`, `design.md` e `tasks.md` com critérios verificáveis.
-- [x] Validar os artefatos com `openspec validate bootstrap-pixu-and-charges --strict`.
-- [x] Revisar os artefatos e receber instrução explícita para continuar a implementação.
-- [ ] Concluir implementação e validação dos cenários da mudança atual.
+- [x] `bootstrap-pixu-and-charges` — contas, perfil, cobranças, convites e responsividade (arquivado em 25/09/2026).
+- [x] `record-and-confirm-pix` — pagamentos manuais, comprovantes privados em storage S3-like/Garage e revisão visual/i18n (arquivado em 26/09/2026).
+- [x] `add-frontend-integration-tests` — infraestrutura e auditoria E2E da interface em mobile e desktop (arquivado em 26/09/2026).
 
-## Próximos lotes, conforme o briefing
+## OpenSpec — `offset-reciprocal-debts` (mudança ativa)
 
-- [ ] Planejar e implementar `record-and-confirm-pix` (R03, R07–R10, R14, R16).
-- [ ] Planejar e implementar `offset-reciprocal-debts` (R11–R14).
+- [x] Criar proposta, design, specs delta e tarefas para compensações recíprocas; validar com `openspec validate offset-reciprocal-debts --strict`.
+- [x] Implementar eventos auditáveis, cálculo de saldos, elegibilidade, aplicação transacional e fluxo acessível no detalhe da cobrança.
+- [x] Validar concorrência no PostgreSQL, jornadas HTTP/E2E nos breakpoints mobile e desktop, suíte Django relevante e `git diff --check`.
+
+## Próximo lote mapeado, conforme o briefing
+
 - [ ] Planejar e implementar `complete-product-experience` (R01–R03, R15–R17), incluindo tema escuro conforme o backlog abaixo.
 
 ## Tema escuro — backlog de `complete-product-experience`

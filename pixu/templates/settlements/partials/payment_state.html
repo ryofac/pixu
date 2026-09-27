@@ -1,4 +1,4 @@
-{% load charge_format i18n %}
+{% load charge_format form_fields i18n %}
 <section id="debt-{{ debt.pk }}" class="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="debt-{{ debt.pk }}-title">
   {% if status_message %}
     <p class="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed{% if status_is_error %} border-red-200 bg-red-50 text-pixu-danger{% else %} border-green-200 bg-green-50 text-pixu-success{% endif %}" role="{% if status_is_error %}alert{% else %}status{% endif %}" tabindex="-1" data-focus-after-swap>{{ status_message }}</p>
@@ -15,10 +15,11 @@
     {% endif %}
   </div>
 
-  <dl class="mt-4 grid gap-3 sm:grid-cols-3">
+  <dl class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
     <div class="rounded-xl bg-slate-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Saldo aberto" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-ink">{{ debt.payment_balance.open_cents|brl_from_cents }}</dd></div>
     <div class="rounded-xl bg-amber-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-pending">{% translate "Aguardando confirmação" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-pending">{{ debt.payment_balance.pending_cents|brl_from_cents }}</dd></div>
     <div class="rounded-xl bg-green-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-success">{% translate "Pix confirmado" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-success">{{ debt.payment_balance.confirmed_cents|brl_from_cents }}</dd></div>
+    <div class="rounded-xl bg-blue-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Compensado" %}</dt><dd class="mt-1 text-lg font-extrabold text-pixu-action">{{ debt.payment_balance.compensated_cents|brl_from_cents }}</dd></div>
   </dl>
 
   {% if debt.debtor_id == request.user.id %}
@@ -29,6 +30,44 @@
     {% endif %}
     {% if charge.state == 'ACTIVE' and debt.payment_balance.available_cents > 0 %}
       <a class="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-2.5 font-extrabold text-white no-underline shadow-md sm:w-auto" href="{% url 'settlements:record' debt.pk %}">Registrar pagamento</a>
+    {% endif %}
+    {% if debt.compensation_options %}
+      <section class="mt-5 border-t border-slate-100 pt-4" aria-labelledby="compensation-title-{{ debt.pk }}">
+        <h4 class="text-base font-extrabold text-pixu-ink" id="compensation-title-{{ debt.pk }}">{% translate "Dívidas que você pode compensar" %}</h4>
+        <p class="mt-1 text-sm leading-relaxed text-pixu-muted">{% translate "A compensação reduz as duas dívidas pelo mesmo valor e não registra um Pix." %}</p>
+        <div class="mt-3 grid gap-3">
+          {% for compensation in debt.compensation_options %}
+            {% with option=compensation.option form=compensation.form %}
+              <article class="min-w-0 rounded-xl border border-blue-100 bg-blue-50/50 p-3" aria-labelledby="compensation-option-{{ debt.pk }}-{{ option.reciprocal_debt.pk }}">
+                <h5 class="break-words font-bold text-pixu-ink" id="compensation-option-{{ debt.pk }}-{{ option.reciprocal_debt.pk }}">{% translate "Dívida inversa" %}: {{ option.reciprocal_debt.participation.charge.title }}</h5>
+                <dl class="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                  <div><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Disponível nesta dívida" %}</dt><dd class="mt-1 font-semibold">{{ option.current_available_cents|brl_from_cents }}</dd></div>
+                  <div><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Disponível na dívida inversa" %}</dt><dd class="mt-1 font-semibold">{{ option.reciprocal_available_cents|brl_from_cents }}</dd></div>
+                </dl>
+                <form class="mt-3 grid gap-3" method="post" action="{% url 'charges:compensation_apply' debt.pk option.reciprocal_debt.pk %}" hx-post="{% url 'charges:compensation_apply' debt.pk option.reciprocal_debt.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
+                  {% csrf_token %}
+                  {{ form.reciprocal_debt_id }}
+                  {{ form.request_id }}
+                  <div class="grid gap-2">
+                    <label for="{{ form.amount.id_for_label }}">{{ form.amount.label }}</label>
+                    {% render_accessible_field form.amount %}
+                    {% if form.amount.help_text %}<span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.amount.auto_id }}_help">{{ form.amount.help_text }}</span>{% endif %}
+                    {% if form.amount.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.amount.auto_id }}_errors" role="alert">{% for error in form.amount.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                    {% if form.non_field_errors %}<div class="text-sm text-pixu-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+                  </div>
+                  <div id="compensation-preview-{{ debt.pk }}-{{ option.reciprocal_debt.pk }}">
+                    {% include "settlements/partials/compensation_preview.html" with amount_cents=compensation.preview_amount_cents remaining_cents=compensation.preview_remaining_cents %}
+                  </div>
+                  <div class="grid gap-2 sm:grid-cols-2">
+                    <button class="flex min-h-11 w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 font-bold text-pixu-action" type="submit" name="intent" value="preview">{% translate "Revisar valor" %}</button>
+                    <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-sakura-5 to-sakura-6 px-4 py-2.5 font-extrabold text-white shadow-md" type="submit" name="intent" value="apply">{% translate "Aceitar compensação" %}</button>
+                  </div>
+                </form>
+              </article>
+            {% endwith %}
+          {% endfor %}
+        </div>
+      </section>
     {% endif %}
   {% endif %}
 
@@ -73,6 +112,26 @@
           </article>
         {% endfor %}
       </div>
+    </div>
+  {% endif %}
+
+  {% if debt.compensation_items %}
+    <div class="mt-5 border-t border-slate-100 pt-4">
+      <h4 class="mb-3 text-sm font-extrabold text-pixu-ink">{% translate "Histórico de compensações" %}</h4>
+      <ol class="grid gap-2">
+        {% for compensation in debt.compensation_items %}
+          <li class="rounded-xl border border-blue-100 bg-blue-50/50 p-3" id="compensation-{{ compensation.pk }}-debt-{{ debt.pk }}">
+            <div class="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+              <div class="min-w-0">
+                <strong class="text-pixu-action">−{{ compensation.amount_cents|brl_from_cents }} {% translate "compensados" %}</strong>
+                <p class="break-words text-sm text-pixu-muted">{% translate "Com a cobrança" %}: {{ compensation.other_debt.participation.charge.title }}</p>
+                <p class="text-xs text-pixu-muted">{% translate "Iniciada por" %} {{ compensation.initiated_by.name|default:compensation.initiated_by.username }} · {{ compensation.created_at|date:"d/m/Y H:i" }}</p>
+              </div>
+              <span class="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-extrabold text-pixu-action">{% translate "Compensação" %}</span>
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
     </div>
   {% endif %}
 </section>

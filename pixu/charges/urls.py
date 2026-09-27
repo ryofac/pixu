@@ -6,6 +6,8 @@ from .views import ChargeCreateView
 from .views import ChargeDetailView
 from .views import ChargeListView
 from .views import ChargeSharesUpdateView
+from .views import CompensationApplyView
+from .views import CompensationPreviewView
 from .views import DeclineParticipationView
 from .views import InviteListView
 from .views import ReplaceParticipantView
@@ -17,6 +19,16 @@ urlpatterns = [
     path("new/preview/", ChargeCreatePreviewView.as_view(), name="preview"),
     path("invites/", InviteListView.as_view(), name="invites"),
     path("<int:pk>/shares/", ChargeSharesUpdateView.as_view(), name="edit_shares"),
+    path(
+        "debts/<int:debt_id>/compensations/<int:reciprocal_debt_id>/preview/",
+        CompensationPreviewView.as_view(),
+        name="compensation_preview",
+    ),
+    path(
+        "debts/<int:debt_id>/compensations/<int:reciprocal_debt_id>/apply/",
+        CompensationApplyView.as_view(),
+        name="compensation_apply",
+    ),
     path(
         "<int:pk>/participations/<int:participation_id>/replace/",
         ReplaceParticipantView.as_view(),

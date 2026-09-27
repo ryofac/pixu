@@ -124,3 +124,61 @@ class Payment(models.Model):
 
     def __str__(self) -> str:
         return f"{self.payer} → {self.creditor}: {self.amount_cents}¢ ({self.state})"
+
+
+class Compensation(models.Model):
+    debt = models.ForeignKey(
+        Debt,
+        on_delete=models.PROTECT,
+        related_name="compensations_as_debt",
+        verbose_name=_("dívida reduzida"),
+    )
+    reciprocal_debt = models.ForeignKey(
+        Debt,
+        on_delete=models.PROTECT,
+        related_name="compensations_as_reciprocal_debt",
+        verbose_name=_("dívida recíproca reduzida"),
+    )
+    amount_cents = models.PositiveBigIntegerField(_("valor compensado em centavos"))
+    initiated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="compensations_initiated",
+        verbose_name=_("iniciada por"),
+    )
+    request_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        verbose_name=_("identificador da solicitação"),
+    )
+    created_at = models.DateTimeField(
+        _("aplicada em"),
+        default=timezone.now,
+        editable=False,
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+        verbose_name = _("compensação")
+        verbose_name_plural = _("compensações")
+        indexes = [
+            models.Index(fields=["debt", "created_at"]),
+            models.Index(fields=["reciprocal_debt", "created_at"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount_cents__gt=0),
+                name="compensation_amount_positive",
+            ),
+            models.CheckConstraint(
+                condition=~Q(debt=F("reciprocal_debt")),
+                name="compensation_debts_distinct",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"Compensação de {self.amount_cents}¢ entre dívidas "
+            f"{self.debt_id} e {self.reciprocal_debt_id}"
+        )

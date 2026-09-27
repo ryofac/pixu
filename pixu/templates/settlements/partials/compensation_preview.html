@@ -1,0 +1,21 @@
+{% load charge_format i18n %}
+{% if preview_status_message %}
+  <p class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-pixu-pending" role="alert">{{ preview_status_message }}</p>
+{% elif preview_form %}
+  <div class="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-pixu-danger" role="alert">
+    {% for error in preview_form.amount.errors %}<p>{{ error }}</p>{% endfor %}
+    {% for error in preview_form.reciprocal_debt_id.errors %}<p>{{ error }}</p>{% endfor %}
+    {% for error in preview_form.request_id.errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% else %}
+  <dl class="grid gap-2 rounded-xl bg-blue-50 p-3 text-sm sm:grid-cols-2" aria-live="polite">
+    <div>
+      <dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Abatimento em cada dívida" %}</dt>
+      <dd class="mt-1 font-extrabold text-pixu-ink" data-compensation-preview-amount>{{ amount_cents|brl_from_cents }}</dd>
+    </div>
+    <div>
+      <dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Restante disponível para Pix nesta dívida" %}</dt>
+      <dd class="mt-1 font-extrabold text-pixu-ink" data-compensation-preview-remaining>{{ remaining_cents|brl_from_cents }}</dd>
+    </div>
+  </dl>
+{% endif %}

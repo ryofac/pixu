@@ -9,17 +9,23 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.translation import gettext as _
 from django.views import View
 from django.views.generic import DetailView
 from django.views.generic import FormView
 from django.views.generic import TemplateView
 
+from pixu.settlements.forms import CompensationForm
 from pixu.settlements.forms import ReceiptForm
+from pixu.settlements.models import Compensation
+from pixu.settlements.services import apply_compensation
 from pixu.settlements.services import payment_balance
+from pixu.settlements.services import suggest_compensations
 
 from .forms import AcceptParticipationForm
 from .forms import ChargeAllocationForm
@@ -37,7 +43,6 @@ from .services import replace_declined_participant
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
-    from django.http import HttpResponse
 
 
 @dataclass
@@ -45,6 +50,10 @@ class ChargeDetailState:
     share_form: ChargeSharesForm | None = None
     replacement_form: ReplaceParticipantForm | None = None
     replacement_participation_id: int | None = None
+    compensation_form: CompensationForm | None = None
+    compensation_debt_id: int | None = None
+    compensation_reciprocal_debt_id: int | None = None
+    compensation_preview_amount_cents: int | None = None
     status_message: str = ""
     status_is_error: bool = False
 
@@ -110,6 +119,73 @@ def _charge_detail_context(
         debt.payment_items = list(debt.payments.all())
         for payment in debt.payment_items:
             payment.receipt_form = ReceiptForm()
+        compensation_items = list(
+            Compensation.objects.filter(Q(debt=debt) | Q(reciprocal_debt=debt))
+            .select_related(
+                "debt__participation__charge",
+                "reciprocal_debt__participation__charge",
+                "initiated_by",
+            )
+            .order_by("-created_at", "-pk"),
+        )
+        for compensation in compensation_items:
+            compensation.other_debt = (
+                compensation.reciprocal_debt
+                if compensation.debt_id == debt.pk
+                else compensation.debt
+            )
+        debt.compensation_items = compensation_items
+        debt.compensation_options = []
+        if debt.debtor_id == actor.pk:
+            for option in suggest_compensations(debt_id=debt.pk, actor=actor):
+                form = (
+                    state.compensation_form
+                    if (
+                        state.compensation_debt_id == debt.pk
+                        and state.compensation_reciprocal_debt_id
+                        == option.reciprocal_debt.pk
+                    )
+                    else CompensationForm(
+                        option,
+                        prefix=f"compensation-{debt.pk}-{option.reciprocal_debt.pk}",
+                    )
+                )
+                form.fields["amount"].widget.attrs.update(
+                    {
+                        "hx-get": reverse(
+                            "charges:compensation_preview",
+                            args=[debt.pk, option.reciprocal_debt.pk],
+                        ),
+                        "hx-trigger": "input changed delay:300ms, change",
+                        "hx-include": "closest form",
+                        "hx-target": (
+                            f"#compensation-preview-{debt.pk}-"
+                            f"{option.reciprocal_debt.pk}"
+                        ),
+                        "hx-swap": "innerHTML",
+                    },
+                )
+                is_current_form = (
+                    state.compensation_debt_id == debt.pk
+                    and state.compensation_reciprocal_debt_id
+                    == option.reciprocal_debt.pk
+                )
+                preview_amount_cents = (
+                    state.compensation_preview_amount_cents
+                    if is_current_form
+                    and state.compensation_preview_amount_cents is not None
+                    else option.max_amount_cents
+                )
+                debt.compensation_options.append(
+                    {
+                        "option": option,
+                        "form": form,
+                        "preview_amount_cents": preview_amount_cents,
+                        "preview_remaining_cents": (
+                            option.current_available_cents - preview_amount_cents
+                        ),
+                    },
+                )
     return {
         "charge": charge,
         "participations": participations,
@@ -266,6 +342,167 @@ class ChargeDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context.update(_charge_detail_context(self.object, self.request.user))
         return context
+
+
+def _compensation_debt(debt_id: int, actor):
+    return get_object_or_404(
+        Debt.objects.select_related("participation__charge"),
+        pk=debt_id,
+        debtor=actor,
+        participation__charge__state=Charge.State.ACTIVE,
+    )
+
+
+def _eligible_compensation_option(debt: Debt, reciprocal_debt_id: int, actor):
+    return next(
+        (
+            option
+            for option in suggest_compensations(debt_id=debt.pk, actor=actor)
+            if option.reciprocal_debt.pk == reciprocal_debt_id
+        ),
+        None,
+    )
+
+
+def _compensation_page_response(
+    request,
+    debt: Debt,
+    state: ChargeDetailState,
+):
+    context = _charge_detail_context(debt.participation.charge, request.user, state)
+    return _detail_response(
+        request,
+        debt.participation.charge,
+        context,
+        invalid=state.status_is_error,
+    )
+
+
+class CompensationPreviewView(LoginRequiredMixin, View):
+    def get(self, request, debt_id: int, reciprocal_debt_id: int):
+        debt = _compensation_debt(debt_id, request.user)
+        option = _eligible_compensation_option(debt, reciprocal_debt_id, request.user)
+        if option is None:
+            return render(
+                request,
+                "settlements/partials/compensation_preview.html",
+                {
+                    "preview_status_message": (
+                        _("Esta dívida não está mais disponível para compensação.")
+                    ),
+                },
+                status=400,
+            )
+        form = CompensationForm(
+            option,
+            data=request.GET,
+            prefix=f"compensation-{debt.pk}-{reciprocal_debt_id}",
+        )
+        if not form.is_valid():
+            return render(
+                request,
+                "settlements/partials/compensation_preview.html",
+                {"preview_form": form},
+                status=400,
+            )
+        amount_cents = form.amount_cents
+        return render(
+            request,
+            "settlements/partials/compensation_preview.html",
+            {
+                "amount_cents": amount_cents,
+                "remaining_cents": option.current_available_cents - amount_cents,
+            },
+        )
+
+
+class CompensationApplyView(LoginRequiredMixin, View):
+    def post(self, request, debt_id: int, reciprocal_debt_id: int):
+        debt = _compensation_debt(debt_id, request.user)
+        option = _eligible_compensation_option(debt, reciprocal_debt_id, request.user)
+        if option is None:
+            return _compensation_page_response(
+                request,
+                debt,
+                ChargeDetailState(
+                    status_message=_(
+                        "A disponibilidade mudou. Confira os valores atualizados "
+                        "antes de tentar novamente.",
+                    ),
+                    status_is_error=True,
+                ),
+            )
+
+        form = CompensationForm(
+            option,
+            data=request.POST,
+            prefix=f"compensation-{debt.pk}-{reciprocal_debt_id}",
+        )
+        if not form.is_valid():
+            return _compensation_page_response(
+                request,
+                debt,
+                ChargeDetailState(
+                    compensation_form=form,
+                    compensation_debt_id=debt.pk,
+                    compensation_reciprocal_debt_id=reciprocal_debt_id,
+                    status_message=_("Revise os dados da compensação."),
+                    status_is_error=True,
+                ),
+            )
+        if request.POST.get("intent") == "preview":
+            return _compensation_page_response(
+                request,
+                debt,
+                ChargeDetailState(
+                    compensation_form=form,
+                    compensation_debt_id=debt.pk,
+                    compensation_reciprocal_debt_id=reciprocal_debt_id,
+                    compensation_preview_amount_cents=form.amount_cents,
+                    status_message=_(
+                        "Prévia atualizada; nenhuma compensação foi aplicada.",
+                    ),
+                    status_is_error=False,
+                ),
+            )
+        try:
+            apply_compensation(
+                debt_id=debt.pk,
+                reciprocal_debt_id=option.reciprocal_debt.pk,
+                actor=request.user,
+                amount_cents=form.amount_cents,
+                request_id=form.cleaned_data["request_id"],
+            )
+        except PermissionDenied:
+            raise
+        except ValidationError as error:
+            for message in error.messages:
+                form.add_error(None, message)
+            return _compensation_page_response(
+                request,
+                debt,
+                ChargeDetailState(
+                    compensation_form=form,
+                    compensation_debt_id=debt.pk,
+                    compensation_reciprocal_debt_id=reciprocal_debt_id,
+                    status_message=_("Revise os dados da compensação."),
+                    status_is_error=True,
+                ),
+            )
+
+        messages.success(
+            request,
+            _(
+                "Compensação aplicada. As duas dívidas foram reduzidas; "
+                "nenhum Pix foi realizado.",
+            ),
+        )
+        detail_url = reverse("charges:detail", args=[debt.participation.charge_id])
+        if _is_htmx(request):
+            response = HttpResponse()
+            response["HX-Redirect"] = detail_url
+            return response
+        return redirect(detail_url)
 
 
 class ParticipationResponseView(LoginRequiredMixin, View):
