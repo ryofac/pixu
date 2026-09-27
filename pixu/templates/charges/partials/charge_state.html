@@ -9,7 +9,7 @@
       <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
         <div class="flex items-center justify-between gap-3 text-sm">
           <span class="text-pixu-muted">Estado</span>
-          <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if charge.state == 'ACTIVE' %} bg-green-100 text-pixu-success{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ charge.get_state_display }}</span>
+          {% include "charges/partials/status_badge.html" with charge=charge %}
         </div>
         <div class="mt-4 flex items-center justify-between gap-3 text-sm">
           <span class="text-pixu-muted">Total</span>
@@ -26,6 +26,13 @@
           </div>
         {% endif %}
         {% if charge.description %}<p class="mt-4 border-t border-pixu-border pt-4 text-sm leading-relaxed text-pixu-muted">{{ charge.description }}</p>{% endif %}
+        {% if charge.state == 'CANCELLED' %}
+          <div class="mt-4 rounded-xl border border-pixu-border bg-pixu-surface-raised px-4 py-3 text-sm leading-relaxed text-pixu-muted" role="status">
+            <p>{% blocktranslate with who=charge.cancelled_by.name|default:charge.cancelled_by.username when=charge.cancelled_at|date:"d/m/Y H:i" %}Cancelada por {{ who }} em {{ when }}.{% endblocktranslate %}</p>
+            {% if charge.cancellation_reason %}<p class="mt-1"><strong>{% translate "Motivo" %}:</strong> {{ charge.cancellation_reason }}</p>{% endif %}
+            <p class="mt-1">{% translate "Os pagamentos vinculados foram revogados no histórico. Transferências feitas fora do Pixu não são estornadas pelo aplicativo." %}</p>
+          </div>
+        {% endif %}
       </article>
 
       {% if my_participation and my_participation.state == 'PENDING' %}
@@ -43,7 +50,7 @@
           </form>
         </div>
       {% elif my_participation and my_participation.state == 'ACCEPTED' %}
-        <p class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-relaxed text-pixu-success" role="status">Sua participação foi aceita.{% if charge.state == 'AWAITING_ACCEPTANCE' %} A cobrança ainda aguarda os demais convites.{% endif %}</p>
+        <p class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-relaxed text-pixu-success" role="status">{% if charge.state == 'CANCELLED' %}{% translate "Sua participação foi aceita e permanece no histórico; a cobrança foi cancelada." %}{% else %}{% translate "Sua participação foi aceita." %}{% if charge.state == 'AWAITING_ACCEPTANCE' %} {% translate "A cobrança ainda aguarda os demais convites." %}{% endif %}{% endif %}</p>
       {% endif %}
 
       {% if can_edit %}
@@ -82,6 +89,23 @@
           </article>
         {% endfor %}
       {% endif %}
+
+      {% if can_cancel %}
+        <details class="rounded-[20px] border border-red-200 bg-pixu-surface p-4 shadow-sm sm:p-6">
+          <summary class="cursor-pointer list-inside text-base font-extrabold text-pixu-danger">{% translate "Cancelar cobrança" %}</summary>
+          <p class="mt-3 text-sm leading-relaxed text-pixu-muted">{% translate "Os pagamentos serão marcados como revogados e os convites pendentes serão invalidados. O Pixu não estorna transferências feitas fora do aplicativo. Cobranças com compensações não podem ser canceladas." %}</p>
+          <form class="mt-4 grid gap-3" method="post" action="{% url 'charges:cancel' charge.pk %}" hx-post="{% url 'charges:cancel' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
+            {% csrf_token %}
+            <div class="grid gap-2">
+              <label for="{{ cancellation_form.reason.id_for_label }}">{{ cancellation_form.reason.label }}</label>
+              {% render_accessible_field cancellation_form.reason %}
+              {% if cancellation_form.reason.errors %}<ul class="text-sm text-pixu-danger" id="{{ cancellation_form.reason.auto_id }}_errors" role="alert">{% for error in cancellation_form.reason.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+              {% if cancellation_form.non_field_errors %}<div class="text-sm text-pixu-danger" role="alert">{{ cancellation_form.non_field_errors }}</div>{% endif %}
+            </div>
+            <button class="flex min-h-11 items-center justify-center rounded-xl border border-red-300 bg-pixu-surface px-4 py-2.5 font-bold text-pixu-danger hover:bg-red-50" type="submit">{% translate "Confirmar cancelamento" %}</button>
+          </form>
+        </details>
+      {% endif %}
     </div>
 
     <article class="min-w-0 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
@@ -94,9 +118,19 @@
           <div class="flex items-center justify-between gap-4 py-3 sm:py-4">
             <div class="min-w-0">
               <strong class="break-words">{% if participation.user_id == request.user.id %}Você{% else %}{{ participation.user.name|default:participation.user.username }}{% endif %}</strong>
-              <div class="mt-1 text-sm text-pixu-muted">{{ participation.share_cents|brl_from_cents }}</div>
+              <div class="mt-1 text-sm text-pixu-muted">R$ {{ participation.share_cents|brl_from_cents }}</div>
+              {% if charge.creator_id == request.user.id and participation.receipt_payments %}
+                <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                  {% for payment in participation.receipt_payments %}
+                    <a class="text-sm font-bold text-pixu-action underline-offset-2 hover:underline" href="{% url 'settlements:receipt' payment.pk %}">{% translate "Ver comprovante" %}{% if participation.receipt_payments|length > 1 %} {{ forloop.counter }}{% endif %}</a>
+                  {% endfor %}
+                </div>
+              {% endif %}
             </div>
-            <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if participation.state == 'ACCEPTED' %} bg-green-100 text-pixu-success{% elif participation.state == 'DECLINED' %} bg-red-100 text-pixu-danger{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ participation.get_state_display }}</span>
+            <span class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-extrabold{% if participation.state == 'ACCEPTED' %} border-green-200/80 bg-green-50 text-pixu-success{% elif participation.state == 'DECLINED' %} border-red-200/80 bg-red-50 text-pixu-danger{% elif participation.state == 'CANCELLED' %} border-pixu-border bg-pixu-surface-raised text-pixu-muted{% else %} border-amber-200/80 bg-amber-50 text-pixu-pending{% endif %}">
+              <span class="h-1.5 w-1.5 rounded-full {% if participation.state == 'ACCEPTED' %}bg-pixu-success{% elif participation.state == 'DECLINED' %}bg-pixu-danger{% elif participation.state == 'CANCELLED' %}bg-pixu-muted{% else %}bg-pixu-pending{% endif %}" aria-hidden="true"></span>
+              {{ participation.get_state_display }}
+            </span>
           </div>
         {% endfor %}
       </div>

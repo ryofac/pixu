@@ -2,11 +2,13 @@
 
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.db import close_old_connections
 from django.db import transaction
@@ -17,14 +19,22 @@ from django.urls import reverse
 from django.utils import timezone
 
 from pixu.charges.models import Charge
+from pixu.charges.models import ChargeDeletionAudit
 from pixu.charges.models import Debt
 from pixu.charges.models import Participation
+from pixu.charges.services import absolutely_delete_charge
 from pixu.charges.services import accept_participation
 from pixu.charges.services import calculate_shares
+from pixu.charges.services import cancel_charge
 from pixu.charges.services import create_charge
 from pixu.charges.services import decline_participation
 from pixu.charges.services import edit_participation_shares
 from pixu.charges.services import replace_declined_participant
+from pixu.settlements.models import Compensation
+from pixu.settlements.models import Payment
+from pixu.settlements.models import PendingReceiptDeletion
+from pixu.settlements.services import record_payment
+from pixu.settlements.tasks import delete_pending_receipt
 
 User = get_user_model()
 TEST_PASSWORD = "Pixu-tests-only!2026"
@@ -216,6 +226,191 @@ class ChargeServiceTests(TestCase):
                 share_cents=charge.total_cents,
                 state=Participation.State.PENDING,
             )
+
+    def test_database_constraints_accept_cancelled_charge_and_invitation(self):
+        charge = self.create_charge([self.bob])
+        cancelled_at = timezone.now()
+        charge.state = Charge.State.CANCELLED
+        charge.cancelled_by = self.creator
+        charge.cancelled_at = cancelled_at
+        charge.cancellation_reason = "A despesa não aconteceu."
+        charge.save(
+            update_fields=[
+                "state",
+                "cancelled_by",
+                "cancelled_at",
+                "cancellation_reason",
+            ],
+        )
+        invitation = charge.participations.get(user=self.bob)
+        invitation.state = Participation.State.CANCELLED
+        invitation.save(update_fields=["state"])
+
+        charge.refresh_from_db()
+        invitation.refresh_from_db()
+        assert charge.state == Charge.State.CANCELLED
+        assert charge.cancelled_by == self.creator
+        assert charge.cancelled_at == cancelled_at
+        assert charge.cancellation_reason == "A despesa não aconteceu."
+        assert invitation.state == Participation.State.CANCELLED
+
+    def test_creator_cancels_pending_charge_without_reason_and_invalidates_invite(self):
+        charge = self.create_charge([self.bob])
+        invitation = charge.participations.get(user=self.bob)
+
+        cancelled = cancel_charge(charge_id=charge.pk, actor=self.creator)
+        repeated = cancel_charge(
+            charge_id=charge.pk,
+            actor=self.creator,
+            reason="ignored",
+        )
+        with pytest.raises(ValidationError):
+            accept_participation(participation_id=invitation.pk, actor=self.bob)
+
+        invitation.refresh_from_db()
+        assert cancelled.state == Charge.State.CANCELLED
+        assert cancelled.cancelled_by_id == self.creator.pk
+        assert cancelled.cancelled_at is not None
+        assert cancelled.cancellation_reason == ""
+        assert repeated.cancelled_at == cancelled.cancelled_at
+        assert invitation.state == Participation.State.CANCELLED
+        assert not Debt.objects.filter(participation__charge=charge).exists()
+
+    def test_absolute_delete_audits_minimally_and_queues_private_receipt_cleanup(self):
+        charge = self.create_charge([self.bob])
+        participation = charge.participations.get(user=self.bob)
+        accept_participation(participation_id=participation.pk, actor=self.bob)
+        debt = Debt.objects.get(participation=participation)
+        payment = record_payment(
+            debt_id=debt.pk,
+            actor=self.bob,
+            amount_cents=1000,
+            receipt=SimpleUploadedFile(
+                "comprovante.pdf",
+                b"%PDF-1.7\nprivate receipt",
+                content_type="application/pdf",
+            ),
+        )
+        receipt_name = payment.receipt.name
+        receipt_storage = payment.receipt.storage
+        administrator = User.objects.create_superuser(
+            username="admin-delete",
+            email="admin@example.test",
+            password=TEST_PASSWORD,
+        )
+
+        with (
+            patch("pixu.settlements.tasks.delete_pending_receipt.delay") as enqueue,
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            audit = absolutely_delete_charge(
+                charge_id=charge.pk,
+                actor=administrator,
+                reason="Solicitação validada",
+            )
+
+        assert not Charge.objects.filter(pk=charge.pk).exists()
+        assert not Participation.objects.filter(charge_id=charge.pk).exists()
+        assert not Debt.objects.filter(pk=debt.pk).exists()
+        assert not Payment.objects.filter(pk=payment.pk).exists()
+        assert audit.charge_id_snapshot == charge.pk
+        assert audit.deleted_by == administrator
+        assert audit.deleted_at is not None
+        assert audit.reason == "Solicitação validada"
+        assert not hasattr(audit, "title")
+        assert not hasattr(audit, "total_cents")
+
+        pending = PendingReceiptDeletion.objects.get(file_name=receipt_name)
+        enqueue.assert_called_once_with(pending.pk)
+        assert receipt_storage.exists(receipt_name)
+        assert delete_pending_receipt.run(pending.pk)
+        assert not delete_pending_receipt.run(pending.pk)
+        assert not receipt_storage.exists(receipt_name)
+        assert not PendingReceiptDeletion.objects.filter(pk=pending.pk).exists()
+
+    def test_absolute_delete_requires_superuser_and_rejects_compensated_charge(self):
+        charge = create_charge(
+            creator=self.creator,
+            title="Dívida compensada",
+            total_cents=10000,
+            invitee_ids=[],
+            creditor_id=self.bob.pk,
+        )
+        inverse_charge = create_charge(
+            creator=self.bob,
+            title="Dívida inversa",
+            total_cents=10000,
+            invitee_ids=[],
+            creditor_id=self.creator.pk,
+        )
+        debt = Debt.objects.get(participation__charge=charge)
+        inverse_debt = Debt.objects.get(participation__charge=inverse_charge)
+        Compensation.objects.create(
+            debt=debt,
+            reciprocal_debt=inverse_debt,
+            initiated_by=self.creator,
+            amount_cents=1000,
+        )
+        administrator = User.objects.create_superuser(
+            username="admin-blocked",
+            email="admin-blocked@example.test",
+            password=TEST_PASSWORD,
+        )
+
+        with pytest.raises(PermissionDenied):
+            absolutely_delete_charge(charge_id=charge.pk, actor=self.creator)
+        with pytest.raises(ValidationError, match="compensação"):
+            absolutely_delete_charge(charge_id=charge.pk, actor=administrator)
+
+        assert Charge.objects.filter(pk=charge.pk).exists()
+        assert Debt.objects.filter(pk=debt.pk).exists()
+        assert not ChargeDeletionAudit.objects.filter(
+            charge_id_snapshot=charge.pk,
+        ).exists()
+
+    def test_non_creator_cannot_cancel_charge(self):
+        charge = self.create_charge([self.bob])
+
+        with pytest.raises(PermissionDenied):
+            cancel_charge(charge_id=charge.pk, actor=self.bob)
+
+        charge.refresh_from_db()
+        assert charge.state == Charge.State.AWAITING_ACCEPTANCE
+        assert charge.participations.filter(state=Participation.State.PENDING).exists()
+
+    def test_cancellation_is_blocked_for_compensation_on_either_side(self):
+        for index, charge_is_reciprocal in enumerate((False, True)):
+            with self.subTest(charge_is_reciprocal=charge_is_reciprocal):
+                charge = create_charge(
+                    creator=self.creator,
+                    title=f"Almoço compartilhado {index}",
+                    total_cents=10000,
+                    invitee_ids=[],
+                    creditor_id=self.bob.pk,
+                )
+                reciprocal_charge = create_charge(
+                    creator=self.bob,
+                    title=f"Cinema compartilhado {index}",
+                    total_cents=8000,
+                    invitee_ids=[],
+                    creditor_id=self.creator.pk,
+                )
+                debt = Debt.objects.get(participation__charge=charge)
+                reciprocal_debt = Debt.objects.get(
+                    participation__charge=reciprocal_charge,
+                )
+                Compensation.objects.create(
+                    debt=reciprocal_debt if charge_is_reciprocal else debt,
+                    reciprocal_debt=debt if charge_is_reciprocal else reciprocal_debt,
+                    initiated_by=self.creator,
+                    amount_cents=1000,
+                )
+
+                with pytest.raises(ValidationError, match="compensação"):
+                    cancel_charge(charge_id=charge.pk, actor=self.creator)
+
+                charge.refresh_from_db()
+                assert charge.state == Charge.State.ACTIVE
 
     def test_creator_can_be_excluded_with_manual_shares_and_external_creditor(self):
         charge = create_charge(
@@ -411,6 +606,143 @@ class ChargeViewTests(TestCase):
         assert detail.status_code == 404
         assert accept.status_code == 404
 
+    def test_cancelled_charge_remains_visible_without_active_edit_or_invite_actions(
+        self,
+    ):
+        cancel_charge(charge_id=self.charge.pk, actor=self.creator)
+        self.client.force_login(self.invitee)
+
+        detail = self.client.get(reverse("charges:detail", args=[self.charge.pk]))
+        charges = self.client.get(reverse("charges:list"))
+
+        assert detail.status_code == 200
+        self.assertContains(detail, "Cancelada")
+        self.assertNotContains(detail, "Aceitar participação")
+        self.assertNotContains(detail, "Recusar convite")
+        assert charges.status_code == 200
+        self.assertContains(charges, "Churrasco")
+        self.assertContains(charges, "Cancelada")
+
+        self.client.force_login(self.creator)
+        owner_detail = self.client.get(
+            reverse("charges:detail", args=[self.charge.pk]),
+        )
+        self.assertNotContains(owner_detail, "Cotas e recebedor")
+        self.assertNotContains(owner_detail, "Salvar alterações")
+
+    def test_creator_cancels_by_post_and_reason_is_visible_in_history(self):
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:cancel", args=[self.charge.pk]),
+            {"reason": "A reserva foi desmarcada."},
+        )
+
+        assert response.status_code == 302
+        self.charge.refresh_from_db()
+        assert self.charge.state == Charge.State.CANCELLED
+        assert self.charge.cancellation_reason == "A reserva foi desmarcada."
+        self.client.force_login(self.invitee)
+        history = self.client.get(reverse("charges:detail", args=[self.charge.pk]))
+        self.assertContains(history, "A reserva foi desmarcada.")
+        self.assertContains(history, "Cancelada por")
+        self.assertNotContains(history, "Confirmar cancelamento")
+
+    def test_creator_can_cancel_with_htmx_and_optional_empty_reason(self):
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:cancel", args=[self.charge.pk]),
+            {"reason": ""},
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == 200
+        self.assertContains(response, "Cobrança cancelada")
+        self.assertContains(response, "revogados")
+        self.assertNotContains(response, "Confirmar cancelamento")
+        self.charge.refresh_from_db()
+        assert self.charge.state == Charge.State.CANCELLED
+        assert self.charge.cancellation_reason == ""
+
+    def test_cancel_is_blocked_in_htmx_when_either_charge_has_compensation(self):
+        accept_participation(
+            participation_id=self.invitation.pk,
+            actor=self.invitee,
+        )
+        reciprocal_charge = create_charge(
+            creator=self.creator,
+            title="Dívida recíproca",
+            total_cents=10000,
+            invitee_ids=[],
+            creditor_id=self.invitee.pk,
+        )
+        Compensation.objects.create(
+            debt=Debt.objects.get(participation=self.invitation),
+            reciprocal_debt=Debt.objects.get(
+                participation__charge=reciprocal_charge,
+            ),
+            initiated_by=self.invitee,
+            amount_cents=1000,
+        )
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:cancel", args=[self.charge.pk]),
+            {"reason": "Não deve salvar"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == 200
+        self.assertContains(response, "compensação")
+        self.assertContains(response, 'role="alert"')
+        assert Charge.objects.get(pk=self.charge.pk).state == Charge.State.ACTIVE
+        assert Compensation.objects.count() == 1
+
+    def test_participant_cannot_cancel_through_detail_post(self):
+        self.client.force_login(self.invitee)
+
+        response = self.client.post(
+            reverse("charges:cancel", args=[self.charge.pk]),
+            {"reason": "não autorizado"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == 403
+        self.charge.refresh_from_db()
+        assert self.charge.state == Charge.State.AWAITING_ACCEPTANCE
+
+    def test_creator_can_see_receipts_by_participant_without_payment_decisions(self):
+        self.charge.creditor = self.outsider
+        self.charge.save(update_fields=["creditor"])
+        accept_participation(
+            participation_id=self.invitation.pk,
+            actor=self.invitee,
+        )
+        debt = Debt.objects.get(participation=self.invitation)
+        payment = record_payment(
+            debt_id=debt.pk,
+            actor=self.invitee,
+            amount_cents=1000,
+            receipt=SimpleUploadedFile(
+                "pix.pdf",
+                b"%PDF-1.7\ncomprovante do pagante",
+                content_type="application/pdf",
+            ),
+        )
+        self.client.force_login(self.creator)
+
+        detail = self.client.get(reverse("charges:detail", args=[self.charge.pk]))
+
+        assert detail.status_code == 200
+        self.assertContains(
+            detail,
+            reverse("settlements:receipt", args=[payment.pk]),
+        )
+        self.assertContains(detail, "Ver comprovante")
+        self.assertNotContains(detail, "Confirmar pagamento")
+        self.assertNotContains(detail, "Rejeitar pagamento")
+
     def test_hx_accept_returns_updated_fragment_and_updates_invite_badge(self):
         self.client.force_login(self.invitee)
         response = self.client.post(
@@ -472,7 +804,8 @@ class ChargeViewTests(TestCase):
         self.assertContains(response, "data-invitee-search")
         self.assertContains(response, "data-invitee-option")
         self.assertContains(
-            response, 'hx-trigger="input changed delay:300ms from:input[name=total]',
+            response,
+            'hx-trigger="input changed delay:300ms from:input[name=total]',
         )
 
     def test_conventional_create_post_creates_charge_and_redirects(self):
@@ -652,6 +985,112 @@ class ChargeViewTests(TestCase):
         )
         self.invitation.refresh_from_db()
         assert self.invitation.state == Participation.State.PENDING
+
+
+class ChargeAbsoluteDeleteAdminTests(TestCase):
+    def setUp(self):
+        self.creator = User.objects.create_user(
+            username="creator",
+            password=TEST_PASSWORD,
+        )
+        self.charge = create_charge(
+            creator=self.creator,
+            title="Cobrança para exclusão",
+            total_cents=10000,
+            invitee_ids=[],
+        )
+        self.staff = User.objects.create_user(
+            username="staff",
+            password=TEST_PASSWORD,
+            is_staff=True,
+        )
+        self.superuser = User.objects.create_superuser(
+            username="root",
+            email="root@example.test",
+            password=TEST_PASSWORD,
+        )
+        self.url = reverse(
+            "admin:charges_charge_absolute_delete",
+            args=[self.charge.pk],
+        )
+
+    def test_staff_without_superuser_privilege_cannot_open_or_post_confirmation(self):
+        self.client.force_login(self.staff)
+
+        assert self.client.get(self.url).status_code == 403
+        assert (
+            self.client.post(self.url, {"reason": "não autorizado"}).status_code == 403
+        )
+        assert Charge.objects.filter(pk=self.charge.pk).exists()
+        assert not ChargeDeletionAudit.objects.exists()
+
+    def test_generic_admin_delete_is_disabled_even_for_superuser(self):
+        self.client.force_login(self.superuser)
+        generic_delete_url = reverse(
+            "admin:charges_charge_delete",
+            args=[self.charge.pk],
+        )
+
+        assert self.client.get(generic_delete_url).status_code == 403
+        assert self.client.post(generic_delete_url).status_code == 403
+        assert Charge.objects.filter(pk=self.charge.pk).exists()
+        assert not ChargeDeletionAudit.objects.exists()
+
+    def test_superuser_must_confirm_and_can_leave_reason_blank(self):
+        self.client.force_login(self.superuser)
+
+        confirmation = self.client.get(self.url)
+        assert confirmation.status_code == 200
+        self.assertContains(confirmation, "Cobrança para exclusão")
+        self.assertContains(confirmation, "Motivo (opcional)")
+
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self.url, {"reason": "  "})
+
+        assert response.status_code == 302
+        assert not Charge.objects.filter(pk=self.charge.pk).exists()
+        audit = ChargeDeletionAudit.objects.get()
+        assert audit.charge_id_snapshot == self.charge.pk
+        assert audit.deleted_by == self.superuser
+        assert audit.reason == ""
+
+    def test_superuser_confirmation_reports_compensation_block(self):
+        payer = User.objects.create_user(username="compensated-payer")
+        charge = create_charge(
+            creator=self.creator,
+            title="Cobrança com compensação",
+            total_cents=10000,
+            invitee_ids=[payer.pk],
+        )
+        participation = charge.participations.get(user=payer)
+        accept_participation(participation_id=participation.pk, actor=payer)
+        inverse_charge = create_charge(
+            creator=self.creator,
+            title="Dívida inversa",
+            total_cents=10000,
+            invitee_ids=[],
+            creditor_id=payer.pk,
+        )
+        Compensation.objects.create(
+            debt=Debt.objects.get(participation=participation),
+            reciprocal_debt=Debt.objects.get(
+                participation__charge=inverse_charge,
+            ),
+            initiated_by=payer,
+            amount_cents=1000,
+        )
+        self.client.force_login(self.superuser)
+        url = reverse("admin:charges_charge_absolute_delete", args=[charge.pk])
+
+        response = self.client.post(url, {"reason": ""})
+
+        assert response.status_code == 400
+        self.assertContains(response, "compensação", status_code=400)
+        assert Charge.objects.filter(pk=charge.pk).exists()
+        assert Compensation.objects.count() == 1
+        assert not ChargeDeletionAudit.objects.filter(
+            charge_id_snapshot=charge.pk,
+        ).exists()
 
 
 class ChargeConcurrencyTests(TransactionTestCase):

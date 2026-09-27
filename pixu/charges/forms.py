@@ -10,6 +10,7 @@ from django.utils.translation import gettext_lazy as _
 from pixu.accounts.models import User
 from pixu.contrib.currency import BrazilianDecimalField
 
+from .models import CHARGE_CANCELLATION_REASON_MAX_LENGTH
 from .models import CHARGE_DESCRIPTION_MAX_LENGTH
 from .models import CHARGE_TITLE_MAX_LENGTH
 from .models import Charge
@@ -61,11 +62,20 @@ class ChargeCreateForm(forms.Form):
         self.fields["creditor"].queryset = User.objects.filter(is_active=True).order_by(
             "username",
         )
+        self.fields["creditor"].label_from_instance = lambda user: (
+            f"{user.name} (Você)" if user.pk == actor.pk and user.name
+            else f"{user.username} (Você)" if user.pk == actor.pk
+            else f"{user.name} ({user.username})" if user.name
+            else user.username
+        )
         self.fields["creditor"].initial = actor.pk
         self.fields["invitees"].queryset = (
             User.objects.filter(is_active=True)
             .exclude(pk=actor.pk)
             .order_by("username")
+        )
+        self.fields["invitees"].label_from_instance = lambda user: (
+            f"{user.name} ({user.username})" if user.name else user.username
         )
 
     def clean_total(self) -> Decimal:
@@ -190,7 +200,8 @@ class ChargeAllocationForm(forms.Form):
         self.people = people
         self.total_cents = total_cents
         self.initial_shares = calculate_shares(
-            total_cents, [user.pk for user in people],
+            total_cents,
+            [user.pk for user in people],
         )
         for person in people:
             self.fields[f"share_{person.pk}"] = BrazilianDecimalField(
@@ -249,3 +260,21 @@ class ReplaceParticipantForm(forms.Form):
             .exclude(pk__in=current_user_ids)
             .order_by("username")
         )
+
+
+class ChargeAbsoluteDeleteForm(forms.Form):
+    reason = forms.CharField(
+        label=_("Motivo (opcional)"),
+        required=False,
+        max_length=CHARGE_CANCELLATION_REASON_MAX_LENGTH,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+
+
+class ChargeCancellationForm(forms.Form):
+    reason = forms.CharField(
+        label=_("Motivo do cancelamento (opcional)"),
+        required=False,
+        max_length=CHARGE_CANCELLATION_REASON_MAX_LENGTH,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )

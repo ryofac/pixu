@@ -6,14 +6,17 @@
     {% if allocation_form.non_field_errors %}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ allocation_form.non_field_errors }}</div>{% endif %}
     <div class="grid gap-4">
       {% for field in allocation_form %}
-        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(7rem,.7fr)] sm:items-center">
-          <label class="min-w-0 break-words" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% render_accessible_field field %}
+        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(8.5rem,.8fr)] sm:items-center">
+          <label class="min-w-0 break-words font-medium text-pixu-ink" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          <div class="relative flex items-center">
+            <span class="pointer-events-none absolute left-3 z-10 text-xs font-black text-pixu-muted" aria-hidden="true">R$</span>
+            {% render_accessible_field field "!pl-9 text-right font-black" %}
+          </div>
           {% if field.errors %}<ul class="text-sm text-pixu-danger sm:col-span-2" id="{{ field.auto_id }}_errors" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
         </div>
       {% endfor %}
       <div class="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 text-sm font-extrabold">
-        <span>{% translate "Total a distribuir" %}</span><span>{{ total_cents|brl_from_cents }}</span>
+        <span>{% translate "Total a distribuir" %}</span><span>R$ {{ total_cents|brl_from_cents }}</span>
       </div>
     </div>
     <p class="mt-3 text-xs leading-relaxed text-pixu-muted">{% translate "A divisão inicial é igualitária; os centavos residuais seguem a ordem das contas. Alterar o total ou os participantes recalcula as cotas." %}</p>

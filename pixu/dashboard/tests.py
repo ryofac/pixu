@@ -1,3 +1,5 @@
+# ruff: noqa: PLR2004
+
 from __future__ import annotations
 
 import uuid
@@ -9,6 +11,7 @@ from django.urls import reverse
 from pixu.charges.models import Charge
 from pixu.charges.models import Debt
 from pixu.charges.services import accept_participation
+from pixu.charges.services import cancel_charge
 from pixu.charges.services import create_charge
 from pixu.settlements.services import apply_compensation
 from pixu.settlements.services import confirm_payment
@@ -35,6 +38,21 @@ class ProductEntryTests(TestCase):
         self.assertContains(response, reverse("account_signup"))
         self.assertContains(response, reverse("account_login"))
         self.assertNotContains(response, "PRIVATE DASHBOARD CHARGE")
+
+    def test_public_landing_describes_three_real_product_sections(self):
+        response = self.client.get(reverse("home"))
+
+        assert response.status_code == 200
+        self.assertContains(response, 'data-landing-section="rateio"')
+        self.assertContains(response, 'data-landing-section="pagamentos"')
+        self.assertContains(response, 'data-landing-section="historico"')
+        content = response.content.decode().lower()
+        assert content.count("data-landing-section=") == 3
+        assert "demonstração" not in content
+        assert "demo" not in content
+        self.assertContains(response, "O Pix acontece fora.")
+        self.assertContains(response, "confirma ou rejeita manualmente")
+        self.assertContains(response, "quem a criou pode cancelá-la")
 
     def test_charge_list_requires_authentication(self):
         response = self.client.get(reverse("charges:list"))
@@ -136,3 +154,29 @@ class DashboardBalanceTests(TestCase):
         assert list(response.context["participated_charges"]) == [charge]
         self.assertContains(response, "Convite para Ana")
         self.assertContains(response, "Cobranças de que você participa")
+
+    def test_cancelled_charge_is_history_but_not_a_pending_invite_or_balance(self):
+        charge, debt = self.create_active_debt(
+            debtor=self.ana,
+            creditor=self.bruno,
+            total_cents=12_000,
+            title="Rateio cancelado",
+        )
+        record_payment(
+            debt_id=debt.pk,
+            actor=self.ana,
+            amount_cents=3_000,
+        )
+        cancel_charge(charge_id=charge.pk, actor=self.bruno)
+        self.client.force_login(self.ana)
+
+        response = self.client.get(reverse("home"))
+
+        assert response.status_code == 200
+        assert response.context["payable_cents"] == 0
+        assert response.context["receivable_cents"] == 0
+        assert response.context["compensation_potential_cents"] == 0
+        assert list(response.context["pending_invites"]) == []
+        assert list(response.context["participated_charges"]) == [charge]
+        self.assertContains(response, "Rateio cancelado")
+        self.assertContains(response, "Cancelada")

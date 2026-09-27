@@ -9,12 +9,14 @@ from django.utils.translation import gettext_lazy as _
 
 CHARGE_TITLE_MAX_LENGTH = 120
 CHARGE_DESCRIPTION_MAX_LENGTH = 1000
+CHARGE_CANCELLATION_REASON_MAX_LENGTH = 500
 
 
 class Charge(models.Model):
     class State(models.TextChoices):
         AWAITING_ACCEPTANCE = "AWAITING_ACCEPTANCE", _("Aguardando aceite")
         ACTIVE = "ACTIVE", _("Ativa")
+        CANCELLED = "CANCELLED", _("Cancelada")
 
     creator = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -47,6 +49,20 @@ class Charge(models.Model):
         editable=False,
     )
     locked_at = models.DateTimeField(_("bloqueada em"), null=True, blank=True)
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="cancelled_charges",
+        verbose_name=_("cancelada por"),
+        null=True,
+        blank=True,
+    )
+    cancelled_at = models.DateTimeField(_("cancelada em"), null=True, blank=True)
+    cancellation_reason = models.CharField(
+        _("motivo do cancelamento"),
+        max_length=CHARGE_CANCELLATION_REASON_MAX_LENGTH,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-created_at", "-pk"]
@@ -58,7 +74,9 @@ class Charge(models.Model):
                 name="charge_total_positive",
             ),
             models.CheckConstraint(
-                condition=Q(state__in=("AWAITING_ACCEPTANCE", "ACTIVE")),
+                condition=Q(
+                    state__in=("AWAITING_ACCEPTANCE", "ACTIVE", "CANCELLED"),
+                ),
                 name="charge_state_valid",
             ),
         ]
@@ -72,6 +90,7 @@ class Participation(models.Model):
         PENDING = "PENDING", _("Pendente")
         ACCEPTED = "ACCEPTED", _("Aceita")
         DECLINED = "DECLINED", _("Recusada")
+        CANCELLED = "CANCELLED", _("Cancelada")
 
     charge = models.ForeignKey(
         Charge,
@@ -107,7 +126,7 @@ class Participation(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=["charge", "user"],
-                condition=~Q(state="DECLINED"),
+                condition=~Q(state__in=("DECLINED", "CANCELLED")),
                 name="one_current_participation_per_user",
             ),
             models.CheckConstraint(
@@ -115,7 +134,9 @@ class Participation(models.Model):
                 name="participation_share_nonnegative",
             ),
             models.CheckConstraint(
-                condition=Q(state__in=("PENDING", "ACCEPTED", "DECLINED")),
+                condition=Q(
+                    state__in=("PENDING", "ACCEPTED", "DECLINED", "CANCELLED"),
+                ),
                 name="participation_state_valid",
             ),
         ]
@@ -167,3 +188,31 @@ class Debt(models.Model):
 
     def __str__(self) -> str:
         return f"{self.debtor} → {self.creditor}: {self.original_cents}¢"
+
+
+class ChargeDeletionAudit(models.Model):
+    """Minimal audit record that survives absolute charge deletion."""
+
+    charge_id_snapshot = models.PositiveBigIntegerField(
+        _("identificador da cobrança excluída"),
+    )
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="charge_deletions",
+        verbose_name=_("excluída por"),
+    )
+    deleted_at = models.DateTimeField(_("excluída em"), default=timezone.now)
+    reason = models.CharField(
+        _("motivo"),
+        max_length=CHARGE_CANCELLATION_REASON_MAX_LENGTH,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-deleted_at", "-pk"]
+        verbose_name = _("auditoria de exclusão de cobrança")
+        verbose_name_plural = _("auditorias de exclusão de cobranças")
+
+    def __str__(self) -> str:
+        return f"Cobrança {self.charge_id_snapshot} — {self.deleted_at:%Y-%m-%d %H:%M}"

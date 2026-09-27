@@ -1,0 +1,22 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div id="content-main">
+    <h1>{{ title }}</h1>
+    <p>{% blocktranslate with charge_title=original.title charge_id=original.pk %}Você está prestes a excluir “{{ charge_title }}” (cobrança {{ charge_id }}) e os registros financeiros e comprovantes associados. Esta ação não pode ser desfeita.{% endblocktranslate %}</p>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="errornote">{{ form.non_field_errors }}</div>{% endif %}
+      <p>
+        <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label><br>
+        {{ form.reason }}
+        {% if form.reason.errors %}<br><span class="errorlist">{{ form.reason.errors }}</span>{% endif %}
+      </p>
+      <div class="submit-row">
+        <button class="deletelink" type="submit">{% translate "Excluir definitivamente" %}</button>
+        <a href="{% url 'admin:charges_charge_changelist' %}">{% translate "Cancelar" %}</a>
+      </div>
+    </form>
+  </div>
+{% endblock content %}

@@ -25,7 +25,7 @@
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m17 7-10 10M17 17V7H7"/></svg>
           </div>
         </div>
-        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-success" data-balance="receivable">{{ receivable_cents|brl_from_cents }}</p>
+        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-success" data-balance="receivable"><span class="mr-1 text-xl font-bold opacity-75">R$</span>{{ receivable_cents|brl_from_cents }}</p>
         <p class="mt-2 text-xs leading-relaxed text-pixu-muted">{% translate "Soma bruta das dívidas ativas em seu favor." %}</p>
       </article>
 
@@ -36,7 +36,7 @@
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10M7 17V7h10"/></svg>
           </div>
         </div>
-        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-action" data-balance="payable">{{ payable_cents|brl_from_cents }}</p>
+        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-action" data-balance="payable"><span class="mr-1 text-xl font-bold opacity-75">R$</span>{{ payable_cents|brl_from_cents }}</p>
         <p class="mt-2 text-xs leading-relaxed text-pixu-muted">{% translate "Soma bruta das suas dívidas ativas." %}</p>
       </article>
 
@@ -47,7 +47,7 @@
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg>
           </div>
         </div>
-        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-ink" data-balance="compensation-potential">{{ compensation_potential_cents|brl_from_cents }}</p>
+        <p class="mt-3 text-3xl font-black tracking-tight text-pixu-ink" data-balance="compensation-potential"><span class="mr-1 text-xl font-bold opacity-75">R$</span>{{ compensation_potential_cents|brl_from_cents }}</p>
         <p class="mt-2 text-xs leading-relaxed text-pixu-muted">{% translate "Estimativa separada; não é dinheiro nem altera os outros totais." %}</p>
       </article>
     </section>
@@ -83,10 +83,12 @@
         <div class="grid gap-3 md:grid-cols-2">
           {% for charge in created_charges %}
             <a class="min-w-0 rounded-2xl border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised" href="{% url 'charges:detail' charge.pk %}">
-              <span class="inline-flex rounded-full bg-pixu-surface-raised px-2.5 py-1 text-xs font-bold text-pixu-ink">{{ charge.get_state_display }}</span>
-              <h3 class="mt-2 break-words font-extrabold text-pixu-ink">{{ charge.title }}</h3>
+              <div class="flex items-center justify-between gap-2">
+                {% include "charges/partials/status_badge.html" with charge=charge %}
+              </div>
+              <h3 class="mt-2.5 break-words font-extrabold text-pixu-ink">{{ charge.title }}</h3>
               <p class="mt-1 text-sm text-pixu-muted">{% translate "Recebedor" %}: {{ charge.creditor.name|default:charge.creditor.username }}</p>
-              <p class="mt-3 text-sm font-bold text-pixu-ink">{{ charge.total_cents|brl_from_cents }}</p>
+              <p class="mt-3 text-sm font-bold text-pixu-ink"><span class="font-normal text-pixu-muted">{% translate "Total" %}:</span> R$ {{ charge.total_cents|brl_from_cents }}</p>
             </a>
           {% empty %}
             <div class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-5 md:col-span-2">
@@ -105,10 +107,12 @@
         <div class="grid gap-3 md:grid-cols-2">
           {% for charge in participated_charges %}
             <a class="min-w-0 rounded-2xl border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised" href="{% url 'charges:detail' charge.pk %}">
-              <span class="inline-flex rounded-full bg-pixu-surface-raised px-2.5 py-1 text-xs font-bold text-pixu-ink">{{ charge.get_state_display }}</span>
-              <h3 class="mt-2 break-words font-extrabold text-pixu-ink">{{ charge.title }}</h3>
+              <div class="flex items-center justify-between gap-2">
+                {% include "charges/partials/status_badge.html" with charge=charge %}
+              </div>
+              <h3 class="mt-2.5 break-words font-extrabold text-pixu-ink">{{ charge.title }}</h3>
               <p class="mt-1 text-sm text-pixu-muted">{% translate "Criada por" %}: {{ charge.creator.name|default:charge.creator.username }}</p>
-              <p class="mt-3 text-sm font-bold text-pixu-ink">{% translate "Total" %}: {{ charge.total_cents|brl_from_cents }}</p>
+              <p class="mt-3 text-sm font-bold text-pixu-ink"><span class="font-normal text-pixu-muted">{% translate "Total" %}:</span> R$ {{ charge.total_cents|brl_from_cents }}</p>
             </a>
           {% empty %}
             <div class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-5 md:col-span-2">

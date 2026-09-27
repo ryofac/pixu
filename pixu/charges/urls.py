@@ -3,6 +3,7 @@ from django.urls import path
 from .views import AcceptParticipationView
 from .views import ChargeCreatePreviewView
 from .views import ChargeCreateView
+from .views import ChargeCancelView
 from .views import ChargeDetailView
 from .views import ChargeListView
 from .views import ChargeSharesUpdateView
@@ -19,6 +20,7 @@ urlpatterns = [
     path("new/preview/", ChargeCreatePreviewView.as_view(), name="preview"),
     path("invites/", InviteListView.as_view(), name="invites"),
     path("<int:pk>/shares/", ChargeSharesUpdateView.as_view(), name="edit_shares"),
+    path("<int:pk>/cancel/", ChargeCancelView.as_view(), name="cancel"),
     path(
         "debts/<int:debt_id>/compensations/<int:reciprocal_debt_id>/preview/",
         CompensationPreviewView.as_view(),

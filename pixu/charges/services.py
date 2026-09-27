@@ -1,20 +1,30 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from pixu.accounts.models import User
+from pixu.settlements.models import Compensation
+from pixu.settlements.models import Payment
+from pixu.settlements.models import PendingReceiptDeletion
+from pixu.settlements.tasks import delete_pending_receipt
 
+from .models import CHARGE_CANCELLATION_REASON_MAX_LENGTH
 from .models import CHARGE_DESCRIPTION_MAX_LENGTH
 from .models import CHARGE_TITLE_MAX_LENGTH
 from .models import Charge
+from .models import ChargeDeletionAudit
 from .models import Debt
 from .models import Participation
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -57,6 +67,144 @@ def calculate_shares(
     return {
         user_id: base + (index < remainder) for index, user_id in enumerate(ordered_ids)
     }
+
+
+def cancel_charge(*, charge_id: int, actor: User, reason: str = "") -> Charge:
+    """Cancel a charge while retaining its financial and receipt history."""
+    if not isinstance(reason, str):
+        raise ValidationError({"reason": _("Informe um motivo válido.")})
+    reason = reason.strip()
+    if len(reason) > CHARGE_CANCELLATION_REASON_MAX_LENGTH:
+        raise ValidationError(
+            {
+                "reason": _(
+                    "O motivo deve ter até %(limit)s caracteres.",
+                )
+                % {"limit": CHARGE_CANCELLATION_REASON_MAX_LENGTH},
+            },
+        )
+
+    with transaction.atomic():
+        charge = Charge.objects.select_for_update().get(pk=charge_id)
+        if charge.creator_id != actor.pk:
+            raise PermissionDenied
+        if charge.state == Charge.State.CANCELLED:
+            return charge
+        if charge.state not in {
+            Charge.State.ACTIVE,
+            Charge.State.AWAITING_ACCEPTANCE,
+        }:
+            raise ValidationError(_("Esta cobrança não pode ser cancelada."))
+
+        charge_debts = Debt.objects.filter(participation__charge=charge)
+        if Compensation.objects.filter(
+            Q(debt__in=charge_debts) | Q(reciprocal_debt__in=charge_debts),
+        ).exists():
+            raise ValidationError(
+                _(
+                    "Esta cobrança possui uma compensação e não pode ser cancelada.",
+                ),
+            )
+
+        cancelled_at = timezone.now()
+        Participation.objects.filter(
+            charge=charge,
+            state=Participation.State.PENDING,
+        ).update(state=Participation.State.CANCELLED)
+        Payment.objects.filter(debt__participation__charge=charge).update(
+            state=Payment.State.REVOKED,
+        )
+
+        charge.state = Charge.State.CANCELLED
+        charge.cancelled_by = actor
+        charge.cancelled_at = cancelled_at
+        charge.cancellation_reason = reason
+        charge.save(
+            update_fields=[
+                "state",
+                "cancelled_by",
+                "cancelled_at",
+                "cancellation_reason",
+            ],
+        )
+        return charge
+
+
+def absolutely_delete_charge(
+    *,
+    charge_id: int,
+    actor: User,
+    reason: str = "",
+) -> ChargeDeletionAudit:
+    """Delete all charge records and enqueue private receipts for cleanup."""
+    if not getattr(actor, "is_superuser", False):
+        raise PermissionDenied
+    if not isinstance(reason, str):
+        raise ValidationError({"reason": _("Informe um motivo válido.")})
+    reason = reason.strip()
+    if len(reason) > CHARGE_CANCELLATION_REASON_MAX_LENGTH:
+        raise ValidationError(
+            {
+                "reason": _("O motivo deve ter até %(limit)s caracteres.")
+                % {"limit": CHARGE_CANCELLATION_REASON_MAX_LENGTH},
+            },
+        )
+
+    with transaction.atomic():
+        charge = Charge.objects.select_for_update().get(pk=charge_id)
+        charge_debts = Debt.objects.filter(participation__charge=charge)
+        if Compensation.objects.filter(
+            Q(debt__in=charge_debts) | Q(reciprocal_debt__in=charge_debts),
+        ).exists():
+            raise ValidationError(
+                _(
+                    "Esta cobrança possui uma compensação e não pode ser excluída.",
+                ),
+            )
+
+        payments = list(
+            Payment.objects.select_for_update()
+            .filter(debt__participation__charge=charge)
+            .order_by("pk"),
+        )
+        cleanup_ids = []
+        for payment in payments:
+            if not payment.receipt:
+                continue
+            pending, _created = PendingReceiptDeletion.objects.get_or_create(
+                storage_alias="default",
+                file_name=payment.receipt.name,
+            )
+            cleanup_ids.append(pending.pk)
+
+        audit = ChargeDeletionAudit.objects.create(
+            charge_id_snapshot=charge.pk,
+            deleted_by=actor,
+            reason=reason,
+        )
+        Payment.objects.filter(pk__in=[payment.pk for payment in payments]).delete()
+        charge_debts.delete()
+        charge.participations.all().delete()
+        charge.delete()
+
+        if cleanup_ids:
+            transaction.on_commit(
+                lambda ids=tuple(cleanup_ids): _enqueue_receipt_cleanup(ids),
+            )
+        return audit
+
+
+def _enqueue_receipt_cleanup(pending_ids: tuple[int, ...]) -> None:
+    for pending_id in pending_ids:
+        try:
+            delete_pending_receipt.delay(pending_id)
+        except Exception:
+            # Keep the outbox row durable; the retry management command can
+            # enqueue it again after the broker becomes available.
+            logger.exception(
+                "Could not queue private receipt deletion %s",
+                pending_id,
+            )
 
 
 def create_charge(  # noqa: PLR0913 - explicit keyword-only charge terms
@@ -170,6 +318,8 @@ def accept_participation(
         )
         if participation.user_id != actor.pk:
             raise PermissionDenied
+        if charge.state == Charge.State.CANCELLED:
+            raise ValidationError(_("Esta cobrança foi cancelada."))
         if participation.state == Participation.State.ACCEPTED:
             return participation
         if participation.state != Participation.State.PENDING:
@@ -407,6 +557,8 @@ def _activate_when_ready(charge: Charge) -> None:
 
 
 def _ensure_charge_editable(charge: Charge) -> None:
+    if charge.state == Charge.State.CANCELLED:
+        raise ValidationError(_("Esta cobrança foi cancelada e não pode ser editada."))
     if charge.locked_at is not None:
         raise ValidationError(
             _("Esta cobrança não pode mais ser editada após uma operação financeira."),

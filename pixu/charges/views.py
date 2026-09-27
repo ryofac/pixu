@@ -23,12 +23,14 @@ from django.views.generic import TemplateView
 from pixu.settlements.forms import CompensationForm
 from pixu.settlements.forms import ReceiptForm
 from pixu.settlements.models import Compensation
+from pixu.settlements.models import Payment
 from pixu.settlements.services import apply_compensation
 from pixu.settlements.services import payment_balance
 from pixu.settlements.services import suggest_compensations
 
 from .forms import AcceptParticipationForm
 from .forms import ChargeAllocationForm
+from .forms import ChargeCancellationForm
 from .forms import ChargeCreateForm
 from .forms import ChargeSharesForm
 from .forms import ReplaceParticipantForm
@@ -36,6 +38,7 @@ from .models import Charge
 from .models import Debt
 from .models import Participation
 from .services import accept_participation
+from .services import cancel_charge
 from .services import create_charge
 from .services import decline_participation
 from .services import edit_participation_shares
@@ -54,6 +57,7 @@ class ChargeDetailState:
     compensation_debt_id: int | None = None
     compensation_reciprocal_debt_id: int | None = None
     compensation_preview_amount_cents: int | None = None
+    cancellation_form: ChargeCancellationForm | None = None
     status_message: str = ""
     status_is_error: bool = False
 
@@ -64,9 +68,31 @@ def _visible_charges(user):
             Q(creator=user) | Q(creditor=user) | Q(participations__user=user),
         )
         .select_related("creator", "creditor")
+        .select_related("cancelled_by")
         .prefetch_related("participations__user")
         .distinct()
     )
+
+
+def _attach_creator_receipts(charge, actor, participations):
+    if charge.creator_id != actor.pk:
+        return
+    receipts_by_participation = {}
+    receipts = (
+        Payment.objects.filter(debt__participation__charge=charge)
+        .exclude(receipt="")
+        .select_related("debt__participation")
+        .order_by("created_at", "pk")
+    )
+    for payment in receipts:
+        receipts_by_participation.setdefault(payment.debt.participation_id, []).append(
+            payment,
+        )
+    for participation in participations:
+        participation.receipt_payments = receipts_by_participation.get(
+            participation.pk,
+            [],
+        )
 
 
 def _charge_detail_context(
@@ -78,7 +104,16 @@ def _charge_detail_context(
     participations = list(
         charge.participations.select_related("user").order_by("user_id", "pk"),
     )
-    can_edit = charge.creator_id == actor.pk and charge.locked_at is None
+    _attach_creator_receipts(charge, actor, participations)
+    can_edit = (
+        charge.creator_id == actor.pk
+        and charge.locked_at is None
+        and charge.state != Charge.State.CANCELLED
+    )
+    can_cancel = charge.creator_id == actor.pk and charge.state in {
+        Charge.State.ACTIVE,
+        Charge.State.AWAITING_ACCEPTANCE,
+    }
     replacement_rows = []
     if can_edit and charge.state == Charge.State.AWAITING_ACCEPTANCE:
         for participation in participations:
@@ -191,6 +226,14 @@ def _charge_detail_context(
         "participations": participations,
         "my_participation": my_participation,
         "can_edit": can_edit,
+        "can_cancel": can_cancel,
+        "cancellation_form": (
+            state.cancellation_form
+            if state.cancellation_form is not None
+            else ChargeCancellationForm()
+            if can_cancel
+            else None
+        ),
         "share_form": state.share_form
         or (ChargeSharesForm(charge) if can_edit else None),
         "replacement_rows": replacement_rows,
@@ -282,9 +325,9 @@ class ChargeCreateView(LoginRequiredMixin, FormView):
             return self.form_invalid(form)
         messages.success(
             self.request,
-            "Cobrança criada. Convites aguardam resposta."
+            _("Cobrança criada. Convites aguardam resposta.")
             if charge.state == Charge.State.AWAITING_ACCEPTANCE
-            else "Cobrança criada e ativa.",
+            else _("Cobrança criada e ativa."),
         )
         return redirect("charges:detail", pk=charge.pk)
 
@@ -339,6 +382,55 @@ class ChargeDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context.update(_charge_detail_context(self.object, self.request.user))
         return context
+
+
+class ChargeCancelView(LoginRequiredMixin, View):
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        charge = get_object_or_404(_visible_charges(request.user), pk=pk)
+        if charge.creator_id != request.user.pk:
+            raise PermissionDenied
+
+        form = ChargeCancellationForm(data=request.POST)
+        invalid = not form.is_valid()
+        status_message = ""
+        status_is_error = invalid
+        if invalid:
+            status_message = _("Revise o motivo do cancelamento.")
+        else:
+            try:
+                cancel_charge(
+                    charge_id=charge.pk,
+                    actor=request.user,
+                    reason=form.cleaned_data["reason"],
+                )
+            except PermissionDenied:
+                raise
+            except ValidationError as error:
+                form.add_error(None, error.messages)
+                status_message = error.messages[0]
+                invalid = True
+                status_is_error = True
+            else:
+                status_message = _(
+                    "Cobrança cancelada. Os pagamentos permanecem no histórico "
+                    "como revogados; não há estorno de transferências externas.",
+                )
+
+        if not invalid and not _is_htmx(request):
+            messages.success(request, status_message)
+            return redirect("charges:detail", pk=charge.pk)
+
+        charge = get_object_or_404(_visible_charges(request.user), pk=pk)
+        context = _charge_detail_context(
+            charge,
+            request.user,
+            ChargeDetailState(
+                cancellation_form=form if invalid else None,
+                status_message=status_message,
+                status_is_error=status_is_error,
+            ),
+        )
+        return _detail_response(request, charge, context, invalid=invalid)
 
 
 def _compensation_debt(debt_id: int, actor):
@@ -527,13 +619,13 @@ class ParticipationResponseView(LoginRequiredMixin, View):
                     actor=request.user,
                     **consent,
                 )
-                status_message = "Sua participação foi aceita."
+                status_message = _("Sua participação foi aceita.")
             else:
                 decline_participation(
                     participation_id=participation.pk,
                     actor=request.user,
                 )
-                status_message = "Convite recusado. Nenhuma dívida foi criada."
+                status_message = _("Convite recusado. Nenhuma dívida foi criada.")
         except PermissionDenied:
             raise
         except ValidationError as error:
@@ -605,7 +697,7 @@ class ChargeSharesUpdateView(LoginRequiredMixin, View):
             raise PermissionDenied
         form = ChargeSharesForm(charge, data=request.POST)
         invalid = not form.is_valid()
-        status_message = "Revise as cotas antes de salvar." if invalid else ""
+        status_message = _("Revise as cotas antes de salvar.") if invalid else ""
         status_is_error = invalid
 
         if not invalid:
@@ -616,7 +708,7 @@ class ChargeSharesUpdateView(LoginRequiredMixin, View):
                     actor=request.user,
                     creditor_id=form.cleaned_data["creditor"].pk,
                 )
-                status_message = "Cotas e recebedor atualizados."
+                status_message = _("Cotas e recebedor atualizados.")
             except PermissionDenied:
                 raise
             except ValidationError as error:
@@ -656,7 +748,7 @@ class ReplaceParticipantView(LoginRequiredMixin, View):
         form = ReplaceParticipantForm(charge, data=request.POST)
         invalid = not form.is_valid()
         status_message = (
-            "Escolha uma conta válida para substituir o convite." if invalid else ""
+            _("Escolha uma conta válida para substituir o convite.") if invalid else ""
         )
         status_is_error = invalid
 
@@ -667,7 +759,7 @@ class ReplaceParticipantView(LoginRequiredMixin, View):
                     replacement_user_id=form.cleaned_data["replacement"].pk,
                     actor=request.user,
                 )
-                status_message = "Novo convite enviado."
+                status_message = _("Novo convite enviado.")
             except PermissionDenied:
                 raise
             except ValidationError as error:

@@ -17,7 +17,9 @@ from django.urls import reverse
 
 from pixu.accounts.models import PixProfile
 from pixu.accounts.models import User
+from pixu.charges.models import Charge
 from pixu.charges.models import Debt
+from pixu.charges.services import cancel_charge
 from pixu.charges.services import create_charge
 from pixu.charges.services import edit_participation_shares
 
@@ -170,6 +172,68 @@ class PaymentServiceTests(TestCase):
         assert rejected.rejected_by_id == self.creditor.pk
         assert payment_balance(self.debt).available_cents == 10000
 
+    def test_database_constraint_accepts_revoked_payment_state(self):
+        payment = record_payment(
+            debt_id=self.debt.pk,
+            actor=self.debtor,
+            amount_cents=1000,
+        )
+        payment.state = Payment.State.REVOKED
+        payment.save(update_fields=["state"])
+
+        payment.refresh_from_db()
+        assert payment.state == Payment.State.REVOKED
+
+    def test_cancelling_charge_revokes_pending_payment_and_preserves_receipt(self):
+        receipt = SimpleUploadedFile(
+            "comprovante.pdf",
+            b"%PDF-1.7\ncomprovante",
+            content_type="application/pdf",
+        )
+        payment = record_payment(
+            debt_id=self.debt.pk,
+            actor=self.debtor,
+            amount_cents=2000,
+            receipt=receipt,
+        )
+        receipt_name = payment.receipt.name
+
+        cancel_charge(charge_id=self.charge.pk, actor=self.debtor, reason="Cancelada")
+
+        payment.refresh_from_db()
+        self.charge.refresh_from_db()
+        assert self.charge.state == Charge.State.CANCELLED
+        assert self.charge.cancellation_reason == "Cancelada"
+        assert payment.state == Payment.State.REVOKED
+        assert payment.receipt.name == receipt_name
+        assert payment.receipt.storage.exists(receipt_name)
+        assert payment_balance(self.debt).pending_cents == 0
+        with pytest.raises(ValidationError):
+            confirm_payment(payment_id=payment.pk, actor=self.creditor)
+        with pytest.raises(ValidationError):
+            reject_payment(payment_id=payment.pk, actor=self.creditor)
+        with pytest.raises(ValidationError):
+            record_payment(
+                debt_id=self.debt.pk,
+                actor=self.debtor,
+                amount_cents=1000,
+            )
+
+    def test_cancelling_charge_revokes_confirmed_payment_without_removing_audit(self):
+        payment = record_payment(
+            debt_id=self.debt.pk,
+            actor=self.debtor,
+            amount_cents=2000,
+        )
+        confirm_payment(payment_id=payment.pk, actor=self.creditor)
+
+        cancel_charge(charge_id=self.charge.pk, actor=self.debtor)
+
+        payment.refresh_from_db()
+        assert payment.state == Payment.State.REVOKED
+        assert payment.confirmed_by_id == self.creditor.pk
+        assert payment.confirmed_at is not None
+
     def test_rejected_payment_does_not_unlock_charge(self):
         payment = record_payment(
             debt_id=self.debt.pk,
@@ -203,10 +267,28 @@ class PaymentServiceTests(TestCase):
         debtor_client.force_login(self.debtor)
         response = debtor_client.get(reverse("settlements:receipt", args=[payment.pk]))
         assert response.status_code == 200
+        assert response["Content-Disposition"].startswith("inline;")
         assert b"".join(response.streaming_content).startswith(b"%PDF")
 
+        self.charge.creator = self.outsider
+        self.charge.save(update_fields=["creator"])
+        creator_client = Client()
+        creator_client.force_login(self.outsider)
+        creator_response = creator_client.get(
+            reverse("settlements:receipt", args=[payment.pk]),
+        )
+        assert creator_response.status_code == 200
+        assert creator_response["Content-Disposition"].startswith("inline;")
+        assert creator_response["X-Content-Type-Options"] == "nosniff"
+        assert creator_response["Cache-Control"] == "private, no-store"
+        b"".join(creator_response.streaming_content)
+
+        third_party = User.objects.create_user(
+            username="third-party",
+            password=TEST_PASSWORD,
+        )
         outsider_client = Client()
-        outsider_client.force_login(self.outsider)
+        outsider_client.force_login(third_party)
         assert (
             outsider_client.get(
                 reverse("settlements:receipt", args=[payment.pk]),

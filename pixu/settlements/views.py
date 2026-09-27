@@ -9,6 +9,8 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
+from django.utils.http import content_disposition_header
+from django.utils.translation import gettext as _
 from django.views import View
 
 from pixu.charges.models import Debt
@@ -105,20 +107,20 @@ class PaymentCreateView(LoginRequiredMixin, View):
                         _payment_context(
                             debt,
                             status_message=(
-                                "Pagamento registrado e aguardando confirmação."
+                                _("Pagamento registrado e aguardando confirmação.")
                             ),
                         ),
                     )
                 messages.success(
                     request,
-                    "Pagamento registrado e aguardando confirmação do recebedor.",
+                    _("Pagamento registrado e aguardando confirmação do recebedor."),
                 )
                 return redirect("charges:detail", pk=debt.participation.charge_id)
 
         context = _payment_context(
             debt,
             form=form,
-            status_message="Revise os dados do pagamento.",
+            status_message=_("Revise os dados do pagamento."),
             status_is_error=True,
         )
         if _is_htmx(request):
@@ -186,12 +188,15 @@ class RejectPaymentView(PaymentDecisionView):
 class PaymentReceiptView(LoginRequiredMixin, View):
     def get(self, request, payment_id: int):
         payment = get_object_or_404(
-            Payment.objects.select_related("debt"),
+            Payment.objects.select_related(
+                "debt__participation__charge",
+            ),
             pk=payment_id,
         )
         if request.user.pk not in {
             payment.debt.debtor_id,
             payment.debt.creditor_id,
+            payment.debt.participation.charge.creator_id,
         }:
             raise PermissionDenied
         if not payment.receipt:
@@ -204,8 +209,13 @@ class PaymentReceiptView(LoginRequiredMixin, View):
             file_handle,
             content_type=payment.receipt_content_type or "application/octet-stream",
         )
-        filename = (payment.receipt_original_name or "comprovante").replace('"', "")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        filename = payment.receipt_original_name or "comprovante"
+        response["Content-Disposition"] = content_disposition_header(
+            as_attachment=False,
+            filename=filename,
+        )
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "private, no-store"
         return response
 
 
@@ -235,10 +245,10 @@ class PaymentReceiptUpdateView(LoginRequiredMixin, View):
                         "settlements/partials/payment_state.html",
                         _payment_context(
                             payment.debt,
-                            status_message="Comprovante atualizado.",
+                            status_message=_("Comprovante atualizado."),
                         ),
                     )
-                messages.success(request, "Comprovante atualizado.")
+                messages.success(request, _("Comprovante atualizado."))
                 return redirect(
                     "charges:detail",
                     pk=payment.debt.participation.charge_id,
@@ -250,14 +260,14 @@ class PaymentReceiptUpdateView(LoginRequiredMixin, View):
                 "settlements/partials/payment_state.html",
                 _payment_context(
                     payment.debt,
-                    status_message="Revise o arquivo enviado.",
+                    status_message=_("Revise o arquivo enviado."),
                     status_is_error=True,
                     receipt_form=form,
                     receipt_payment_id=payment.pk,
                 ),
                 status=400,
             )
-        messages.error(request, "Revise o arquivo enviado.")
+        messages.error(request, _("Revise o arquivo enviado."))
         return redirect("charges:detail", pk=payment.debt.participation.charge_id)
 
 
@@ -294,8 +304,8 @@ class PaymentReceiptDeleteView(LoginRequiredMixin, View):
                     "settlements/partials/payment_state.html",
                     _payment_context(
                         payment.debt,
-                        status_message="Comprovante removido.",
+                        status_message=_("Comprovante removido."),
                     ),
                 )
-            messages.success(request, "Comprovante removido.")
+            messages.success(request, _("Comprovante removido."))
         return redirect("charges:detail", pk=payment.debt.participation.charge_id)

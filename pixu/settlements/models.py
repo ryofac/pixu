@@ -24,6 +24,7 @@ class Payment(models.Model):
         PENDING = "PENDING", _("Pendente")
         CONFIRMED = "CONFIRMED", _("Confirmado")
         REJECTED = "REJECTED", _("Rejeitado")
+        REVOKED = "REVOKED", _("Revogado")
 
     debt = models.ForeignKey(
         Debt,
@@ -113,7 +114,9 @@ class Payment(models.Model):
                 name="payment_amount_positive",
             ),
             models.CheckConstraint(
-                condition=Q(state__in=("PENDING", "CONFIRMED", "REJECTED")),
+                condition=Q(
+                    state__in=("PENDING", "CONFIRMED", "REJECTED", "REVOKED"),
+                ),
                 name="payment_state_valid",
             ),
             models.CheckConstraint(
@@ -182,3 +185,25 @@ class Compensation(models.Model):
             f"Compensação de {self.amount_cents}¢ entre dívidas "
             f"{self.debt_id} e {self.reciprocal_debt_id}"
         )
+
+
+class PendingReceiptDeletion(models.Model):
+    """Durable outbox entry for retryable private receipt cleanup."""
+
+    storage_alias = models.CharField(_("storage"), max_length=100, default="default")
+    file_name = models.CharField(_("chave do arquivo"), max_length=1024)
+    queued_at = models.DateTimeField(_("adicionado à fila"), default=timezone.now)
+
+    class Meta:
+        ordering = ["queued_at", "pk"]
+        verbose_name = _("remoção pendente de comprovante")
+        verbose_name_plural = _("remoções pendentes de comprovantes")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["storage_alias", "file_name"],
+                name="unique_pending_receipt_deletion",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.storage_alias}: {self.file_name}"

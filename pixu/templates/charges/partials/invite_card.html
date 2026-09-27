@@ -7,11 +7,14 @@
       <p class="mt-1 text-sm text-pixu-muted">Criada por {{ participation.charge.creator.name|default:participation.charge.creator.username }}</p>
       <p class="mt-1 text-sm text-pixu-muted">Quem recebe: {{ participation.charge.creditor.name|default:participation.charge.creditor.username }}</p>
     </div>
-    <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if participation.state == 'ACCEPTED' %} bg-green-100 text-pixu-success{% elif participation.state == 'DECLINED' %} bg-red-100 text-pixu-danger{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ participation.get_state_display }}</span>
+    <span class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-extrabold{% if participation.state == 'ACCEPTED' %} border-green-200/80 bg-green-50 text-pixu-success{% elif participation.state == 'DECLINED' %} border-red-200/80 bg-red-50 text-pixu-danger{% else %} border-amber-200/80 bg-amber-50 text-pixu-pending{% endif %}">
+      <span class="h-1.5 w-1.5 rounded-full {% if participation.state == 'ACCEPTED' %}bg-pixu-success{% elif participation.state == 'DECLINED' %}bg-pixu-danger{% else %}bg-pixu-pending{% endif %}" aria-hidden="true"></span>
+      {{ participation.get_state_display }}
+    </span>
   </div>
   <dl class="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-sakura-4 p-3 text-sm sm:p-4">
-    <div><dt class="text-pixu-muted">Total da cobrança</dt><dd class="mt-1 font-extrabold">{{ participation.charge.total_cents|brl_from_cents }}</dd></div>
-    <div><dt class="text-pixu-muted">Sua cota</dt><dd class="mt-1 font-extrabold text-pixu-action">{{ participation.share_cents|brl_from_cents }}</dd></div>
+    <div><dt class="text-pixu-muted">Total da cobrança</dt><dd class="mt-1 font-extrabold">R$ {{ participation.charge.total_cents|brl_from_cents }}</dd></div>
+    <div><dt class="text-pixu-muted">Sua cota</dt><dd class="mt-1 font-extrabold text-pixu-action">R$ {{ participation.share_cents|brl_from_cents }}</dd></div>
   </dl>
   {% if participation.charge.description %}<p class="mt-4 text-sm leading-relaxed text-pixu-muted">{{ participation.charge.description }}</p>{% endif %}
   <p class="mt-4 text-xs leading-relaxed text-pixu-muted">A cobrança só fica ativa quando todos os convites atuais forem aceitos.</p>

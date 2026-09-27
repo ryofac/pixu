@@ -1,0 +1,4 @@
+<span class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-extrabold {% if charge.state == 'ACTIVE' %}border-green-200/80 bg-green-50 text-pixu-success{% elif charge.state == 'CANCELLED' %}border-pixu-border bg-pixu-surface-raised text-pixu-muted{% else %}border-amber-200/80 bg-amber-50 text-pixu-pending{% endif %}">
+  <span class="h-1.5 w-1.5 rounded-full {% if charge.state == 'ACTIVE' %}bg-pixu-success{% elif charge.state == 'CANCELLED' %}bg-pixu-muted{% else %}bg-pixu-pending{% endif %}" aria-hidden="true"></span>
+  {{ charge.get_state_display }}
+</span>

@@ -3,7 +3,7 @@
 **Status:** direção responsiva revisada com o usuário; logo System Core e temas claro/escuro/sistema implementados; teste de compreensão dos termos com usuários ainda pendente
 
 **Escopo visual:** entrada pública, dashboard, perfil, cobranças, convites, pagamentos e compensações.
-**Fontes normativas:** `PIXU_IMPLEMENTATION_BRIEF.md` e a mudança ativa `openspec/changes/complete-product-experience`.
+**Fontes normativas:** `PIXU_IMPLEMENTATION_BRIEF.md` e a mudança ativa `openspec/changes/manage-charge-cancellation-and-landing`.
 
 ## 1. Princípios
 
@@ -23,7 +23,7 @@ Os materiais existentes em `docs/design/` são referências visuais, não contra
 
 ### 2.2 Logo — System Core aprovada
 
-A versão canônica é a **System Core Logo** apresentada em [`pixu_logo_system.html`](design/pixu_logo_system.html): flor Sakura de cinco pétalas com núcleo Pix em X, moldura de losango arredondada e wordmark **PiXu**. O gradiente Sakura permanece no símbolo e o recorte do núcleo acompanha a superfície para manter contraste nos temas claro e escuro. Ao integrar, reproduzir o desenho como SVG local, sem carregar as dependências CDN da página de demonstração; não substituir a marca por outra variação dos protótipos antigos.
+A versão canônica é a **System Core Logo** apresentada em [`pixu_logo_system.html`](design/pixu_logo_system.html): flor Sakura de cinco pétalas com núcleo Pix em X, moldura de losango arredondada e wordmark **PiXu**. O gradiente Sakura permanece no símbolo e o recorte do núcleo acompanha a superfície para manter contraste nos temas claro e escuro. Ao integrar, reproduzir o desenho como SVG local, sem carregar as dependências CDN da página HTML de referência; não substituir a marca por outra variação dos protótipos antigos.
 
 ### 2.3 Paleta, tipografia e ícones
 
@@ -89,10 +89,11 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 
 **Referências revisadas:** [`pixu_landing_page.html`](design/pixu_landing_page.html) para composição e conteúdo; [`pixu_logo_system.html`](design/pixu_logo_system.html) para a marca aprovada. São referências visuais, não arquivos para servir diretamente: substituir URLs `#` pelas rotas reais, localizar para pt-BR e manter o build local.
 
-- Preservar o fluxo visual da página: cabeçalho com marca, seletor de tema e entrada; hero com chamada e cadastro; ilustração decorativa; dois cartões curtos de benefícios. A ilustração flutuante fica oculta em mobile, enquanto a chamada e os dois caminhos de conta permanecem disponíveis.
-- Em viewport largo, hero em duas colunas; em mobile, conteúdo em uma coluna, CTAs empilhados e sem navegação autenticada. Usuário autenticado vê o dashboard ao abrir a rota inicial.
-- Manter paleta Sakura, gradientes suaves e superfícies translúcidas com contraste suficiente nos dois temas. Usar os tokens definidos nesta seção, fonte de sistema e ícones SVG locais/inline; não carregar Tailwind, fontes ou icon fonts por CDN.
-- Todo conteúdo visível é pt-BR. Valores ilustrativos usam reais e deixam claro que são demonstração; os cartões não prometem pagamento, confirmação automática ou movimentação de dinheiro.
+- Preservar cabeçalho com marca, seletor de tema e entrada; hero com chamada e cadastro; e os caminhos reais de criar conta e entrar. Usuário autenticado vê o dashboard ao abrir a rota inicial.
+- Organizar o conteúdo público em três seções verticais sequenciais: criar rateio, convidar e aceitar cotas; acompanhar pagamentos feitos fora do Pixu, anexos e confirmação manual; consultar saldos, compensações, histórico e cancelamento de cobrança pelo criador.
+- Em mobile e desktop, todas as seções aparecem na mesma ordem por rolagem normal, sem scroll snap obrigatório, captura de rolagem, conteúdo escondido ou animação necessária para entendê-las. Usar uma coluna em telas estreitas e composições próprias para telas largas.
+- Manter paleta Sakura, gradientes suaves e superfícies com contraste suficiente nos dois temas. Usar os tokens definidos nesta seção, fonte de sistema e ícones SVG locais/inline; não carregar Tailwind, fontes ou icon fonts por CDN.
+- Todo conteúdo visível é pt-BR. Usar exemplos abstratos que representem ações possíveis, sem nomes, contas ou transações reais e sem afirmar que um pagamento, verificação ou cancelamento ocorreu para uma pessoa real. Descrever somente funcionalidades disponíveis na aplicação; não apresentar exclusão administrativa ou extrato global.
 - A ilustração é estática e puramente decorativa, sem movimento contínuo. Se houver animação futura, respeitar `prefers-reduced-motion: reduce` e não criar/remover nós continuamente para simular chuva de pétalas.
 - O seletor segue a regra **Claro / Escuro / Sistema** da seção 2.4, inicia em Sistema e persiste apenas a preferência visual no navegador. A preferência deve ser aplicada antes da primeira pintura; sem JavaScript, a página continua legível e acompanha o sistema por CSS.
 
@@ -140,7 +141,11 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 
 - Cabeçalho: título, criador e recebedor em campos separados, total e estado.
 - Lista de participantes com cota e estado de convite.
+- Para o criador, cada pagante mostra links dos comprovantes que anexou. A visualização é somente leitura e não dá ao criador, por si só, permissão para confirmar ou rejeitar pagamentos.
+- O pagamento permanece decidido apenas pelo recebedor. Comprovantes autorizados abrem em prévia do navegador quando suportado pelo formato.
 - Para o criador, expor substituição após recusa e edição permitida de cotas.
+- O criador pode cancelar logicamente cobranças ativas ou aguardando aceite com motivo opcional. Antes de confirmar, informar que não haverá estorno; após cancelar, mostrar a cobrança e pagamentos revogados no histórico, com motivo, autor e data quando disponíveis. Convites pendentes ficam inválidos, sem ações de pagamento, aceite, compensação ou edição estrutural.
+- Se uma cobrança possuir compensação, explicar que ela não pode ser cancelada. Exclusão absoluta é uma ação administrativa exclusiva de superusuários, exige motivo opcional e auditoria mínima, e também é bloqueada quando há compensações; não a expor como ação comum do produto.
 - Permitir ao criador trocar o recebedor antes de qualquer aceite de outra pessoa e de operação financeira. Após esse limite, mostrar o recebedor sem edição e explicar o bloqueio. O recebedor tem acesso à cobrança mesmo sem participar do rateio, mas não recebe permissão de edição por esse papel.
 - Se o criador participa e escolhe outro recebedor, sua própria dívida é criada junto da cobrança e acompanha os ajustes permitidos de sua cota.
 - Para o destinatário, expor somente ações do convite destinado a ele.
@@ -159,7 +164,7 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - **Botão primário:** uma ação principal por formulário; altura mínima de 44px.
 - **Botão secundário:** voltar, cancelar ou ação menos frequente.
 - **Campo de formulário:** rótulo persistente, exemplo curto, ajuda e erro associados via `aria-describedby`.
-- **Badge de estado:** rótulo textual além da cor: “Pendente”, “Aceito”, “Recusado”, “Aguardando aceite” e “Ativa”.
+- **Badge de estado:** rótulo textual além da cor: “Pendente”, “Aceito”, “Recusado”, “Aguardando aceite”, “Ativa”, “Cancelada” e “Revogado”.
 - **Cartão de participante:** nome, cota, estado e ação que a pessoa tem permissão para executar.
 - **Resumo de cotas:** mostra somente as pessoas incluídas, cada valor editável na criação e a soma final; distingue criador, recebedor e participantes.
 - **Aviso informativo:** explica confirmação de e-mail, origem da chave Pix ou efeito do aceite sem tom alarmista.
@@ -197,6 +202,8 @@ A persistência da preferência visual de tema, descrita na seção 2.4, armazen
 Estes padrões orientam as telas financeiras implementadas em mudanças OpenSpec próprias:
 
 - Pagamento Pix fica pendente até confirmação manual do recebedor; comprovante não é tratado como verificação.
+- O criador da cobrança pode consultar em modo de leitura os comprovantes anexados pelos pagantes enquanto os registros de pagamento permanecerem no histórico. Somente o recebedor confirma ou rejeita.
+- Cancelamento lógico revoga pagamentos e invalida convites, preservando cobrança, pagamentos e comprovantes no histórico; não desfaz transferências externas nem recria dívidas. Cobranças com compensações não podem ser canceladas ou excluídas.
 - Um pagamento pertence a uma dívida. Pagamentos parciais são mostrados em linhas próprias.
 - Saldo aberto e valor reservado por Pix pendente aparecem separadamente.
 - A compensação é uma ação explícita sobre duas dívidas recíprocas; sugestão de compensação não é dinheiro disponível em conta.

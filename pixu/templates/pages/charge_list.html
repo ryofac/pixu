@@ -20,16 +20,16 @@
           <a class="block rounded-[20px] border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised hover:shadow-md focus-visible:ring-2 focus-visible:ring-pixu-focus sm:p-5" href="{% url 'charges:detail' charge.pk %}">
             <div class="flex items-center justify-between gap-3">
               <strong class="min-w-0 break-words">{{ charge.title }}</strong>
-              <span class="shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold{% if charge.state == 'ACTIVE' %} bg-green-50 text-pixu-success{% else %} bg-amber-50 text-pixu-pending{% endif %}">{{ charge.get_state_display }}</span>
+              {% include "charges/partials/status_badge.html" with charge=charge %}
             </div>
             <p class="mb-3 mt-2 text-sm text-pixu-muted">
               {% if charge.creator_id == request.user.id %}{% translate "Criada por você" %}{% else %}{% translate "Criada por" %} {{ charge.creator.name|default:charge.creator.username }}{% endif %}
             </p>
             <p class="mb-3 text-sm text-pixu-muted">{% translate "Quem recebe" %}: {% if charge.creditor_id == request.user.id %}{% translate "você" %}{% else %}{{ charge.creditor.name|default:charge.creditor.username }}{% endif %}</p>
-            <div class="flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Total" %}</span><strong>{{ charge.total_cents|brl_from_cents }}</strong></div>
+            <div class="flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Total" %}</span><strong>R$ {{ charge.total_cents|brl_from_cents }}</strong></div>
             {% for participation in charge.participations.all %}
               {% if participation.user_id == request.user.id %}
-                <div class="mt-2 flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Sua cota" %}</span><strong class="text-pixu-action">{{ participation.share_cents|brl_from_cents }}</strong></div>
+                <div class="mt-2 flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Sua cota" %}</span><strong class="text-pixu-action">R$ {{ participation.share_cents|brl_from_cents }}</strong></div>
               {% endif %}
             {% endfor %}
           </a>
