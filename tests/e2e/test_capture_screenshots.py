@@ -1,7 +1,9 @@
 from pathlib import Path
+
 import pytest
 from django.urls import reverse
 from playwright.sync_api import expect
+
 from .factories import create_user
 from .helpers import app_url
 

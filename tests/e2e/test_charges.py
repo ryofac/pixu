@@ -62,6 +62,64 @@ def test_charge_create_previews_150_rejects_invalid_and_persists_only_on_submit(
     assert charge.participations.filter(user=invitee, share_cents=7_500).exists()
 
 
+def test_invited_creditor_sees_pending_invitation_with_correct_terms(page, live_server):
+    creator = create_user(username="ryan-criador-e2e", name="Ryan")
+    creditor = create_user(username="ana-recebedora-e2e", name="Ana")
+    other_invitee = create_user(username="bruno-convidado-e2e", name="Bruno")
+    login_as(page, live_server, creator)
+    page.goto(app_url(live_server, reverse("charges:create")))
+
+    page.get_by_label("Título").fill("Jantar com recebedora convidada")
+    page.get_by_label("Valor total em reais").fill("120,00")
+    wait_for_htmx_response(
+        page,
+        reverse("charges:preview"),
+        lambda: page.locator(
+            f'input[name="invitees"][value="{creditor.pk}"]',
+        ).check(),
+    )
+    wait_for_htmx_response(
+        page,
+        reverse("charges:preview"),
+        lambda: page.locator(
+            f'input[name="invitees"][value="{other_invitee.pk}"]',
+        ).check(),
+    )
+    page.get_by_label("Quem recebe").select_option(value=str(creditor.pk))
+    preview = page.locator("#share-preview")
+    expect(preview.get_by_role("textbox", name="Ryan")).to_have_value("40")
+    expect(preview.get_by_role("textbox", name="Ana")).to_have_value("40")
+    expect(preview.get_by_role("textbox", name="Bruno")).to_have_value("40")
+    page.get_by_role("button", name="Criar cobrança", exact=True).click()
+
+    expect(
+        page.get_by_role("heading", name="Jantar com recebedora convidada"),
+    ).to_be_visible()
+    charge = Charge.objects.get(title="Jantar com recebedora convidada")
+    assert charge.creditor == creditor
+    assert charge.state == Charge.State.AWAITING_ACCEPTANCE
+    invitation = charge.participations.get(user=creditor)
+    assert invitation.state == Participation.State.PENDING
+    assert invitation.share_cents == 4_000
+
+    login_as(page, live_server, creditor)
+    page.goto(app_url(live_server, reverse("charges:invites")))
+
+    invite_card = page.locator(f"#invite-{invitation.pk}")
+    expect(invite_card).to_be_visible()
+    expect(invite_card.get_by_role("heading", name=charge.title)).to_be_visible()
+    expect(invite_card).to_contain_text("Criada por Ryan")
+    expect(invite_card).to_contain_text("Quem recebe: Ana")
+    expect(invite_card).to_contain_text("Sua cota")
+    expect(invite_card).to_contain_text("40,00")
+    expect(
+        invite_card.get_by_role("button", name="Aceitar participação"),
+    ).to_be_visible()
+    expect(
+        invite_card.get_by_role("button", name="Recusar convite"),
+    ).to_be_visible()
+
+
 @pytest.mark.parametrize("viewport", [(390, 844), (1440, 900)])
 def test_charge_detail_pluralization_and_long_content_fit_viewport(page, live_server, viewport):
     page.set_viewport_size({"width": viewport[0], "height": viewport[1]})

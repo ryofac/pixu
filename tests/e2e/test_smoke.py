@@ -1,6 +1,5 @@
 import pytest
 from django.core.files.storage import default_storage
-from django.core.mail import get_connection
 from django.db import connections
 from django.urls import reverse
 from playwright.sync_api import expect

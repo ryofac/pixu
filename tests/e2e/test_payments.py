@@ -3,15 +3,11 @@ from django.urls import reverse
 from playwright.sync_api import expect
 
 from pixu.settlements.models import Payment
-from pixu.settlements.services import confirm_payment
-from pixu.settlements.services import reject_payment
 from pixu.settlements.services import record_payment
 
-from .factories import TEST_PASSWORD
 from .factories import create_active_debt
 from .factories import create_pending_payment
 from .factories import create_user
-from .factories import receipt_file
 from .helpers import app_url
 from .helpers import assert_no_horizontal_overflow
 from .helpers import login_as

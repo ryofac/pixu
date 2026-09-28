@@ -339,13 +339,21 @@ def _allocation_context(form, data=None):
         and form.cleaned_data.get("invitees") is not None
         and form.participants
     ):
-        has_manual_shares = data is not None and any(
-            key.startswith("share_") for key in data
+        posted_share_fields = (
+            {key for key in data if key.startswith("share_")}
+            if data is not None
+            else set()
+        )
+        current_share_fields = {
+            f"share_{person.pk}" for person in form.participants
+        }
+        has_current_manual_shares = bool(posted_share_fields) and (
+            posted_share_fields == current_share_fields
         )
         allocation_form = ChargeAllocationForm(
             people=form.participants,
             total_cents=form.total_cents,
-            data=data if has_manual_shares else None,
+            data=data if has_current_manual_shares else None,
         )
     return {
         "allocation_form": allocation_form,

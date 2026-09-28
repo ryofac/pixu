@@ -825,6 +825,156 @@ class ChargeViewTests(TestCase):
         assert charge.total_cents == 10000
         assert charge.state == Charge.State.AWAITING_ACCEPTANCE
 
+    def test_create_recalculates_shares_when_participant_selection_is_newer_than_preview(
+        self,
+    ):
+        self.client.force_login(self.creator)
+        response = self.client.post(
+            reverse("charges:create"),
+            {
+                **self.creation_data(),
+                "title": "Cinema com rateio desatualizado",
+                "total": "120,00",
+                "invitees": [self.invitee.pk, self.outsider.pk],
+                "creditor": self.invitee.pk,
+                f"share_{self.charge.participations.get(user=self.creator).pk}": "60,00",
+                f"share_{self.invitation.pk}": "60,00",
+            },
+        )
+
+        assert response.status_code == 302
+        charge = Charge.objects.get(title="Cinema com rateio desatualizado")
+        assert charge.creditor == self.invitee
+        assert dict(charge.participations.values_list("user_id", "share_cents")) == {
+            self.creator.pk: 4000,
+            self.invitee.pk: 4000,
+            self.outsider.pk: 4000,
+        }
+
+    def test_create_recalculates_shares_when_participant_is_removed_after_preview(self):
+        self.client.force_login(self.creator)
+        response = self.client.post(
+            reverse("charges:create"),
+            {
+                **self.creation_data(),
+                "title": "Cinema após remover participante",
+                "total": "120,00",
+                f"share_{self.charge.participations.get(user=self.creator).pk}": "40,00",
+                f"share_{self.invitation.pk}": "40,00",
+                f"share_{self.outsider.pk}": "40,00",
+            },
+        )
+
+        assert response.status_code == 302
+        charge = Charge.objects.get(title="Cinema após remover participante")
+        assert dict(charge.participations.values_list("user_id", "share_cents")) == {
+            self.creator.pk: 6000,
+            self.invitee.pk: 6000,
+        }
+
+    def test_invited_creditor_sees_pending_invitation_with_correct_terms(self):
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:create"),
+            {
+                **self.creation_data(),
+                "title": "Cinema com recebedor convidado",
+                "creditor": self.invitee.pk,
+            },
+        )
+
+        assert response.status_code == 302
+        charge = Charge.objects.get(title="Cinema com recebedor convidado")
+        assert charge.creditor == self.invitee
+        invitation = charge.participations.get(user=self.invitee)
+        assert invitation.state == Participation.State.PENDING
+
+        self.client.force_login(self.invitee)
+        invites = self.client.get(reverse("charges:invites"))
+
+        assert invites.status_code == 200
+        self.assertContains(invites, "Cinema com recebedor convidado")
+        self.assertContains(invites, "Criada por ana")
+        self.assertContains(invites, "Quem recebe: bruno")
+        self.assertContains(invites, "Sua cota")
+        self.assertContains(invites, "50,00")
+        self.assertContains(invites, "Aceitar participação")
+        self.assertContains(invites, "Recusar convite")
+
+    def test_invited_creditor_acceptance_creates_no_self_debt_and_waits_for_others(
+        self,
+    ):
+        charge = create_charge(
+            creator=self.creator,
+            title="Cinema com recebedora e outra pessoa",
+            total_cents=15000,
+            invitee_ids=[self.invitee.pk, self.outsider.pk],
+            creditor_id=self.invitee.pk,
+        )
+        creditor_participation = charge.participations.get(user=self.invitee)
+        other_participation = charge.participations.get(user=self.outsider)
+
+        self.client.force_login(self.invitee)
+        accept_creditor = self.client.post(
+            reverse("charges:accept", args=[charge.pk, creditor_participation.pk]),
+            {
+                "expected_share_cents": creditor_participation.share_cents,
+                "expected_creditor_id": self.invitee.pk,
+            },
+        )
+
+        assert accept_creditor.status_code == 302
+        charge.refresh_from_db()
+        creditor_participation.refresh_from_db()
+        assert creditor_participation.state == Participation.State.ACCEPTED
+        assert charge.state == Charge.State.AWAITING_ACCEPTANCE
+        assert not Debt.objects.filter(participation=creditor_participation).exists()
+        creator_participation = charge.participations.get(user=self.creator)
+        creator_debt = Debt.objects.get(participation=creator_participation)
+        assert creator_debt.debtor == self.creator
+        assert creator_debt.creditor == self.invitee
+        assert other_participation.state == Participation.State.PENDING
+        assert not Debt.objects.filter(participation=other_participation).exists()
+
+        self.client.force_login(self.outsider)
+        accept_other = self.client.post(
+            reverse("charges:accept", args=[charge.pk, other_participation.pk]),
+            {
+                "expected_share_cents": other_participation.share_cents,
+                "expected_creditor_id": self.invitee.pk,
+            },
+        )
+
+        assert accept_other.status_code == 302
+        charge.refresh_from_db()
+        other_debt = Debt.objects.get(participation=other_participation)
+        assert charge.state == Charge.State.ACTIVE
+        assert other_debt.debtor == self.outsider
+        assert other_debt.creditor == self.invitee
+
+    def test_selecting_a_person_only_as_creditor_does_not_create_an_invitation(self):
+        self.client.force_login(self.creator)
+        response = self.client.post(
+            reverse("charges:create"),
+            {
+                **self.creation_data(),
+                "title": "Cinema com recebedora externa ao rateio",
+                "creditor": self.outsider.pk,
+            },
+        )
+
+        assert response.status_code == 302
+        charge = Charge.objects.get(title="Cinema com recebedora externa ao rateio")
+        assert charge.creditor == self.outsider
+        assert not charge.participations.filter(user=self.outsider).exists()
+
+        self.client.force_login(self.outsider)
+        invites = self.client.get(reverse("charges:invites"))
+
+        assert invites.status_code == 200
+        self.assertNotContains(invites, charge.title)
+
     def test_conventional_accept_post_redirects_to_charge(self):
         self.client.force_login(self.invitee)
 
