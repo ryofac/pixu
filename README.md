@@ -95,6 +95,26 @@ DJANGO_EMAIL_HOST_PASSWORD=VALOR_CONFIGURADO_LOCALMENTE
 PIXU_S3_SECRET_ACCESS_KEY=VALOR_CONFIGURADO_LOCALMENTE
 ```
 
+### Login com Google e GitHub
+
+Crie um aplicativo OAuth para cada provedor e configure os quatro valores abaixo somente no `.env` local ignorado ou no cofre de segredos da implantação. Os botões aparecem quando o ID e o segredo do respectivo provedor estão presentes.
+
+| Variável                            | Provedor |
+| ----------------------------------- | -------- |
+| `DJANGO_GOOGLE_OAUTH_CLIENT_ID`     | Google   |
+| `DJANGO_GOOGLE_OAUTH_CLIENT_SECRET` | Google   |
+| `DJANGO_GITHUB_OAUTH_CLIENT_ID`     | GitHub   |
+| `DJANGO_GITHUB_OAUTH_CLIENT_SECRET` | GitHub   |
+
+Cadastre estas URIs de callback nos aplicativos OAuth. Em produção, substitua o host local pelo domínio público com HTTPS:
+
+```text
+http://127.0.0.1:8000/accounts/google/login/callback/
+http://127.0.0.1:8000/accounts/github/login/callback/
+```
+
+O Compose local lê as pontes em `.envs/.local/.django`; o exemplo de produção declara as mesmas variáveis em `.envs/.production/.django.example`. Não cadastre também os mesmos provedores como `SocialApp` no admin: o projeto usa credenciais carregadas de ambiente.
+
 ### Storage S3-like e comprovantes
 
 O ambiente local inclui o [Garage](https://garagehq.deuxfleurs.fr/documentation/quick-start/) em modo single-node para validar o fluxo S3-like; ele não oferece redundância e não deve ser tratado como serviço de produção. A API S3 local publica a porta `3900`: a partir do container Django, use `http://garage:3900`; a partir da máquina host, use `http://localhost:3900`. O endpoint administrativo usa a porta `3903`. Os dados ficam nos volumes `pixu_local_garage_data` e `pixu_local_garage_config`.

@@ -17,6 +17,16 @@ class AccountAdapter(DefaultAccountAdapter):
     def is_open_for_signup(self, request: HttpRequest) -> bool:
         return getattr(settings, "ACCOUNT_ALLOW_REGISTRATION", True)
 
+    def save_user(
+        self,
+        request,
+        user,
+        form,
+        commit: bool = True,  # noqa: FBT001, FBT002 - allauth API default.
+    ):
+        user.onboarding_completed = False
+        return super().save_user(request, user, form, commit=commit)
+
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
     def is_open_for_signup(
@@ -46,3 +56,9 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 if last_name := data.get("last_name"):
                     user.name += f" {last_name}"
         return user
+
+    def save_user(self, request, sociallogin, form=None):
+        user = sociallogin.user
+        assert user is not None
+        user.onboarding_completed = False
+        return super().save_user(request, sociallogin, form=form)

@@ -93,6 +93,8 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "allauth.mfa",
     "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.github",
 ]
 
 CRISPY_TEMPLATE_PACK = "bootstrap5"
@@ -157,6 +159,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "pixu.accounts.middleware.OnboardingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -359,7 +362,7 @@ CELERY_EMAIL_DELIVERY_BACKEND = env(
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", False)
 # https://docs.allauth.org/en/latest/account/configuration.html
-ACCOUNT_LOGIN_METHODS = {"username"}
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
 # https://docs.allauth.org/en/latest/account/configuration.html
 ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 # https://docs.allauth.org/en/latest/account/configuration.html
@@ -380,6 +383,41 @@ ACCOUNT_FORMS = {
 SOCIALACCOUNT_ADAPTER = "pixu.accounts.adapters.SocialAccountAdapter"
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_FORMS = {"signup": "pixu.accounts.forms.UserSocialSignupForm"}
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = False
+SOCIALACCOUNT_LOGIN_ON_GET = False
+SOCIALACCOUNT_STORE_TOKENS = False
+
+GOOGLE_OAUTH_CLIENT_ID = env.str("DJANGO_GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = env.str("DJANGO_GOOGLE_OAUTH_CLIENT_SECRET", default="")
+GITHUB_OAUTH_CLIENT_ID = env.str("DJANGO_GITHUB_OAUTH_CLIENT_ID", default="")
+GITHUB_OAUTH_CLIENT_SECRET = env.str("DJANGO_GITHUB_OAUTH_CLIENT_SECRET", default="")
+
+SOCIALACCOUNT_PROVIDERS = {}
+if GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET:
+    SOCIALACCOUNT_PROVIDERS["google"] = {
+        "APP": {
+            "client_id": GOOGLE_OAUTH_CLIENT_ID,
+            "secret": GOOGLE_OAUTH_CLIENT_SECRET,
+            "key": "",
+        },
+        "EMAIL_AUTHENTICATION": True,
+        "VERIFIED_EMAIL": True,
+        "SCOPE": ["profile", "email"],
+        "OAUTH_PKCE_ENABLED": True,
+    }
+if GITHUB_OAUTH_CLIENT_ID and GITHUB_OAUTH_CLIENT_SECRET:
+    SOCIALACCOUNT_PROVIDERS["github"] = {
+        "APP": {
+            "client_id": GITHUB_OAUTH_CLIENT_ID,
+            "secret": GITHUB_OAUTH_CLIENT_SECRET,
+            "key": "",
+        },
+        "EMAIL_AUTHENTICATION": True,
+        "VERIFIED_EMAIL": True,
+        "SCOPE": ["read:user", "user:email"],
+    }
 
 
 # Your stuff...

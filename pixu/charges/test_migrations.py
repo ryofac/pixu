@@ -5,8 +5,14 @@ from django.test import TransactionTestCase
 
 class ChargeCreditorMigrationTests(TransactionTestCase):
     def test_existing_charge_keeps_creator_as_creditor_and_preserves_debt(self):
-        previous = [("charges", "0001_initial")]
-        current = [("charges", "0002_charge_creditor")]
+        previous = [
+            ("accounts", "0002_pixprofile"),
+            ("charges", "0001_initial"),
+        ]
+        current = [
+            ("accounts", "0003_user_onboarding_completed"),
+            ("charges", "0002_charge_creditor"),
+        ]
         executor = MigrationExecutor(connection)
         latest = executor.loader.graph.leaf_nodes()
         executor.migrate(previous)

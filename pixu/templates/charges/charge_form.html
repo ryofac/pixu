@@ -41,6 +41,12 @@
             {% render_accessible_field form.creditor %}
             <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.creditor.auto_id }}_help">{{ form.creditor.help_text }}</span>
             {% if form.creditor.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.creditor.auto_id }}_errors" role="alert">{% for error in form.creditor.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+            {% if current_user_pix_key_missing %}
+              <div class="rounded-xl border border-amber-200 bg-amber-50 px-3 py-3 text-sm leading-relaxed text-pixu-pending dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" data-creditor-pix-warning data-current-user-id="{{ request.user.pk }}"{% if not show_creditor_pix_warning %} hidden{% endif %} role="note">
+                <p>{% translate "Você ainda não cadastrou uma chave Pix. Esta cobrança pode ser criada normalmente, mas as pessoas não terão uma chave para fazer o pagamento até você cadastrá-la." %}</p>
+                <a class="mt-1 inline-flex min-h-10 items-center font-bold text-pixu-action underline underline-offset-2" href="{% url 'accounts:update' %}">{% translate "Configurar chave Pix no perfil" %}</a>
+              </div>
+            {% endif %}
           </div>
           <div class="grid gap-2 rounded-xl border border-pixu-border p-3">
             <label class="flex min-h-11 items-center gap-3" for="{{ form.include_creator.id_for_label }}">{% render_accessible_field form.include_creator %} {{ form.include_creator.label }}</label>
@@ -84,3 +90,21 @@
     </form>
   </section>
 {% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  {% if current_user_pix_key_missing %}
+    <script defer>
+      const creditorSelect = document.getElementById("{{ form.creditor.id_for_label }}");
+      const creditorPixWarning = document.querySelector("[data-creditor-pix-warning]");
+      if (creditorSelect && creditorPixWarning) {
+        const currentUserId = creditorPixWarning.dataset.currentUserId;
+        const syncCreditorWarning = () => {
+          creditorPixWarning.hidden = creditorSelect.value !== currentUserId;
+        };
+        creditorSelect.addEventListener("change", syncCreditorWarning);
+        syncCreditorWarning();
+      }
+    </script>
+  {% endif %}
+{% endblock javascript %}

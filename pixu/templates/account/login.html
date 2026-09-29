@@ -8,6 +8,8 @@
   {% element h1 %}{% translate "Entre na sua conta" %}{% endelement %}
   {% element p %}{% translate "Acesse suas cobranças e responda aos convites que enviaram para você." %}{% endelement %}
 
+  {% include "account/partials/social_login_buttons.html" with divider_label="ou entre com e-mail e senha" %}
+
   {% if not SOCIALACCOUNT_ONLY %}
     {% url 'account_login' as login_url %}
     {% element form form=form method="post" action=login_url tags="entrance,login" %}
@@ -38,7 +40,6 @@
       {% endif %}
     {% endelement %}
   {% endif %}
-  {% if SOCIALACCOUNT_ENABLED %}{% include "socialaccount/snippets/login.html" with page_layout="entrance" %}{% endif %}
 {% endblock content %}
 
 {% block extra_body %}

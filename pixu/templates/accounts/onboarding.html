@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load form_fields i18n %}
+
+{% block title %}Complete seu perfil · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="mx-auto max-w-2xl space-y-5 pt-2 lg:pt-0" aria-labelledby="page-title">
+    <div class="rounded-[24px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-8">
+      <div class="mb-6 flex items-center gap-3 rounded-xl bg-pixu-surface-raised p-3">
+        <span class="grid size-10 shrink-0 place-items-center rounded-full bg-sakura-2 font-extrabold text-pixu-action" aria-hidden="true">{{ request.user.name|default:request.user.username|slice:":1"|upper }}</span>
+        <p class="min-w-0 break-words text-sm leading-relaxed text-pixu-muted">{% translate "Só mais um passo para começar a usar o Pixu." %}</p>
+      </div>
+
+      <h1 class="text-2xl font-black tracking-tight text-pixu-ink sm:text-3xl" id="page-title">{% translate "Complete seu perfil" %}</h1>
+      <p class="mt-2 text-sm leading-relaxed text-pixu-muted">{% translate "Escolha como você será identificado e, se quiser, já informe sua chave Pix para receber cotas de rateio." %}</p>
+
+      <form class="mt-6 grid gap-5" method="post" action="{% url 'accounts:onboarding' %}" novalidate>
+        {% csrf_token %}
+        {{ form.username_manually_edited }}
+        {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+        <div class="grid gap-2">
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+          {% render_accessible_field form.name %}
+          {% if form.name.errors %}<ul class="grid gap-1 text-sm text-pixu-danger" id="{{ form.name.auto_id }}_errors" role="alert">{% for error in form.name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="grid gap-2">
+          <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+          <div class="relative flex items-center">
+            <span class="pointer-events-none absolute left-3.5 font-extrabold text-pixu-muted" aria-hidden="true">@</span>
+            {% render_accessible_field form.username "!pl-8" %}
+          </div>
+          <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.username.auto_id }}_help">{{ form.username.help_text }}</span>
+          {% if form.username.errors %}<ul class="grid gap-1 text-sm text-pixu-danger" id="{{ form.username.auto_id }}_errors" role="alert">{% for error in form.username.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+
+        <div class="h-px bg-pixu-border" aria-hidden="true"></div>
+
+        <div>
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <label class="font-extrabold" for="{{ form.pix_key.id_for_label }}">{{ form.pix_key.label }} <span class="text-xs font-normal text-pixu-muted">({% translate "opcional agora" %})</span></label>
+            <span class="text-xs text-pixu-muted">{% translate "Pode fazer depois" %}</span>
+          </div>
+          <p class="mt-2 rounded-xl border border-sakura-1 bg-pixu-info-surface px-3 py-3 text-sm leading-relaxed text-pixu-ink" role="note">{% translate "A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco." %}</p>
+          <div class="mt-3 grid gap-2">
+            {% render_accessible_field form.pix_key %}
+            <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.pix_key.auto_id }}_help">{{ form.pix_key.help_text }}</span>
+            {% if form.pix_key.errors %}<ul class="grid gap-1 text-sm text-pixu-danger" id="{{ form.pix_key.auto_id }}_errors" role="alert">{% for error in form.pix_key.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+          </div>
+        </div>
+
+        <div class="grid gap-3 pt-1 sm:grid-cols-2">
+          <button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 text-center font-extrabold text-white shadow-sm transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-action" type="submit" name="onboarding_action" value="save">{% translate "Salvar e continuar" %}</button>
+          <button class="flex min-h-12 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 text-center font-bold text-pixu-action transition hover:bg-sakura-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-action" type="submit" name="onboarding_action" value="skip">{% translate "Fazer depois" %}</button>
+        </div>
+      </form>
+    </div>
+  </section>
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script defer>
+    (() => {
+      const onboardingName = document.getElementById("{{ form.name.id_for_label }}");
+      const onboardingUsername = document.querySelector("[data-username-suggestion]");
+      if (!onboardingName || !onboardingUsername) return;
+      const usernameEditedField = document.getElementById("{{ form.username_manually_edited.id_for_label }}");
+      let usernameWasEdited = Boolean(usernameEditedField && usernameEditedField.value === "1");
+      onboardingUsername.addEventListener("input", () => {
+        usernameWasEdited = true;
+        if (usernameEditedField) usernameEditedField.value = "1";
+      });
+      onboardingName.addEventListener("input", () => {
+        if (usernameWasEdited) return;
+        const suggestion = onboardingName.value
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "")
+          .slice(0, 150);
+        if (suggestion) onboardingUsername.value = suggestion;
+      });
+    })();
+  </script>
+{% endblock javascript %}

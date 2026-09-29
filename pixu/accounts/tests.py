@@ -56,7 +56,7 @@ class AccountFlowTests(TestCase):
 
         assert response.status_code == 200
         self.assertContains(response, "Entre na sua conta")
-        self.assertContains(response, "Nome de usuário")
+        self.assertContains(response, "E-mail ou nome de usuário")
         self.assertContains(response, "Senha")
         self.assertContains(response, "Despesas compartilhadas, com mais clareza.")
         self.assertContains(response, reverse("account_reset_password"))
@@ -236,7 +236,21 @@ class AccountFlowTests(TestCase):
             reverse("account_login"),
             {"login": user.username, "password": TEST_PASSWORD},
         )
+        assert response.request["PATH_INFO"] == reverse("accounts:onboarding")
+        self.assertContains(response, "Complete seu perfil")
+
+        response = submit_form(
+            reverse("accounts:onboarding"),
+            {
+                "name": "Pessoa da jornada",
+                "username": "jornada",
+                "pix_key": "",
+                "onboarding_action": "skip",
+            },
+        )
         assert response.request["PATH_INFO"] == reverse("home")
+        user.refresh_from_db()
+        assert user.onboarding_completed
         self.assertContains(response, "Seu resumo")
         self.assertContains(response, reverse("charges:list"))
         assert int(self.client.session["_auth_user_id"]) == user.pk

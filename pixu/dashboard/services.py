@@ -8,6 +8,7 @@ from django.db.models import Sum
 from django.db.models import Value
 from django.db.models.functions import Coalesce
 
+from pixu.accounts.models import PixProfile
 from pixu.charges.models import Charge
 from pixu.charges.models import Debt
 from pixu.charges.models import Participation
@@ -28,15 +29,19 @@ def dashboard_context(user) -> dict:
     )
     debt_ids = [debt.pk for debt in debts]
 
-    payment_rows = Payment.objects.filter(debt_id__in=debt_ids).values("debt_id").annotate(
-        confirmed_cents=Coalesce(
-            Sum("amount_cents", filter=Q(state=Payment.State.CONFIRMED)),
-            Value(0, output_field=BigIntegerField()),
-        ),
-        pending_cents=Coalesce(
-            Sum("amount_cents", filter=Q(state=Payment.State.PENDING)),
-            Value(0, output_field=BigIntegerField()),
-        ),
+    payment_rows = (
+        Payment.objects.filter(debt_id__in=debt_ids)
+        .values("debt_id")
+        .annotate(
+            confirmed_cents=Coalesce(
+                Sum("amount_cents", filter=Q(state=Payment.State.CONFIRMED)),
+                Value(0, output_field=BigIntegerField()),
+            ),
+            pending_cents=Coalesce(
+                Sum("amount_cents", filter=Q(state=Payment.State.PENDING)),
+                Value(0, output_field=BigIntegerField()),
+            ),
+        )
     )
     payment_totals = {
         row["debt_id"]: (row["confirmed_cents"], row["pending_cents"])
@@ -77,7 +82,9 @@ def dashboard_context(user) -> dict:
             payable_cents += open_cents
             available_to_pay_by_person[debt.creditor_id] += available_cents
 
-    counterparties = set(available_to_pay_by_person) | set(available_to_receive_by_person)
+    counterparties = set(available_to_pay_by_person) | set(
+        available_to_receive_by_person,
+    )
     compensation_potential_cents = sum(
         min(
             available_to_pay_by_person[person_id],
@@ -105,6 +112,11 @@ def dashboard_context(user) -> dict:
         .order_by("-created_at", "-pk")
         .distinct()[:5]
     )
+    pix_key = (
+        PixProfile.objects.filter(user=user)
+        .values_list("pix_key", flat=True)
+        .first()
+    )
 
     return {
         "receivable_cents": receivable_cents,
@@ -113,4 +125,5 @@ def dashboard_context(user) -> dict:
         "pending_invites": pending_invites,
         "created_charges": created_charges,
         "participated_charges": participated_charges,
+        "pix_key_missing": not pix_key or not pix_key.strip(),
     }

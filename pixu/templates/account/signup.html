@@ -8,6 +8,8 @@
   {% element h1 %}{% translate "Crie sua conta" %}{% endelement %}
   {% element p %}{% translate "Cadastre-se para criar cobranças e participar das que enviarem para você." %}{% endelement %}
 
+  {% include "account/partials/social_login_buttons.html" with divider_label="ou crie sua conta com e-mail e senha" %}
+
   {% if not SOCIALACCOUNT_ONLY %}
     {% url 'account_signup' as action_url %}
     {% element form form=form method="post" action=action_url tags="entrance,signup" %}
@@ -22,6 +24,12 @@
     {% endelement %}
   {% endif %}
 
-  <p class="mt-5 border-t border-slate-100 pt-4 text-sm text-pixu-muted">{% translate "Já tem uma conta?" %} <a class="font-bold text-pixu-action underline underline-offset-2" href="{{ login_url }}">{% translate "Entrar" %}</a></p>
-  {% if SOCIALACCOUNT_ENABLED %}{% include "socialaccount/snippets/login.html" with page_layout="entrance" %}{% endif %}
+  <p class="mt-5 border-t border-slate-100 pt-4 text-sm text-pixu-muted">
+    {% translate "Já tem uma conta?" %}
+    <a
+      class="font-bold text-pixu-action underline underline-offset-2"
+      href="{{ login_url }}"
+      >{% translate "Entrar" %}</a
+    >
+  </p>
 {% endblock content %}

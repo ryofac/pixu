@@ -6,9 +6,12 @@ from allauth.account.forms import ResetPasswordKeyForm
 from allauth.account.forms import SetPasswordForm
 from allauth.account.forms import SignupForm
 from allauth.socialaccount.forms import SignupForm as SocialSignupForm
+from allauth.socialaccount.models import SocialAccount
 from django import forms
 from django.contrib.auth import forms as admin_forms
+from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import transaction
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 
 from .models import PixProfile
@@ -63,11 +66,11 @@ class UserLoginForm(LoginForm):
         _localize_account_fields(
             self,
             labels={
-                "login": _("Nome de usuário"),
+                "login": _("E-mail ou nome de usuário"),
                 "password": _("Senha"),
                 "remember": _("Continuar conectado"),
             },
-            placeholders={"login": _("Nome de usuário")},
+            placeholders={"login": _("E-mail ou nome de usuário")},
         )
         if "password" in self.fields:
             self.fields["password"].help_text = ""
@@ -149,6 +152,114 @@ class UserSocialSignupForm(SocialSignupForm):
     Default fields will be added automatically.
     See UserSignupForm otherwise.
     """
+
+
+class OnboardingForm(forms.Form):
+    name = forms.CharField(label=_("Seu nome de exibição"), max_length=255)
+    username = forms.CharField(label=_("Seu nome de usuário (@)"), max_length=150)
+    username_manually_edited = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput,
+    )
+    pix_key = forms.CharField(
+        label=_("Sua chave Pix"),
+        max_length=255,
+        required=False,
+        help_text=_(
+            "Copie e cole a chave como ela aparece no aplicativo do seu banco.",
+        ),
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "off",
+                "placeholder": _("Cole sua chave (CPF, e-mail, celular ou aleatória)"),
+            },
+        ),
+    )
+
+    def __init__(self, user: User, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["username"].validators = [UnicodeUsernameValidator()]
+        self.fields["username"].help_text = _(
+            "Outras pessoas usarão seu @username para adicionar você em cobranças.",
+        )
+        self.fields["username"].widget.attrs.update(
+            {
+                "autocomplete": "username",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+                "data-username-suggestion": "true",
+            },
+        )
+        self.fields["name"].initial = user.name
+        self.fields["username"].initial = user.username
+        if (
+            not self.is_bound
+            and user.name
+            and SocialAccount.objects.filter(user=user).exists()
+        ):
+            self.fields["username"].initial = _available_username_suggestion(
+                user.name,
+                user,
+            )
+        self.fields["pix_key"].initial = (
+            user.pix_profile.pix_key if hasattr(user, "pix_profile") else ""
+        )
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        if not name:
+            raise forms.ValidationError(_("Informe seu nome de exibição."))
+        return name
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        username_in_use = (
+            User.objects.filter(username__iexact=username)
+            .exclude(pk=self.user.pk)
+            .exists()
+        )
+        if username_in_use:
+            raise forms.ValidationError(_("Este nome de usuário já está em uso."))
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        action = self.data.get("onboarding_action", "save")
+        if action not in {"save", "skip"}:
+            raise forms.ValidationError(_("Escolha como deseja continuar."))
+        cleaned_data["onboarding_action"] = action
+        if action == "save" and not cleaned_data.get("pix_key", "").strip():
+            self.add_error(
+                "pix_key",
+                _("Informe uma chave Pix ou escolha “Fazer depois”."),
+            )
+        if action == "skip":
+            cleaned_data["pix_key"] = ""
+        return cleaned_data
+
+    def save(self) -> User:
+        with transaction.atomic():
+            self.user.name = self.cleaned_data["name"]
+            self.user.username = self.cleaned_data["username"]
+            self.user.onboarding_completed = True
+            self.user.save(update_fields=["name", "username", "onboarding_completed"])
+            PixProfile.objects.update_or_create(
+                user=self.user,
+                defaults={"pix_key": self.cleaned_data["pix_key"].strip()},
+            )
+        return self.user
+
+
+def _available_username_suggestion(name: str, user: User) -> str:
+    base = slugify(name, allow_unicode=False).replace("-", "_")[:150] or "usuario"
+    candidate = base
+    suffix = 2
+    while User.objects.filter(username__iexact=candidate).exclude(pk=user.pk).exists():
+        suffix_text = f"_{suffix}"
+        candidate = f"{base[: 150 - len(suffix_text)]}{suffix_text}"
+        suffix += 1
+    return candidate
 
 
 class PixProfileForm(forms.ModelForm):

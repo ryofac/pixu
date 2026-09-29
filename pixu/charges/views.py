@@ -20,6 +20,7 @@ from django.views.generic import DetailView
 from django.views.generic import FormView
 from django.views.generic import TemplateView
 
+from pixu.accounts.models import PixProfile
 from pixu.settlements.forms import CompensationForm
 from pixu.settlements.forms import ReceiptForm
 from pixu.settlements.models import Compensation
@@ -295,6 +296,16 @@ class ChargeCreateView(LoginRequiredMixin, FormView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         form = context["form"]
+        pix_key = PixProfile.objects.filter(user=self.request.user).values_list(
+            "pix_key",
+            flat=True,
+        ).first()
+        selected_creditor = form["creditor"].value()
+        context["current_user_pix_key_missing"] = not pix_key or not pix_key.strip()
+        context["show_creditor_pix_warning"] = (
+            context["current_user_pix_key_missing"]
+            and str(selected_creditor) == str(self.request.user.pk)
+        )
         if form.is_bound and "allocation_form" not in context:
             form.is_valid()
             context.update(_allocation_context(form, data=self.request.POST))

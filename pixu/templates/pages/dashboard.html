@@ -5,6 +5,18 @@
 
 {% block content %}
   <section class="space-y-8 pt-2 lg:pt-0" aria-labelledby="page-title">
+    {% if pix_key_missing %}
+      <aside class="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between sm:p-5" role="status">
+        <div class="flex items-start gap-3">
+          <svg class="mt-0.5 size-5 shrink-0 text-pixu-pending" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4m0 4h.01"/></svg>
+          <div>
+            <h2 class="font-extrabold text-pixu-ink">{% translate "Sua chave Pix ainda não foi configurada" %}</h2>
+            <p class="mt-1 text-sm leading-relaxed text-pixu-muted">{% translate "Você pode participar de cobranças normalmente, mas precisará cadastrar uma chave para poder receber dinheiro quando criar um rateio." %}</p>
+          </div>
+        </div>
+        <a class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 text-center text-sm font-extrabold text-pixu-action no-underline hover:bg-sakura-2" href="{% url 'accounts:update' %}">{% translate "Configurar chave Pix" %}</a>
+      </aside>
+    {% endif %}
     <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <p class="mb-1 text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% translate "Seu resumo" %}</p>
