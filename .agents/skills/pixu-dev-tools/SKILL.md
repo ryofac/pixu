@@ -33,8 +33,10 @@ npm run css:watch
 Start the local application (Django container runs migrations on startup):
 
 ```sh
-docker compose -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build --renew-anon-volumes --force-recreate
 ```
+
+The local Compose mounts `/app/.venv` as an anonymous volume. Renew that volume after changing `pyproject.toml` or `uv.lock`; do not use `down -v`, which removes local data volumes.
 
 Install Python tools outside Docker:
 

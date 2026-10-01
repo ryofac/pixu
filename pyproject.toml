@@ -28,6 +28,7 @@ dependencies = [
   "hiredis==3.4.1",
   "pillow==12.3.0",
   "psycopg[c]==3.3.6",
+  "PyJWT==2.10.1",
   "python-slugify==9.1.0",
   "redis==6.4.0",
   "whitenoise==6.12.0",

@@ -17,7 +17,7 @@ build *args:
 # up: Start up containers.
 up:
     @echo "Starting up containers..."
-    @docker compose up -d --remove-orphans
+    @docker compose up -d --remove-orphans --renew-anon-volumes --force-recreate
 
 # down: Stop containers.
 down:
