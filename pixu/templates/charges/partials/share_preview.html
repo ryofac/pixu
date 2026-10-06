@@ -2,7 +2,7 @@
 {% if allocation_form %}
   <section class="rounded-2xl border border-sakura-1 bg-pixu-info-surface p-4 sm:p-5" aria-labelledby="share-preview-title">
     <h2 class="mb-3 text-base font-extrabold text-pixu-ink" id="share-preview-title">{% translate "Prévia do rateio" %}</h2>
-    <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% translate "Ajuste cada cota em reais. A soma precisa fechar o total da cobrança." %}</p>
+    <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% if allocation_form.participant_count %}O total declarado fixa a base comum em {{ allocation_form.participant_count }} pessoas. As vagas ainda não ocupadas ficam reservadas e estas cotas são informativas até a entrada.{% else %}{% translate "Ajuste cada cota em reais. A soma precisa fechar o total da cobrança." %}{% endif %}</p>
     {% if allocation_form.non_field_errors %}<div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ allocation_form.non_field_errors }}</div>{% endif %}
     <div class="grid gap-4">
       {% for field in allocation_form %}
@@ -16,10 +16,10 @@
         </div>
       {% endfor %}
       <div class="flex items-center justify-between gap-4 border-t border-slate-200 pt-3 text-sm font-extrabold">
-        <span>{% translate "Total a distribuir" %}</span><span>R$ {{ total_cents|brl_from_cents }}</span>
+        <span>{% if allocation_form.participant_count %}Total da conta{% else %}{% translate "Total a distribuir" %}{% endif %}</span><span>R$ {{ total_cents|brl_from_cents }}</span>
       </div>
     </div>
-    <p class="mt-3 text-xs leading-relaxed text-pixu-muted">{% translate "A divisão inicial é igualitária; os centavos residuais seguem a ordem das contas. Alterar o total ou os participantes recalcula as cotas." %}</p>
+    <p class="mt-3 text-xs leading-relaxed text-pixu-muted">{% if allocation_form.participant_count %}O servidor recalcula a cota final quando cada convidado entra, sem alterar as vagas já declaradas.{% else %}{% translate "A divisão inicial é igualitária; os centavos residuais seguem a ordem das contas. Alterar o total ou os participantes recalcula as cotas." %}{% endif %}</p>
   </section>
 {% elif preview_errors %}
   <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-pixu-pending" role="status">

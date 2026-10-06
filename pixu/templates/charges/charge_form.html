@@ -8,7 +8,7 @@
     <div>
       <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline" href="{% url 'charges:list' %}">‹ Cobranças</a>
       <h1 class="mb-2 text-2xl font-extrabold leading-tight text-pixu-ink" id="page-title">Nova cobrança</h1>
-      <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Convide pessoas cadastradas e confira o rateio antes de criar." %}</p>
+      <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Convide contas Pixu ou permita entradas anônimas por link e confira o rateio antes de criar." %}</p>
     </div>
 
     <form id="charge-create-form" class="space-y-5" method="post" action="{% url 'charges:create' %}" hx-post="{% url 'charges:preview' %}" hx-trigger="input changed delay:300ms from:input[name=total], change from:input[name=invitees], change from:input[name=include_creator]" hx-target="#share-preview" hx-swap="innerHTML" hx-sync="this:replace" novalidate>
@@ -52,6 +52,11 @@
             <label class="flex min-h-11 items-center gap-3" for="{{ form.include_creator.id_for_label }}">{% render_accessible_field form.include_creator %} {{ form.include_creator.label }}</label>
             <span class="text-xs leading-relaxed text-pixu-muted" id="{{ form.include_creator.auto_id }}_help">{{ form.include_creator.help_text }}</span>
           </div>
+          <div class="grid gap-3 rounded-xl border border-sakura-1 bg-pixu-info-surface p-3">
+            <label class="flex min-h-11 items-center gap-3" for="{{ form.guest_invites_enabled.id_for_label }}">{% render_accessible_field form.guest_invites_enabled %} {{ form.guest_invites_enabled.label }}</label>
+            <p class="text-xs leading-relaxed text-pixu-muted">{{ form.guest_invites_enabled.help_text }}</p>
+            {% include "charges/partials/guest_options.html" %}
+          </div>
         </div>
 
         <div class="grid content-start gap-4 lg:sticky lg:top-24">
@@ -93,6 +98,20 @@
 
 {% block javascript %}
   {{ block.super }}
+  <script defer>
+    const guestToggle = document.getElementById("{{ form.guest_invites_enabled.id_for_label }}");
+    if (guestToggle) {
+      const syncGuestTotalOptions = () => {
+        const guestTotalOptions = document.querySelector("[data-guest-total-options]");
+        if (guestTotalOptions) {
+          guestTotalOptions.hidden = !guestToggle.checked;
+        }
+      };
+      guestToggle.addEventListener("change", syncGuestTotalOptions);
+      document.body.addEventListener("htmx:afterSwap", syncGuestTotalOptions);
+      syncGuestTotalOptions();
+    }
+  </script>
   {% if current_user_pix_key_missing %}
     <script defer>
       const creditorSelect = document.getElementById("{{ form.creditor.id_for_label }}");

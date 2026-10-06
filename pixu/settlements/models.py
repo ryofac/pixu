@@ -37,6 +37,8 @@ class Payment(models.Model):
         on_delete=models.PROTECT,
         related_name="payments_made",
         verbose_name=_("pagador"),
+        null=True,
+        blank=True,
     )
     creditor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -120,13 +122,13 @@ class Payment(models.Model):
                 name="payment_state_valid",
             ),
             models.CheckConstraint(
-                condition=~Q(payer=F("creditor")),
+                condition=Q(payer__isnull=True) | ~Q(payer=F("creditor")),
                 name="payment_parties_must_differ",
             ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.payer} → {self.creditor}: {self.amount_cents}¢ ({self.state})"
+        return f"{self.payer or 'Convidado'} → {self.creditor}: {self.amount_cents}¢ ({self.state})"
 
 
 class Compensation(models.Model):

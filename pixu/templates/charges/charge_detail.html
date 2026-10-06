@@ -11,8 +11,118 @@
           <h1 class="break-words text-2xl font-extrabold leading-tight text-pixu-ink sm:text-3xl" id="page-title">{{ charge.title }}</h1>
           <p class="mt-2 text-sm text-pixu-muted">Criada por {{ charge.creator.name|default:charge.creator.username }}</p>
         </div>
+        <div class="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+          {% include "charges/partials/status_badge.html" with charge=charge %}
+          {% if can_edit or can_cancel %}
+            <div class="relative" data-action-menu-container>
+              <button class="inline-flex size-10 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface text-pixu-ink shadow-2xs transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-pixu-action/30 active:scale-95" type="button" data-action-menu-toggle aria-controls="charge-action-menu" aria-expanded="false" aria-haspopup="menu" aria-label="Mais opções desta cobrança" title="Opções da cobrança">
+                <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.25"/><circle cx="12" cy="12" r="1.25"/><circle cx="12" cy="19" r="1.25"/></svg>
+              </button>
+              <div class="absolute right-0 top-12 z-40 hidden w-60 rounded-2xl border border-pixu-border bg-pixu-surface p-1.5 shadow-xl" id="charge-action-menu" role="menu" aria-label="Ações da cobrança">
+                <span class="block px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-pixu-muted">Ações do cobrador</span>
+                {% if can_edit %}
+                  <button class="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-bold text-pixu-ink transition hover:bg-sakura-1 hover:text-pixu-action" type="button" data-modal-open="charge-item-modal" role="menuitem">
+                    <svg class="size-4 text-pixu-action" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    Adicionar item extra
+                  </button>
+                  <button class="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-bold text-pixu-ink transition hover:bg-slate-50" type="button" data-modal-open="charge-shares-modal" role="menuitem">
+                    <svg class="size-4 text-pixu-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="m18.5 2.5 3 3L12 15l-4 1 1-4 10.5-9.5Z"/></svg>
+                    Ajustar cotas / recebedor
+                  </button>
+                {% endif %}
+                {% if can_cancel %}
+                  <div class="my-1 border-t border-pixu-border/60"></div>
+                  <button class="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-bold text-pixu-danger transition hover:bg-red-50" type="button" data-modal-open="charge-cancel-modal" role="menuitem">
+                    <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    Cancelar cobrança
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
       </div>
     </header>
     {% include "charges/partials/charge_state.html" %}
   </section>
 {% endblock content %}
+
+{% block inline_javascript %}
+  {{ block.super }}
+  <script type="text/javascript">
+    (() => {
+      let activeModal = null;
+      let restoreFocus = null;
+
+      const menu = () => document.getElementById("charge-action-menu");
+      const menuButton = () => document.querySelector("[data-action-menu-toggle]");
+
+      function closeActionMenu() {
+        const currentMenu = menu();
+        const button = menuButton();
+        if (!currentMenu) return;
+        currentMenu.classList.add("hidden");
+        button?.setAttribute("aria-expanded", "false");
+      }
+
+      function closeModal(modal = activeModal) {
+        if (!modal) return;
+        modal.classList.add("hidden");
+        modal.setAttribute("aria-hidden", "true");
+        if (activeModal === modal) activeModal = null;
+        document.body.classList.remove("overflow-hidden");
+        restoreFocus?.focus({ preventScroll: true });
+        restoreFocus = null;
+      }
+
+      function openModal(id, trigger) {
+        const modal = document.getElementById(id);
+        if (!modal) return;
+        closeActionMenu();
+        closeModal();
+        activeModal = modal;
+        restoreFocus = trigger;
+        modal.classList.remove("hidden");
+        modal.setAttribute("aria-hidden", "false");
+        document.body.classList.add("overflow-hidden");
+        window.requestAnimationFrame(() => modal.querySelector("input, select, textarea, button")?.focus());
+      }
+
+      document.addEventListener("click", (event) => {
+        const toggle = event.target.closest("[data-action-menu-toggle]");
+        if (toggle) {
+          const currentMenu = menu();
+          const isOpen = currentMenu && !currentMenu.classList.contains("hidden");
+          currentMenu?.classList.toggle("hidden", isOpen);
+          toggle.setAttribute("aria-expanded", String(!isOpen));
+          return;
+        }
+
+        const modalTrigger = event.target.closest("[data-modal-open]");
+        if (modalTrigger) {
+          openModal(modalTrigger.dataset.modalOpen, modalTrigger);
+          return;
+        }
+
+        if (event.target.closest("[data-modal-close], [data-modal-backdrop]")) {
+          closeModal(event.target.closest("[data-modal]"));
+          return;
+        }
+
+        if (!event.target.closest("[data-action-menu-container]")) closeActionMenu();
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        if (activeModal) closeModal();
+        else closeActionMenu();
+      });
+
+      document.body.addEventListener("htmx:afterSwap", (event) => {
+        if (event.detail.target?.id !== "charge-content") return;
+        closeModal();
+        closeActionMenu();
+      });
+    })();
+  </script>
+{% endblock inline_javascript %}

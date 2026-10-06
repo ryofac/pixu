@@ -13,7 +13,7 @@
 - Tailwind é compilado pelo build local do repositório. A interface não depende de CDN.
 - Valores monetários são sempre apresentados em reais com duas casas, e persistidos como centavos inteiros.
 - Estados financeiros e de convite são nomeados com clareza. “Convite pendente”, “cobrança aguardando aceite” e “dívida ativa” representam situações diferentes.
-- Criar cobrança não significa que os convidados aceitaram. Cada aceite confirma a cota e o recebedor; gera dívida somente quando participante e recebedor são pessoas diferentes. A cobrança só ativa quando todos os convites atuais foram aceitos.
+- Criar cobrança não significa que os convidados aceitaram. Cada aceite confirma a cota e o recebedor; gera dívida somente quando participante e recebedor são pessoas diferentes. A cobrança só ativa quando todos os convites atuais foram aceitos, exceto no modo anônimo com total explícito, em que uma cota fixa pode ser paga enquanto ainda há vagas abertas ou outro convite pendente.
 
 ## 2. Identidade visual
 
@@ -85,7 +85,16 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 
 Os tons escuros são uma superfície azul-ardósia, não uma inversão literal do tema claro. Os pares de texto/ação e superfícies de estado foram exercitados nos testes de navegador; badges e estados mantêm rótulos, não dependem somente de cor.
 
-### 2.5 Landing page pública
+### 2.5 Aplicativo web instalável (PWA)
+
+- O Pixu oferece um manifesto PWA em `/manifest.webmanifest`, com `display: standalone`, escopo na raiz e tema Sakura coerente com os temas claro/escuro. A instalação não transforma o produto em uma carteira nem em uma aplicação offline.
+- A logo System Core em SVG continua sendo a fonte vetorial da marca. Os ícones instaláveis `192x192`, `512x512` e Apple Touch Icon são derivados dela em alta definição, com fundo `canvas` para preservar a área segura em máscaras de launcher.
+- O shell registra um service worker de escopo raiz apenas para cumprir o requisito de instalação e encaminha as requisições à rede. Não armazenar contas, cobranças, chaves Pix, comprovantes, formulários ou respostas HTMX em cache local.
+- Em celulares Android compatíveis, capturar `beforeinstallprompt` e mostrar um convite discreto, dispensável e posicionado acima da navegação inferior. O botão deve ter pelo menos 44px de altura e só abrir o prompt nativo após ação explícita da pessoa.
+- No iOS, onde o prompt nativo não é exposto ao navegador, mostrar instrução equivalente: **Compartilhar → Adicionar à Tela de Início**. Não mostrar o convite quando a página já estiver em modo standalone; uma dispensa vale por sete dias.
+- O convite usa texto e ícone, mantém foco visível e não cobre o conteúdo principal. Sem JavaScript, a aplicação continua utilizável e o manifesto permanece disponível para o navegador.
+
+### 2.6 Landing page pública
 
 **Referências revisadas:** [`pixu_landing_page.html`](design/pixu_landing_page.html) para composição e conteúdo; [`pixu_logo_system.html`](design/pixu_logo_system.html) para a marca aprovada. São referências visuais, não arquivos para servir diretamente: substituir URLs `#` pelas rotas reais, localizar para pt-BR e manter o build local.
 
@@ -107,12 +116,23 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 
 ## 3. Navegação e telas
 
-### Conta
+### Conta e autenticação
 
-- Cadastro por e-mail, nome de usuário e senha; exibir erros no campo correspondente.
-- Confirmação de e-mail informa que uma mensagem foi enviada e explica o próximo passo.
-- Login, logout e recuperação seguem o fluxo django-allauth existente.
-- Após login, encaminhar para o dashboard autenticado; a lista completa permanece disponível em **Cobranças** (`/charges/`).
+- **Entrada com SSO e tradicional:** Suporte a SSO via Google e GitHub, além do login tradicional por usuário/e-mail e senha.
+  - Botões sociais proeminentes no topo do cartão de autenticação: **Continuar com Google** e **Continuar com GitHub**, com altura mínima de 48px (`min-h-12`), cantos arredondados (`rounded-xl`), SVGs inline oficiais locais e contraste acessível nos temas claro e escuro.
+  - Divisor semântico sutil com texto: `ou entre com e-mail e senha`.
+  - Formulário convencional com campos de identificador e senha, rótulos persistentes e botão primário **Entrar** (`bg-pixu-action-solid`).
+- **Onboarding e solicitação inicial de chave Pix:**
+  - No primeiro acesso após o cadastro (seja por SSO ou cadastro tradicional), a pessoa é recebida em uma tela dedicada de boas-vindas / onboarding.
+  - Confirmação do identificador `@username`: campo obrigatório no cadastro com sugestão automática gerada a partir do nome da pessoa, permitindo ajuste direto no input.
+  - Solicitação da chave Pix principal: campo único e simplificado de texto livre (*"Cole sua chave Pix"*), sem menus ou seletores burocráticos de tipos de chave (a chave é colada pelo usuário).
+  - Texto fixo obrigatório: *“A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.”*
+  - Botões de ação diretos e objetivos: ação primária **Salvar e continuar** e ação secundária subordinada **Fazer depois** (salvando o nome e `@username`, deixando apenas a chave Pix vazia).
+- **Aviso de chave pendente no Dashboard:**
+  - Caso a pessoa opte por "Fazer depois", um banner em destaque no topo do Dashboard alerta sobre a ausência da chave (*"Sua chave Pix ainda não foi configurada. Você pode participar de cobranças normalmente, mas precisará cadastrar uma chave para poder receber dinheiro quando criar um rateio."*), com botão de ação direta **Configurar chave Pix**.
+  - Alerta contextual ao tentar criar cobrança onde o criador seja o recebedor sem ter cadastrado chave Pix.
+- **Fluxos convencionais Allauth:** Confirmação de e-mail informa envio e próximos passos; recuperação de senha e logout seguem o padrão visual do layout de entrada.
+- Após login/onboarding, encaminhar para o dashboard autenticado; a lista completa permanece disponível em **Cobranças** (`/charges/`).
 
 ### Perfil
 
@@ -126,37 +146,66 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - Ações “Aceitar participação” e “Recusar convite” pedem confirmação por botão explícito e retornam o estado atualizado.
 - Cobranças aguardando respostas exibem quantos convites ainda precisam de decisão.
 - Uma participação recusada não aparece como dívida.
+- Cobranças com entradas anônimas exibem um link compartilhado enquanto as entradas estão abertas; esse link não revela cotas antes de a pessoa informar seu nome.
+- Cada entrada anônima gera uma identidade temporária e um código pessoal. Nomes iguais são permitidos e nunca são tratados como username ou prova de identidade.
 
 ### Criar cobrança
 
 - Formulário com título, descrição opcional, valor total, seleção de um recebedor e busca de usuários cadastrados.
 - O campo “Quem recebe” começa no usuário autenticado e permite escolher outra conta ativa. Receber não inclui automaticamente a pessoa no rateio.
 - “Também participo do rateio” começa marcada; desmarcar exclui a cota do criador, mantendo sua autoria e acesso à cobrança. É necessário ao menos um participante.
+- Oferecer “Permitir convidados anônimos por link”, com total explícito obrigatório de pessoas, limite editável e default de 10 entradas, além de validade de código pessoal default de 7 dias ou até quitar. O total inclui contas selecionadas e vagas anônimas; a cobrança pode nascer sem participantes convidados, mas o total declarado fixa a cota das vagas futuras.
 - Mostrar prévia com campos de cota editáveis antes de salvar. A divisão inicial é igualitária e explica centavos residuais; a soma deve corresponder exatamente ao total. Alterar total ou participantes recalcula a divisão; erros de submissão preservam as cotas digitadas.
 - “Conferir cotas” oferece a mesma revisão por POST convencional, inclusive sem JavaScript.
 - Permitir editar a cota do criador e cotas pendentes até que a regra de bloqueio se aplique; cotas aceitas ficam visíveis como imutáveis.
 - Depois de confirmar, mostrar “Aguardando aceite” quando houver convidados, ou “Ativa” se somente a participação do próprio criador já estiver aceita.
+- Ao criar entradas anônimas, mostrar no resumo o link compartilhado e o código do link, com ação de gerar novo link. O link compartilhado deixa de aceitar nomes ao atingir o limite, ser revogado ou quando o criador fechar as entradas.
 
 ### Detalhe da cobrança
 
-- Cabeçalho: título, criador e recebedor em campos separados, total e estado.
-- Lista de participantes com cota e estado de convite.
-- Para o criador, cada pagante mostra links dos comprovantes que anexou. A visualização é somente leitura e não dá ao criador, por si só, permissão para confirmar ou rejeitar pagamentos.
-- O pagamento permanece decidido apenas pelo recebedor. Comprovantes autorizados abrem em prévia do navegador quando suportado pelo formato.
-- Para o criador, expor substituição após recusa e edição permitida de cotas.
-- O criador pode cancelar logicamente cobranças ativas ou aguardando aceite com motivo opcional. Antes de confirmar, informar que não haverá estorno; após cancelar, mostrar a cobrança e pagamentos revogados no histórico, com motivo, autor e data quando disponíveis. Convites pendentes ficam inválidos, sem ações de pagamento, aceite, compensação ou edição estrutural.
-- Se uma cobrança possuir compensação, explicar que ela não pode ser cancelada. Exclusão absoluta é uma ação administrativa exclusiva de superusuários, exige motivo opcional e auditoria mínima, e também é bloqueada quando há compensações; não a expor como ação comum do produto.
-- Permitir ao criador trocar o recebedor antes de qualquer aceite de outra pessoa e de operação financeira. Após esse limite, mostrar o recebedor sem edição e explicar o bloqueio. O recebedor tem acesso à cobrança mesmo sem participar do rateio, mas não recebe permissão de edição por esse papel.
-- Se o criador participa e escolhe outro recebedor, sua própria dívida é criada junto da cobrança e acompanha os ajustes permitidos de sua cota.
-- Para o destinatário, expor somente ações do convite destinado a ele.
-- Exibir ações de pagamento e compensação conforme o papel financeiro e o estado da dívida, seguindo os fluxos descritos na seção 8.
+- **Cabeçalho:** título, criador, estado da cobrança e menu contextual de ações (`···`) no canto superior direito para o criador.
+- **Divisão da Grid e Hierarquia Responsiva:**
+  - **No Desktop (`lg:` e `xl:`):** Grid proporcional de duas colunas (`lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,1fr)]`):
+    - **Coluna Principal (Esquerda ~60-65%):** Foco operacional vivo da conta:
+      1. *Ação Imediata do Usuário* (aceitar cota ou pagar se houver pendência);
+      2. *Pagamentos e Saldos* (com confirmações manuais em destaque, 4 métricas de saldo e chave Pix);
+      3. *Participantes e Cotas* (lista detalhada de quem está na conta, cota base comum e itens extras consumidos por pessoa).
+    - **Sidebar de Apoio (Direita ~35-40%):** Painel de contexto limpo e respirado:
+      1. *Resumo da Conta* (Total, Quem recebe, Sua cota, Descrição);
+      2. *Link da Mesa (Convidados Anônimos)* (link compartilhado, ações de compartilhar e copiar, contador de entradas e opções rápidas).
+  - **No Mobile (`< lg`):** Empilhamento vertical sequencial em blocos card bem ordenados:
+    1. Resumo da Conta e Link da Mesa no topo;
+    2. Ação Imediata do Usuário (se houver);
+    3. Pagamentos e Saldos (com confirmação rápida e registro);
+    4. Participantes e Cotas.
+- **Menu Contextual de Ações do Criador (`···`):**
+  - Eliminação de formulários secundários embutidos em sanfonas aninhadas (`<details><summary>`) na sidebar ("AI slope").
+  - As ações do criador (*Adicionar item extra*, *Ajustar cotas / recebedor*, *Cancelar cobrança*) são acessadas pelo menu `···` no cabeçalho ou por gatilhos limpos na interface.
+- **Padrão de Interação (Bottom Sheet no Mobile / Modal no Desktop):**
+  - Para formulários rápidos de inclusão de consumos (*Adicionar item extra*), a interface dispara um **Bottom Sheet** deslizante a partir do rodapé no celular (`rounded-t-[28px]`, puxador superior, botões na área do polegar e sem colisão com o teclado virtual).
+  - Em telas médias/largas (`sm:` e `lg:`), o mesmo componente transmuta responsivamente para um diálogo centralizado com backdrop suave (`sm:rounded-[24px] sm:max-w-md`).
+  - Formulários extensos de redistribuição de cotas utilizam rotas/telas dedicadas com validação total no servidor.
+- **Regras Operacionais e Financeiras:**
+  - Lista de participantes com cota e estado de convite.
+  - Para o criador, cada pagante mostra links dos comprovantes que anexou. A visualização é somente leitura e não dá ao criador, por si só, permissão para confirmar ou rejeitar pagamentos.
+  - O pagamento permanece decidido apenas pelo recebedor. Comprovantes autorizados abrem em prévia do navegador quando suportado pelo formato.
+  - Para o criador, expor substituição após recusa e edição permitida de cotas.
+  - O criador pode cancelar logicamente cobranças ativas ou aguardando aceite com motivo opcional. Antes de confirmar, informar que não haverá estorno; após cancelar, mostrar a cobrança e pagamentos revogados no histórico, com motivo, autor e data quando disponíveis. Convites pendentes ficam inválidos, sem ações de pagamento, aceite, compensação ou edição estrutural.
+  - Se uma cobrança possuir compensação, explicar que ela não pode ser cancelada. Exclusão absoluta é uma ação administrativa exclusiva de superusuários, exige motivo opcional e auditoria mínima, e também é bloqueada quando há compensações; não a expor como ação comum do produto.
+  - Permitir ao criador trocar o recebedor antes de qualquer aceite de outra pessoa e de operação financeira. Após esse limite, mostrar o recebedor sem edição e explicar o bloqueio. O recebedor tem acesso à cobrança mesmo sem participar do rateio, mas não recebe permissão de edição por esse papel.
+  - Se o criador participa e escolhe outro recebedor, sua própria dívida é criada junto da cobrança e acompanha os ajustes permitidos de sua cota.
+  - Para o destinatário, expor somente ações do convite destinado a ele.
+  - Para uma pessoa convidada, a página pública mostra apenas título, total, seu nome autodeclarado, sua cota discriminada, chave Pix do recebedor e o formulário de pagamento. O código pessoal é mostrado uma vez e pode ser usado até quitar ou expirar.
+  - O criador pode fechar as entradas explicitamente. Em cobranças legadas sem total fixo, cada convidado confirma sua cota depois do fechamento; no modo anônimo com total declarado, a pessoa pode confirmar e pagar imediatamente enquanto o link segue aberto. Se alguém não confirmar e nenhum pagamento existir, o criador pode reabrir e recalcular.
+  - Exibir ações de pagamento e compensação conforme o papel financeiro e o estado da dívida, seguindo os fluxos descritos na seção 8.
 
 ### Estrutura para desktop
 
 - A partir de `lg`, usar uma navegação vertical fixa à esquerda, com marca, Início (dashboard), cobranças, convites e perfil. O contador de convites pendentes continua visível.
 - A partir de `lg`, remover o enquadramento de telefone, o fundo escuro externo e a navegação inferior. A área principal ocupa o espaço restante e alinha o conteúdo em uma largura máxima confortável.
 - No celular, manter cabeçalho compacto e navegação inferior fixa com Início, Cobranças, Convites e Perfil. A navegação inferior respeita a área segura e nunca cobre ações ou conteúdo.
-- Listas de cobranças e convites podem usar duas colunas em `md` e três em `xl`. O detalhe da cobrança organiza o resumo e os participantes em colunas em `lg`; formulários permanecem em uma coluna estreita ou se dividem quando há campos independentes.
+- Listas de cobranças e convites podem usar duas colunas em `md` e três em `xl`.
+- O detalhe da cobrança organiza a tela em duas colunas proporcionais a partir de `lg` (`~60%` atividade operacional à esquerda e `~35-40%` sidebar de resumo/link à direita), eliminando o desnível de altura e o espaço morto. Formulários secundários usam o menu contextual `···` e bottom sheets/diálogos modais responsivos.
 - A página pública de entrada não mostra a navegação autenticada; em telas largas, apresenta a chamada principal e os benefícios em duas colunas.
 
 ## 4. Componentes e linguagem
@@ -168,6 +217,8 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - **Cartão de participante:** nome, cota, estado e ação que a pessoa tem permissão para executar.
 - **Resumo de cotas:** mostra somente as pessoas incluídas, cada valor editável na criação e a soma final; distingue criador, recebedor e participantes.
 - **Aviso informativo:** explica confirmação de e-mail, origem da chave Pix ou efeito do aceite sem tom alarmista.
+- **Menu contextual de ações (`···`):** botão discreto de 36px/40px com três pontos e foco visível; no clique, abre menu dropdown flutuante com as ações secundárias da cobrança, evitando a proliferação de sanfonas aninhadas na interface principal.
+- **Bottom Sheet / Diálogo responsivo:** painel para formulários rápidos auxiliares (como inclusão de itens extras). Em telas móveis (`< sm`), surge como gaveta deslizante pelo rodapé (`bottom-0`, cantos superiores `rounded-t-[28px]`, puxador tátil de 48px e ações na zona ergonômica do polegar, prevenindo colisão com o teclado virtual); a partir de `sm`, comporta-se como modal centralizado elegante com backdrop translúcido.
 
 Tom direto e acolhedor. Preferir “Sua participação foi aceita” a mensagens genéricas como “Sucesso”. A interface não deve sugerir transferência, verificação bancária ou confirmação automática pelo Pixu.
 
@@ -193,7 +244,7 @@ Tom direto e acolhedor. Preferir “Sua participação foi aceita” a mensagens
 
 ## 7. Conectividade
 
-A primeira versão é online. Páginas, convites e dados de cobrança vêm do servidor; criar, editar, aceitar ou recusar exige conexão. A interface só confirma uma mudança depois da resposta do servidor. Não implementar PWA, cache de dados pessoais, rascunhos locais nem fila de ações offline neste lote. Suporte offline exigiria mudança OpenSpec própria para sincronização, idempotência e conflitos.
+A primeira versão continua online. Páginas, convites e dados de cobrança vêm do servidor; criar, editar, aceitar ou recusar exige conexão. A interface só confirma uma mudança depois da resposta do servidor. O shell pode ser instalado como PWA, mas não há cache de dados pessoais, rascunhos locais ou fila de ações offline. Suporte offline exigiria mudança OpenSpec própria para sincronização, idempotência e conflitos.
 
 A persistência da preferência visual de tema, descrita na seção 2.4, armazena somente a escolha de aparência. Ela não habilita uso offline nem armazenamento de contas, cobranças ou formulários no navegador.
 
@@ -212,7 +263,9 @@ Estes padrões orientam as telas financeiras implementadas em mudanças OpenSpec
 ## 9. Entregáveis da revisão
 
 - Wireframes e matriz de estados: `docs/design/pixu-first-vision-wireframes.md`.
-- Protótipo navegável local: `docs/design/pixu-first-vision-prototype.html`.
+- Protótipo navegável local dos fluxos financeiros: `docs/design/pixu-first-vision-prototype.html`.
+- Protótipo navegável de autenticação SSO (Google e GitHub) e onboarding de chave Pix: `docs/design/pixu_sso_onboarding_prototype.html`.
+- Protótipo navegável da refatoração da grid de cobrança, menu contextual e bottom sheet: `docs/design/pixu_charge_detail_grid_refactor_prototype.html`.
 - Este documento define os tokens, componentes, textos, responsividade, acessibilidade e padrões HTMX/Tailwind.
 
-Decisões desta revisão: “convite pendente”, “cobrança ativa” e “dívida criada” são estados distintos; a navegação e a composição do desktop são próprias, sem moldura de celular; esta versão exige conexão para qualquer ação que altere estado. O protótipo e os wireframes foram atualizados para refletir a navegação lateral em telas largas. A hierarquia semântica está documentada e implementada; ainda falta verificar com três pessoas a compreensão espontânea de “Pix pendente”, “saldo aberto” e “compensado”.
+Decisões desta revisão: “convite pendente”, “cobrança ativa” e “dívida criada” são estados distintos; a navegação e a composição do desktop são próprias, sem moldura de celular; o detalhe da cobrança passa a ter proporções equilibradas (sidebar operacional limpa e sem acordeons aninhados, menu contextual `···` e bottom sheet responsivo para formulários rápidos auxiliares); esta versão exige conexão para qualquer ação que altere estado. O protótipo e os wireframes foram atualizados para refletir a navegação lateral em telas largas. A hierarquia semântica está documentada e implementada; ainda falta verificar com três pessoas a compreensão espontânea de “Pix pendente”, “saldo aberto” e “compensado”.

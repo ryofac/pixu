@@ -55,14 +55,50 @@ document.body.addEventListener("change", (event) => {
 });
 
 document.body.addEventListener("click", async (event) => {
-  const button = event.target.closest("[data-copy-text]");
-  if (!button || !navigator.clipboard) return;
+  const shareBtn = event.target.closest("[data-share-url]");
+  if (shareBtn) {
+    const url = shareBtn.dataset.shareUrl || "";
+    const title = shareBtn.dataset.shareTitle || "Pixu";
+    const text = shareBtn.dataset.shareText || "";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (err) {
+        if (err.name === "AbortError") return;
+      }
+    }
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      const original = shareBtn.textContent;
+      shareBtn.textContent = shareBtn.dataset.copiedLabel || "Link copiado!";
+      window.setTimeout(() => {
+        shareBtn.textContent = original;
+      }, 1800);
+    }
+    return;
+  }
 
-  await navigator.clipboard.writeText(button.dataset.copyText || "");
-  const original = button.textContent;
-  button.textContent = "Chave copiada";
+  const copyBtn = event.target.closest("[data-copy-text]");
+  if (!copyBtn) return;
+
+  const textToCopy = copyBtn.dataset.copyText || "";
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(textToCopy);
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = textToCopy;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+  const original = copyBtn.textContent;
+  copyBtn.textContent = copyBtn.dataset.copiedLabel || "Copiado!";
   window.setTimeout(() => {
-    button.textContent = original;
+    copyBtn.textContent = original;
   }, 1800);
 });
 
@@ -117,3 +153,106 @@ systemThemeQuery?.addEventListener("change", () => {
     applyThemePreference("system", false);
   }
 });
+
+const installPrompt = document.querySelector("[data-install-prompt]");
+const installAction = installPrompt?.querySelector("[data-install-action]");
+const installDismiss = installPrompt?.querySelector("[data-install-dismiss]");
+const installMessage = installPrompt?.querySelector("[data-install-message]");
+const INSTALL_DISMISS_KEY = "pixu-install-prompt-dismissed-at";
+const INSTALL_DISMISS_TTL = 7 * 24 * 60 * 60 * 1000;
+let deferredInstallPrompt = null;
+
+function isStandaloneApp() {
+  return window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function isMobileInstallViewport() {
+  return window.matchMedia?.("(max-width: 639px)").matches ?? false;
+}
+
+function isIosDevice() {
+  return /iPad|iPhone|iPod/.test(window.navigator.userAgent)
+    || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+}
+
+function wasInstallPromptDismissed() {
+  try {
+    const dismissedAt = Number(window.localStorage.getItem(INSTALL_DISMISS_KEY));
+    return dismissedAt > Date.now() - INSTALL_DISMISS_TTL;
+  } catch {
+    return false;
+  }
+}
+
+function dismissInstallPrompt() {
+  try {
+    window.localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now()));
+  } catch {
+    // A blocked storage API must not prevent the prompt from closing.
+  }
+  if (installPrompt) {
+    installPrompt.hidden = true;
+    installPrompt.classList.add("hidden");
+  }
+}
+
+function showInstallPrompt({ ios = false } = {}) {
+  if (!installPrompt || !isMobileInstallViewport() || isStandaloneApp() || wasInstallPromptDismissed()) return;
+
+  if (installMessage) {
+    installMessage.textContent = ios
+      ? "No Safari, toque em Compartilhar e depois em Adicionar à Tela de Início."
+      : "Tenha suas cobranças sempre à mão, com acesso rápido pelo celular.";
+  }
+  if (installAction) installAction.hidden = ios;
+  installPrompt.hidden = false;
+  installPrompt.classList.remove("hidden");
+}
+
+installDismiss?.addEventListener("click", dismissInstallPrompt);
+installAction?.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+
+  const promptEvent = deferredInstallPrompt;
+  deferredInstallPrompt = null;
+  try {
+    await promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    if (choice.outcome === "dismissed") dismissInstallPrompt();
+    else if (installPrompt) {
+      installPrompt.hidden = true;
+      installPrompt.classList.add("hidden");
+    }
+  } catch {
+    if (installPrompt) {
+      installPrompt.hidden = true;
+      installPrompt.classList.add("hidden");
+    }
+  }
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  showInstallPrompt();
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  if (installPrompt) {
+    installPrompt.hidden = true;
+    installPrompt.classList.add("hidden");
+  }
+});
+
+if (isIosDevice()) {
+  window.setTimeout(() => showInstallPrompt({ ios: true }), 1200);
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(() => {
+      // Installation remains optional when service workers are unavailable.
+    });
+  });
+}

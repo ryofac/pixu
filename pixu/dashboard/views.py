@@ -16,3 +16,17 @@ class HomeView(TemplateView):
         if self.request.user.is_authenticated:
             context.update(dashboard_context(self.request.user))
         return context
+
+
+class PwaManifestView(TemplateView):
+    """Serve the install manifest with the project's static URL prefix."""
+
+    template_name = "manifest.webmanifest"
+    content_type = "application/manifest+json"
+
+
+class PwaServiceWorkerView(TemplateView):
+    """Serve the root-scoped, network-only service worker."""
+
+    template_name = "service-worker.js"
+    content_type = "application/javascript"

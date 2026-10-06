@@ -89,6 +89,16 @@ def test_capture_product_screenshots(page, live_server):
     page.wait_for_timeout(300)
     page.screenshot(path=str(SCREENSHOT_DIR / "charge_create_dark.png"), full_page=True)
 
+    # 5.1 Charge Create Mobile with Guest Options checked
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.get_by_label("Aparência").select_option("light")
+    page.get_by_label("Permitir convidados anônimos por link").check()
+    expect(page.get_by_label("Total de pessoas nesta conta")).to_be_visible()
+    expect(page.get_by_text("Opções avançadas do link (limite e validade)")).to_be_visible()
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "charge_create_mobile_guest_light.png"), full_page=True)
+    page.set_viewport_size({"width": 1440, "height": 900})
+
     # 6. Invites
     page.goto(app_url(live_server, reverse("charges:invites")))
     expect(page).to_have_url(app_url(live_server, reverse("charges:invites")))
@@ -131,3 +141,55 @@ def test_capture_product_screenshots(page, live_server):
     expect(page.get_by_role("heading", name="Entre na sua conta")).to_be_visible()
     page.wait_for_timeout(300)
     page.screenshot(path=str(SCREENSHOT_DIR / "auth_login_dark.png"), full_page=True)
+
+    # 9. Guest Screens in Mobile Viewport (390x844)
+    from pixu.charges.services import create_charge
+    guest_charge = create_charge(
+        creator=user,
+        title="Almoço no Barbecue",
+        total_cents=47000,
+        invitee_ids=[],
+        guest_invites_enabled=True,
+        guest_total_participants=4,
+    )
+    token = guest_charge._guest_credentials["token"]
+
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.goto(app_url(live_server, reverse("charges:guest_entry", args=[guest_charge.pk, token])))
+    expect(page.get_by_role("heading", name="Almoço no Barbecue")).to_be_visible()
+    page.get_by_label("Aparência").select_option("light")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "guest_entry_mobile_light.png"), full_page=True)
+
+    page.get_by_label("Aparência").select_option("dark")
+    expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "guest_entry_mobile_dark.png"), full_page=True)
+
+    page.get_by_label("Aparência").select_option("light")
+    page.get_by_label("Como devemos chamar você?").fill("Meireles")
+    page.get_by_role("button", name="Entrar no rateio").click()
+    expect(page.get_by_role("heading", name="Guarde seu código pessoal")).to_be_visible()
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "guest_access_created_mobile_light.png"), full_page=True)
+
+    page.get_by_role("link", name="Abrir minha cota").click()
+    expect(page.get_by_role("heading", name="Almoço no Barbecue")).to_be_visible()
+    expect(page.get_by_text("Sua cota", exact=True)).to_be_visible()
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "guest_personal_mobile_light.png"), full_page=True)
+
+    page.get_by_label("Aparência").select_option("dark")
+    expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "guest_personal_mobile_dark.png"), full_page=True)
+
+    # 10. Creator Detail of Guest Charge (Mobile 390x844)
+    from .helpers import login_as
+    login_as(page, live_server, user)
+    page.goto(app_url(live_server, reverse("charges:detail", args=[guest_charge.pk])))
+    expect(page.get_by_role("heading", name="Entradas anônimas")).to_be_visible()
+    expect(page.get_by_text("Gerenciar link de entradas")).to_be_visible()
+    page.get_by_label("Aparência").select_option("light")
+    page.wait_for_timeout(300)
+    page.screenshot(path=str(SCREENSHOT_DIR / "charge_detail_guest_mobile_light.png"), full_page=True)

@@ -1,0 +1,1064 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>
+      Protótipo Interativo · Itens Extras e Convites por Link · Pixu
+    </title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Nunito", "sans-serif"] },
+            colors: {
+              pixu: {
+                brand: "#EC275F",
+                action: "#B91649",
+                "action-solid": "#EC275F",
+                accent: "#FFA7A6",
+                surface: "#FFFFFF",
+                ink: "#2D3748",
+                muted: "#5B6573",
+                border: "#E8D5D8",
+                danger: "#A12632",
+                pending: "#805400",
+                success: "#176B45",
+              },
+              sakura: {
+                1: "#D4E0EE",
+                2: "#FFDBDB",
+                3: "#FFA7A6",
+                4: "#FFF4F3",
+                5: "#F25477",
+                6: "#EC275F",
+              },
+              dark: {
+                canvas: "#0F172A",
+                surface: "#1E293B",
+                border: "#334155",
+                text: "#F8FAFC",
+                muted: "#94A3B8",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Nunito", sans-serif;
+      }
+      .badge-signed {
+        transition: all 0.2s ease-in-out;
+      }
+    </style>
+  </head>
+  <body
+    class="min-h-full bg-[#FFF4F3] text-pixu-ink transition-colors duration-200 dark:bg-dark-canvas dark:text-dark-text"
+  >
+    <!-- Barra de Controle do Protótipo (Navegação de Telas + Tema) -->
+    <header
+      class="sticky top-0 z-50 border-b border-pixu-border/70 bg-white/90 backdrop-blur dark:border-dark-border dark:bg-dark-surface/90"
+    >
+      <div
+        class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-6"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-sakura-6 to-sakura-3 text-white shadow-sm font-black text-sm"
+          >
+            PX
+          </div>
+          <div>
+            <span
+              class="text-sm font-extrabold tracking-tight text-pixu-ink dark:text-dark-text"
+              >Pixu Protótipo</span
+            >
+            <span
+              class="ml-1.5 hidden rounded-md bg-sakura-2 px-1.5 py-0.5 text-[10px] font-black text-pixu-action sm:inline dark:bg-pink-950/60 dark:text-sakura-3"
+              >WAVE 0 INTERATIVA</span
+            >
+          </div>
+        </div>
+
+        <!-- Abas de Navegação do Fluxo -->
+        <div
+          class="flex items-center gap-1 rounded-xl bg-slate-100 p-1 text-xs font-bold dark:bg-slate-800"
+        >
+          <button
+            id="btn-tab-create"
+            onclick="switchView('create')"
+            class="rounded-lg bg-white px-3 py-1.5 text-pixu-action shadow-xs dark:bg-dark-surface dark:text-white"
+          >
+            1. Criar & Itens
+          </button>
+          <button
+            id="btn-tab-share"
+            onclick="switchView('share')"
+            class="rounded-lg px-3 py-1.5 text-pixu-muted hover:text-pixu-ink dark:text-dark-muted dark:hover:text-white"
+          >
+            2. Link & Código
+          </button>
+          <button
+            id="btn-tab-claim"
+            onclick="switchView('claim')"
+            class="rounded-lg px-3 py-1.5 text-pixu-muted hover:text-pixu-ink dark:text-dark-muted dark:hover:text-white"
+          >
+            3. Convidado (Link)
+          </button>
+          <button
+            id="btn-tab-pay"
+            onclick="switchView('pay')"
+            class="rounded-lg px-3 py-1.5 text-pixu-muted hover:text-pixu-ink dark:text-dark-muted dark:hover:text-white"
+          >
+            4. Pagar Pix
+          </button>
+        </div>
+
+        <!-- Botão Tema Claro/Escuro -->
+        <button
+          onclick="toggleTheme()"
+          class="flex h-8 w-8 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface text-pixu-ink transition hover:bg-slate-100 dark:border-dark-border dark:bg-dark-surface dark:text-dark-text"
+          title="Alternar tema"
+        >
+          <span id="theme-icon">🌙</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+      <!-- ========================================================
+         VIEW 1: FORMULÁRIO DE CRIAÇÃO COM ITENS EXTRAS TOP-DOWN
+         ======================================================== -->
+      <section id="view-create" class="space-y-6">
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <span
+              class="rounded-full bg-sakura-2 px-2.5 py-0.5 text-xs font-extrabold text-pixu-action dark:bg-pink-950 dark:text-sakura-3"
+              >Passo 1 de 4</span
+            >
+            <h1
+              class="text-xl font-black text-pixu-ink sm:text-2xl dark:text-dark-text"
+            >
+              Nova cobrança com adicionais
+            </h1>
+          </div>
+          <p class="text-xs text-pixu-muted sm:text-sm dark:text-dark-muted">
+            Informe o valor total do cupom fiscal. O Pixu deduz os itens extras
+            de cada pessoa e rateia a base restante igualmente.
+          </p>
+        </div>
+
+        <div class="grid items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <!-- Coluna da Esquerda: Formulário -->
+          <div
+            class="space-y-5 rounded-2xl border border-pixu-border bg-white p-5 shadow-sm dark:border-dark-border dark:bg-dark-surface sm:p-6"
+          >
+            <div class="grid gap-1.5">
+              <label
+                class="text-xs font-bold uppercase tracking-wider text-pixu-muted dark:text-dark-muted"
+                for="input-title"
+                >Título da Despesa</label
+              >
+              <input
+                id="input-title"
+                type="text"
+                value="Almoço no Barbecue"
+                class="w-full rounded-xl border border-pixu-border bg-white px-3.5 py-2.5 text-sm font-bold text-pixu-ink focus:border-pixu-action focus:outline-none dark:border-dark-border dark:bg-slate-800/80 dark:text-dark-text"
+              />
+            </div>
+
+            <div class="grid gap-1.5">
+              <label
+                class="text-xs font-bold uppercase tracking-wider text-pixu-muted dark:text-dark-muted"
+                for="input-total"
+                >Valor Total do Cupom (R$)</label
+              >
+              <div class="relative flex items-center">
+                <span
+                  class="pointer-events-none absolute left-3.5 text-sm font-black text-pixu-muted"
+                  >R$</span
+                >
+                <input
+                  id="input-total"
+                  type="number"
+                  step="1"
+                  value="470"
+                  oninput="recalculate()"
+                  class="w-full rounded-xl border border-pixu-border bg-white pl-11 pr-4 py-2.5 text-lg font-black text-pixu-ink focus:border-pixu-action focus:outline-none dark:border-dark-border dark:bg-slate-800/80 dark:text-dark-text"
+                />
+              </div>
+              <span class="text-[11px] text-pixu-muted dark:text-dark-muted"
+                >Exemplo da anotação: Total de R$ 470,00 com itens extras de R$
+                70,00.</span
+              >
+            </div>
+
+            <div
+              class="grid gap-2 border-t border-pixu-border/60 pt-4 dark:border-dark-border/60"
+            >
+              <span
+                class="text-xs font-bold uppercase tracking-wider text-pixu-muted dark:text-dark-muted"
+                >Participantes no Rateio</span
+              >
+              <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+                <label
+                  class="flex items-center gap-2 rounded-xl border border-sakura-6 bg-sakura-2/30 p-2.5 dark:border-sakura-5 dark:bg-pink-950/20"
+                >
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled
+                    class="accent-pixu-action"
+                  />
+                  Ryan (Você · Credor)
+                </label>
+                <label
+                  class="flex items-center gap-2 rounded-xl border border-pixu-border p-2.5 dark:border-dark-border"
+                >
+                  <input
+                    type="checkbox"
+                    id="part-ruan"
+                    checked
+                    onchange="recalculate()"
+                    class="accent-pixu-action"
+                  />
+                  Ruan
+                </label>
+                <label
+                  class="flex items-center gap-2 rounded-xl border border-pixu-border p-2.5 dark:border-dark-border"
+                >
+                  <input
+                    type="checkbox"
+                    id="part-meireles"
+                    checked
+                    onchange="recalculate()"
+                    class="accent-pixu-action"
+                  />
+                  Meireles
+                </label>
+                <label
+                  class="flex items-center gap-2 rounded-xl border border-pixu-border p-2.5 dark:border-dark-border"
+                >
+                  <input
+                    type="checkbox"
+                    id="part-roberto"
+                    checked
+                    onchange="recalculate()"
+                    class="accent-pixu-action"
+                  />
+                  Roberto
+                </label>
+              </div>
+            </div>
+
+            <!-- Gaveta de Itens Extras -->
+            <div
+              class="space-y-3 rounded-xl border border-dashed border-sakura-6/60 bg-sakura-4/50 p-4 dark:border-sakura-5/40 dark:bg-slate-800/40"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2
+                    class="text-xs font-extrabold uppercase tracking-wide text-pixu-action dark:text-sakura-3"
+                  >
+                    Itens e extras individuais
+                  </h2>
+                  <p class="text-[11px] text-pixu-muted dark:text-dark-muted">
+                    Despesas que só uma pessoa consumiu
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onclick="addItemRow()"
+                  class="inline-flex items-center gap-1 rounded-lg border border-sakura-6 bg-white px-2.5 py-1 text-xs font-black text-pixu-action hover:bg-sakura-2 dark:bg-dark-surface dark:hover:bg-slate-700"
+                >
+                  + Adicionar item
+                </button>
+              </div>
+
+              <!-- Lista de Linhas de Itens Dinâmicos -->
+              <div id="items-container" class="space-y-2">
+                <!-- Item 1: Meireles Coca extra -->
+                <div
+                  class="item-row grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-2.5 sm:grid-cols-[1fr_5.5rem_7.5rem_auto] sm:items-center dark:border-dark-border dark:bg-dark-surface"
+                >
+                  <input
+                    type="text"
+                    value="Coca extra"
+                    class="item-title rounded-lg border border-pixu-border bg-white px-2.5 py-1.5 text-xs font-bold text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                    placeholder="Nome do item"
+                  />
+                  <div class="relative flex items-center">
+                    <span
+                      class="pointer-events-none absolute left-2 text-[10px] font-bold text-pixu-muted"
+                      >R$</span
+                    >
+                    <input
+                      type="number"
+                      step="1"
+                      value="50"
+                      oninput="recalculate()"
+                      class="item-amount w-full rounded-lg border border-pixu-border bg-white pl-6 pr-2 py-1.5 text-right text-xs font-black text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                    />
+                  </div>
+                  <select
+                    onchange="recalculate()"
+                    class="item-owner rounded-lg border border-pixu-border bg-white px-2 py-1.5 text-xs font-bold text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                  >
+                    <option value="Meireles" selected>Meireles</option>
+                    <option value="Roberto">Roberto</option>
+                    <option value="Ruan">Ruan</option>
+                    <option value="Ryan">Ryan</option>
+                  </select>
+                  <button
+                    type="button"
+                    onclick="
+                      this.closest('.item-row').remove();
+                      recalculate();
+                    "
+                    class="text-xs font-black text-pixu-danger p-1 hover:opacity-80"
+                    title="Remover item"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <!-- Item 2: Roberto Sobremesa -->
+                <div
+                  class="item-row grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-2.5 sm:grid-cols-[1fr_5.5rem_7.5rem_auto] sm:items-center dark:border-dark-border dark:bg-dark-surface"
+                >
+                  <input
+                    type="text"
+                    value="Sobremesa doce"
+                    class="item-title rounded-lg border border-pixu-border bg-white px-2.5 py-1.5 text-xs font-bold text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                    placeholder="Nome do item"
+                  />
+                  <div class="relative flex items-center">
+                    <span
+                      class="pointer-events-none absolute left-2 text-[10px] font-bold text-pixu-muted"
+                      >R$</span
+                    >
+                    <input
+                      type="number"
+                      step="1"
+                      value="20"
+                      oninput="recalculate()"
+                      class="item-amount w-full rounded-lg border border-pixu-border bg-white pl-6 pr-2 py-1.5 text-right text-xs font-black text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                    />
+                  </div>
+                  <select
+                    onchange="recalculate()"
+                    class="item-owner rounded-lg border border-pixu-border bg-white px-2 py-1.5 text-xs font-bold text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                  >
+                    <option value="Roberto" selected>Roberto</option>
+                    <option value="Meireles">Meireles</option>
+                    <option value="Ruan">Ruan</option>
+                    <option value="Ryan">Ryan</option>
+                  </select>
+                  <button
+                    type="button"
+                    onclick="
+                      this.closest('.item-row').remove();
+                      recalculate();
+                    "
+                    class="text-xs font-black text-pixu-danger p-1 hover:opacity-80"
+                    title="Remover item"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onclick="proceedToShare()"
+              class="flex w-full items-center justify-center rounded-xl bg-pixu-action-solid py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110"
+            >
+              Criar cobrança e gerar link ›
+            </button>
+          </div>
+
+          <!-- Coluna da Direita: Prévia do Rateio Dinâmica -->
+          <div class="space-y-4">
+            <div
+              class="rounded-2xl border border-pixu-border bg-white p-5 shadow-sm dark:border-dark-border dark:bg-dark-surface sm:p-6"
+            >
+              <div
+                class="flex items-center justify-between border-b border-pixu-border/70 pb-3 dark:border-dark-border/70"
+              >
+                <span
+                  class="text-xs font-extrabold uppercase tracking-wider text-pixu-muted dark:text-dark-muted"
+                  >Conferência do Rateio</span
+                >
+                <!-- Indicador Assinado Direto -->
+                <div
+                  id="diff-badge"
+                  class="badge-signed inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                >
+                  R$ 0,00
+                </div>
+              </div>
+
+              <!-- Resumo Matemático -->
+              <div
+                class="my-4 rounded-xl bg-slate-50 p-3 text-xs leading-relaxed text-pixu-muted dark:bg-slate-800/50 dark:text-dark-muted"
+              >
+                <div class="flex justify-between">
+                  <span>Total da conta:</span>
+                  <span
+                    id="summary-total"
+                    class="font-bold text-pixu-ink dark:text-dark-text"
+                    >R$ 470,00</span
+                  >
+                </div>
+                <div
+                  class="flex justify-between text-pixu-action dark:text-sakura-3"
+                >
+                  <span>- Soma dos itens extras:</span>
+                  <span id="summary-extras" class="font-bold">R$ 70,00</span>
+                </div>
+                <div
+                  class="mt-1 flex justify-between border-t border-slate-200 pt-1 font-bold text-pixu-ink dark:border-slate-700 dark:text-dark-text"
+                >
+                  <span>= Base comum a ratear:</span>
+                  <span id="summary-base">R$ 400,00 (R$ 100,00 / pessoa)</span>
+                </div>
+              </div>
+
+              <!-- Discriminação de Cada Participante -->
+              <div id="participants-preview-list" class="space-y-2.5">
+                <!-- Renderizado dinamicamente via JS/recalculate() -->
+              </div>
+
+              <div
+                class="mt-4 border-t border-pixu-border/70 pt-3 text-xs text-pixu-muted dark:border-dark-border dark:text-dark-muted"
+              >
+                💡 Os convidados podem assumir suas cotas pelo link ou código
+                mesmo sem cadastro prévio.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+         VIEW 2: LINK E CÓDIGO COMPARTILHÁVEL GERADOS
+         ======================================================== -->
+      <section id="view-share" class="hidden space-y-6">
+        <div class="mx-auto max-w-xl text-center">
+          <span
+            class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+            >Cobrança criada com sucesso!</span
+          >
+          <h1
+            class="mt-2 text-2xl font-black text-pixu-ink sm:text-3xl dark:text-dark-text"
+          >
+            Compartilhe com a mesa
+          </h1>
+          <p class="text-sm text-pixu-muted dark:text-dark-muted">
+            Envie no grupo do WhatsApp ou fale o código em voz alta.
+          </p>
+        </div>
+
+        <div
+          class="mx-auto max-w-lg space-y-5 rounded-2xl border border-pixu-border bg-white p-6 shadow-md dark:border-dark-border dark:bg-dark-surface"
+        >
+          <!-- Código Curto Destacado -->
+          <div
+            class="rounded-xl border border-sakura-6/30 bg-sakura-4/60 p-5 text-center dark:bg-pink-950/20"
+          >
+            <span
+              class="text-xs font-extrabold uppercase tracking-widest text-pixu-muted dark:text-dark-muted"
+              >Código da Cobrança</span
+            >
+            <div
+              class="mt-1 text-4xl font-black tracking-widest text-pixu-action dark:text-sakura-3"
+            >
+              PX-8942
+            </div>
+            <p class="mt-2 text-xs text-pixu-muted dark:text-dark-muted">
+              Qualquer pessoa pode entrar no Pixu e digitar esse código.
+            </p>
+          </div>
+
+          <!-- Link Curto com Botão Copiar -->
+          <div class="space-y-1.5">
+            <label
+              class="text-xs font-bold uppercase tracking-wider text-pixu-muted dark:text-dark-muted"
+              >Link Direto</label
+            >
+            <div class="flex items-center gap-2">
+              <input
+                id="share-link-input"
+                type="text"
+                readonly
+                value="https://pixu.app/c/PX-8942"
+                class="w-full rounded-xl border border-pixu-border bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-pixu-ink dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+              />
+              <button
+                onclick="copyShareLink()"
+                id="btn-copy-link"
+                class="rounded-xl bg-pixu-action-solid px-4 py-2.5 text-xs font-extrabold text-white shadow-xs hover:brightness-110"
+              >
+                Copiar
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="border-t border-pixu-border/60 pt-4 dark:border-dark-border/60"
+          >
+            <button
+              onclick="simulateGuestClick('Meireles')"
+              class="flex w-full items-center justify-center gap-2 rounded-xl border border-sakura-6 bg-white py-3 text-sm font-extrabold text-pixu-action transition hover:bg-sakura-2 dark:bg-dark-surface dark:hover:bg-slate-700"
+            >
+              <span>👤 Simular visão de Meireles abrindo o link</span> ›
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+         VIEW 3: CONVITE DA COBRANÇA (CADASTRADO OU USERNAME AVULSO)
+         ======================================================== -->
+      <section id="view-claim" class="hidden space-y-6">
+        <div class="mx-auto max-w-lg text-center">
+          <span
+            class="rounded-full bg-sakura-2 px-3 py-1 text-xs font-black text-pixu-action dark:bg-pink-950 dark:text-sakura-3"
+            >Convite de Cobrança · PX-8942</span
+          >
+          <h1
+            class="mt-2 text-2xl font-black text-pixu-ink dark:text-dark-text"
+          >
+            Almoço no Barbecue
+          </h1>
+          <p class="text-sm text-pixu-muted dark:text-dark-muted">
+            Criado por Ryan · R$ 470,00 total
+          </p>
+        </div>
+
+        <div class="mx-auto max-w-md space-y-6">
+          <!-- OPÇÃO 1: NÃO É CADASTRADO -> DIGITA APENAS UM USERNAME -->
+          <div
+            class="rounded-2xl border-2 border-pixu-action/60 bg-white p-6 shadow-md dark:border-sakura-5/50 dark:bg-dark-surface space-y-4"
+          >
+            <div class="flex items-center gap-2">
+              <span
+                class="flex h-6 w-6 items-center justify-center rounded-full bg-sakura-2 text-xs font-black text-pixu-action dark:bg-pink-950 dark:text-sakura-3"
+                >1</span
+              >
+              <h2
+                class="text-sm font-black uppercase tracking-wider text-pixu-ink dark:text-dark-text"
+              >
+                Não tem conta? Acesso rápido
+              </h2>
+            </div>
+            <p class="text-xs text-pixu-muted dark:text-dark-muted">
+              Digite somente um <strong>username</strong> para acessar e pagar
+              <strong>apenas esta cobrança</strong>, sem necessidade de senha ou
+              cadastro no Pixu.
+            </p>
+
+            <div class="space-y-3">
+              <div>
+                <label
+                  for="guest-name-input"
+                  class="text-xs font-bold text-pixu-ink dark:text-dark-text"
+                >
+                  Escolha seu username para esta cobrança
+                </label>
+                <div class="relative mt-1">
+                  <span
+                    class="pointer-events-none absolute left-3.5 top-3 text-sm font-bold text-pixu-muted"
+                    >@</span
+                  >
+                  <input
+                    id="guest-name-input"
+                    type="text"
+                    value="meireles"
+                    oninput="onGuestNameChange()"
+                    placeholder="seu.username"
+                    class="w-full rounded-xl border border-pixu-border bg-white pl-8 pr-3 py-2.5 text-sm font-extrabold text-pixu-ink focus:border-pixu-action focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+                  />
+                </div>
+              </div>
+
+              <!-- Prévia do rateio detectado para o username -->
+              <div
+                id="guest-detected-slot"
+                class="rounded-xl border border-sakura-6/30 bg-sakura-4/50 p-3 text-xs dark:bg-pink-950/20"
+              >
+                <div class="flex items-center justify-between font-bold">
+                  <span class="text-pixu-ink dark:text-dark-text"
+                    >Cota desta cobrança para @<span id="guest-detected-name"
+                      >meireles</span
+                    >:</span
+                  >
+                  <span
+                    id="guest-detected-amount"
+                    class="text-sm font-black text-pixu-action dark:text-sakura-3"
+                    >R$ 150,00</span
+                  >
+                </div>
+                <div
+                  id="guest-detected-items"
+                  class="mt-1 text-[11px] text-pixu-muted dark:text-dark-muted"
+                >
+                  Rateio comum (R$ 100,00) + Coca extra (R$ 50,00)
+                </div>
+              </div>
+
+              <!-- Explicação clara de escopo estrito -->
+              <div
+                class="rounded-xl bg-slate-100 p-3 text-[11px] text-pixu-muted dark:bg-slate-800/60 dark:text-dark-muted"
+              >
+                🔒 <strong>Acesso restrito a esta cobrança:</strong> Este
+                username identifica sua cota exclusivamente neste link. Ele não
+                cria uma conta no Pixu e não acessa nenhuma outra cobrança.
+              </div>
+
+              <button
+                onclick="confirmGuestEntry()"
+                class="flex w-full items-center justify-center rounded-xl bg-pixu-action-solid py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110"
+              >
+                Acessar somente esta cobrança ›
+              </button>
+            </div>
+          </div>
+
+          <!-- DIVISOR -->
+          <div class="relative flex items-center justify-center">
+            <div class="absolute inset-0 flex items-center">
+              <div
+                class="w-full border-t border-pixu-border dark:border-dark-border"
+              ></div>
+            </div>
+            <span
+              class="relative bg-[#FFF4F3] px-3 text-xs font-bold uppercase tracking-wider text-pixu-muted dark:bg-dark-canvas dark:text-dark-muted"
+              >ou</span
+            >
+          </div>
+
+          <!-- OPÇÃO 2: JÁ É CADASTRADO NO PIXU -->
+          <div
+            class="rounded-2xl border border-pixu-border bg-white p-5 shadow-xs dark:border-dark-border dark:bg-dark-surface space-y-2 text-center"
+          >
+            <h3
+              class="text-xs font-extrabold uppercase tracking-wide text-pixu-ink dark:text-dark-text"
+            >
+              Já possui conta cadastrada?
+            </h3>
+            <p class="text-xs text-pixu-muted dark:text-dark-muted">
+              Entre com seu e-mail e senha para integrar esta cobrança ao seu
+              dashboard e compensações.
+            </p>
+            <a
+              href="#"
+              class="inline-flex items-center justify-center rounded-xl border border-pixu-border px-4 py-2.5 text-xs font-bold text-pixu-ink hover:bg-slate-50 dark:border-dark-border dark:text-dark-text dark:hover:bg-slate-800"
+            >
+              Fazer login com minha conta
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+         VIEW 4: PAGAR AQUELA COBRANÇA (ESCOPO RESTRITO AO USERNAME)
+         ======================================================== -->
+      <section id="view-pay" class="hidden space-y-6">
+        <div class="mx-auto max-w-lg text-center">
+          <!-- Tag de Escopo Estrito da Cobrança -->
+          <div
+            class="inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-black text-pixu-muted shadow-2xs dark:border-dark-border dark:bg-dark-surface dark:text-dark-muted"
+          >
+            <span
+              >Cobrança: PX-8942 · Acesso restrito via @<span
+                id="guest-display-name"
+                >meireles</span
+              ></span
+            >
+          </div>
+          <h1
+            class="mt-2 text-2xl font-black text-pixu-ink dark:text-dark-text"
+          >
+            Almoço no Barbecue
+          </h1>
+          <p class="text-sm text-pixu-muted dark:text-dark-muted">
+            Recebedor: Ryan · Pague sua cota e anexe o comprovante abaixo
+          </p>
+        </div>
+
+        <div
+          class="mx-auto max-w-md space-y-5 rounded-2xl border border-pixu-border bg-white p-6 shadow-md dark:border-dark-border dark:bg-dark-surface"
+        >
+          <!-- Detalhe da Cota com Discriminação dos Extras -->
+          <div class="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
+            <div class="flex items-baseline justify-between">
+              <span
+                class="text-xs font-bold text-pixu-muted dark:text-dark-muted"
+                >Cota de @<span id="guest-display-name-2">meireles</span>:</span
+              >
+              <span
+                id="guest-final-amount"
+                class="text-2xl font-black text-pixu-action dark:text-sakura-3"
+                >R$ 150,00</span
+              >
+            </div>
+            <div
+              class="mt-2 border-t border-slate-200 pt-2 text-xs text-pixu-muted dark:border-slate-700 dark:text-dark-muted"
+            >
+              <div class="flex justify-between">
+                <span>• Rateio base da despesa:</span>
+                <span class="font-bold text-pixu-ink dark:text-dark-text"
+                  >R$ 100,00</span
+                >
+              </div>
+              <div
+                id="guest-breakdown-extra"
+                class="flex justify-between text-pixu-action dark:text-sakura-3"
+              >
+                <span>• Item individual (Coca extra):</span>
+                <span class="font-bold">+ R$ 50,00</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chave Pix do Recebedor (Ryan) -->
+          <div class="space-y-1.5">
+            <span
+              class="text-xs font-bold uppercase tracking-wider text-pixu-muted dark:text-dark-muted"
+              >Chave Pix de Ryan (Recebedor)</span
+            >
+            <div
+              class="flex items-center gap-2 rounded-xl border border-pixu-border bg-white p-3 dark:border-dark-border dark:bg-slate-800"
+            >
+              <span
+                class="font-mono text-sm font-black text-pixu-ink dark:text-dark-text"
+                id="pix-key-val"
+                >ryan.fac@pixu.com.br</span
+              >
+              <button
+                onclick="copyPixKey()"
+                id="btn-copy-pix"
+                class="ml-auto rounded-lg bg-sakura-2 px-2.5 py-1 text-xs font-bold text-pixu-action hover:bg-sakura-3 dark:bg-pink-950 dark:text-sakura-3"
+              >
+                Copiar chave
+              </button>
+            </div>
+            <span class="text-[10px] text-pixu-muted dark:text-dark-muted"
+              >Abra o app do seu banco, faça o Pix e anexe o comprovante
+              abaixo.</span
+            >
+          </div>
+
+          <!-- Formulário de Registro de Pagamento -->
+          <div
+            class="space-y-3 border-t border-pixu-border/60 pt-4 dark:border-dark-border/60"
+          >
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-pixu-ink dark:text-dark-text"
+                >Valor transferido (R$)</label
+              >
+              <input
+                type="text"
+                value="150,00"
+                class="w-full rounded-xl border border-pixu-border bg-slate-50 px-3.5 py-2 font-black text-pixu-ink dark:border-dark-border dark:bg-slate-800 dark:text-dark-text"
+              />
+            </div>
+
+            <div class="space-y-1">
+              <label class="text-xs font-bold text-pixu-ink dark:text-dark-text"
+                >Comprovante de pagamento</label
+              >
+              <div
+                class="flex items-center justify-center rounded-xl border-2 border-dashed border-pixu-border p-3 text-xs text-pixu-muted dark:border-dark-border dark:text-dark-muted"
+              >
+                📎 Anexar foto ou PDF do comprovante
+              </div>
+            </div>
+
+            <div
+              id="payment-status-box"
+              class="hidden rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+            >
+              ⏳ <strong>Pagamento registrado!</strong> Aguardando confirmação
+              manual de Ryan no banco.
+            </div>
+
+            <button
+              id="btn-confirm-payment"
+              onclick="submitPayment()"
+              class="flex w-full items-center justify-center rounded-xl bg-pixu-action-solid py-3 text-sm font-extrabold text-white shadow-md transition hover:brightness-110"
+            >
+              Informar que paguei R$ 150,00
+            </button>
+          </div>
+
+          <!-- Aviso de escopo no rodapé -->
+          <div
+            class="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-center text-[11px] text-pixu-muted dark:border-dark-border dark:bg-slate-800/40 dark:text-dark-muted"
+          >
+            Este acesso é temporário e permite pagar
+            <strong>apenas esta cobrança</strong>.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Script Interativo do Protótipo -->
+    <script>
+      // Alternância de Tema
+      function toggleTheme() {
+        const html = document.documentElement;
+        const isDark = html.classList.toggle("dark");
+        document.getElementById("theme-icon").textContent = isDark
+          ? "☀️"
+          : "🌙";
+      }
+
+      // Alternância de Telas
+      function switchView(viewName) {
+        ["create", "share", "claim", "pay"].forEach((v) => {
+          const el = document.getElementById("view-" + v);
+          const btn = document.getElementById("btn-tab-" + v);
+          if (v === viewName) {
+            el.classList.remove("hidden");
+            btn.className =
+              "rounded-lg bg-white px-3 py-1.5 text-pixu-action shadow-xs dark:bg-dark-surface dark:text-white font-extrabold";
+          } else {
+            el.classList.add("hidden");
+            btn.className =
+              "rounded-lg px-3 py-1.5 text-pixu-muted hover:text-pixu-ink dark:text-dark-muted dark:hover:text-white font-bold";
+          }
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+
+      // Cálculo Top-Down em tempo real
+      function recalculate() {
+        const total =
+          parseFloat(document.getElementById("input-total").value) || 0;
+
+        const itemRows = document.querySelectorAll(".item-row");
+        let extrasTotal = 0;
+        const extrasByPerson = {};
+
+        itemRows.forEach((row) => {
+          const amt = parseFloat(row.querySelector(".item-amount").value) || 0;
+          const owner = row.querySelector(".item-owner").value;
+          const title = row.querySelector(".item-title").value || "Extra";
+          extrasTotal += amt;
+          if (!extrasByPerson[owner]) extrasByPerson[owner] = [];
+          extrasByPerson[owner].push({ title, amt });
+        });
+
+        const participants = ["Ryan"];
+        if (document.getElementById("part-ruan").checked)
+          participants.push("Ruan");
+        if (document.getElementById("part-meireles").checked)
+          participants.push("Meireles");
+        if (document.getElementById("part-roberto").checked)
+          participants.push("Roberto");
+
+        const numParts = participants.length;
+        const baseShare = numParts > 0 ? (total - extrasTotal) / numParts : 0;
+        const diff = baseShare * numParts + extrasTotal - total;
+
+        // Atualiza o Badge Assinado Enxuto
+        const badge = document.getElementById("diff-badge");
+        if (Math.abs(diff) < 0.01 && baseShare >= 0) {
+          badge.className =
+            "badge-signed inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
+          badge.textContent = "R$ 0,00";
+        } else if (diff < 0 || baseShare < 0) {
+          badge.className =
+            "badge-signed inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-800 dark:bg-amber-950 dark:text-amber-300";
+          badge.textContent = `- R$ ${Math.abs(diff).toFixed(2).replace(".", ",")}`;
+        } else {
+          badge.className =
+            "badge-signed inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1 text-xs font-black text-rose-800 dark:bg-rose-950 dark:text-rose-300";
+          badge.textContent = `+ R$ ${diff.toFixed(2).replace(".", ",")}`;
+        }
+
+        // Atualiza Resumo
+        document.getElementById("summary-total").textContent =
+          `R$ ${total.toFixed(2).replace(".", ",")}`;
+        document.getElementById("summary-extras").textContent =
+          `R$ ${extrasTotal.toFixed(2).replace(".", ",")}`;
+        document.getElementById("summary-base").textContent =
+          `R$ ${(total - extrasTotal).toFixed(2).replace(".", ",")} (R$ ${baseShare.toFixed(2).replace(".", ",")} / pessoa)`;
+
+        // Lista de Prévia dos Participantes
+        const listContainer = document.getElementById(
+          "participants-preview-list",
+        );
+        listContainer.innerHTML = "";
+
+        participants.forEach((p) => {
+          const pExtras = extrasByPerson[p] || [];
+          const pExtrasSum = pExtras.reduce((sum, it) => sum + it.amt, 0);
+          const finalShare = baseShare + pExtrasSum;
+
+          const extrasLabel =
+            pExtras.length > 0
+              ? `Base R$ ${baseShare.toFixed(2).replace(".", ",")} + ${pExtras.map((it) => `${it.title} R$ ${it.amt.toFixed(2).replace(".", ",")}`).join(" + ")}`
+              : "Apenas rateio comum";
+
+          const rowHtml = `
+          <div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 p-2.5 dark:border-slate-800 dark:bg-slate-800/40">
+            <div>
+              <span class="text-xs font-bold text-pixu-ink dark:text-dark-text">${p}</span>
+              <span class="block text-[11px] text-pixu-muted dark:text-dark-muted">${extrasLabel}</span>
+            </div>
+            <span class="text-sm font-black text-pixu-ink dark:text-dark-text">R$ ${finalShare.toFixed(2).replace(".", ",")}</span>
+          </div>
+        `;
+          listContainer.insertAdjacentHTML("beforeend", rowHtml);
+        });
+      }
+
+      // Adiciona nova linha de item
+      function addItemRow() {
+        const container = document.getElementById("items-container");
+        const html = `
+        <div class="item-row grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-white p-2.5 sm:grid-cols-[1fr_5.5rem_7.5rem_auto] sm:items-center dark:border-dark-border dark:bg-dark-surface">
+          <input type="text" value="Novo item" class="item-title rounded-lg border border-pixu-border bg-white px-2.5 py-1.5 text-xs font-bold text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text" placeholder="Nome do item">
+          <div class="relative flex items-center">
+            <span class="pointer-events-none absolute left-2 text-[10px] font-bold text-pixu-muted">R$</span>
+            <input type="number" step="1" value="15" oninput="recalculate()" class="item-amount w-full rounded-lg border border-pixu-border bg-white pl-6 pr-2 py-1.5 text-right text-xs font-black text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text">
+          </div>
+          <select onchange="recalculate()" class="item-owner rounded-lg border border-pixu-border bg-white px-2 py-1.5 text-xs font-bold text-pixu-ink focus:outline-none dark:border-dark-border dark:bg-slate-800 dark:text-dark-text">
+            <option value="Meireles">Meireles</option>
+            <option value="Roberto">Roberto</option>
+            <option value="Ruan">Ruan</option>
+            <option value="Ryan">Ryan</option>
+          </select>
+          <button type="button" onclick="this.closest('.item-row').remove(); recalculate();" class="text-xs font-black text-pixu-danger p-1 hover:opacity-80" title="Remover item">✕</button>
+        </div>
+      `;
+        container.insertAdjacentHTML("beforeend", html);
+        recalculate();
+      }
+
+      function proceedToShare() {
+        switchView("share");
+      }
+
+      function copyShareLink() {
+        navigator.clipboard.writeText("https://pixu.app/c/PX-8942");
+        const btn = document.getElementById("btn-copy-link");
+        btn.textContent = "Copiado!";
+        setTimeout(() => {
+          btn.textContent = "Copiar";
+        }, 2000);
+      }
+
+      function simulateGuestClick(guestName) {
+        document.getElementById("guest-name-input").value =
+          guestName || "Meireles";
+        onGuestNameChange();
+        switchView("claim");
+      }
+
+      // Ao digitar o nome na tela de convidado
+      function onGuestNameChange() {
+        const name =
+          document.getElementById("guest-name-input").value.trim() ||
+          "Convidado";
+        document.getElementById("guest-detected-name").textContent = name;
+
+        const lower = name.toLowerCase();
+        let amount = "R$ 100,00";
+        let itemsText = "Apenas rateio comum da mesa (R$ 100,00)";
+
+        if (lower.includes("meireles")) {
+          amount = "R$ 150,00";
+          itemsText =
+            "Rateio comum da mesa (R$ 100,00) + Coca extra (R$ 50,00)";
+        } else if (lower.includes("roberto")) {
+          amount = "R$ 120,00";
+          itemsText =
+            "Rateio comum da mesa (R$ 100,00) + Sobremesa doce (R$ 20,00)";
+        }
+
+        document.getElementById("guest-detected-amount").textContent = amount;
+        document.getElementById("guest-detected-items").textContent = itemsText;
+      }
+
+      // Confirmar entrada do Convidado
+      function confirmGuestEntry() {
+        const name =
+          document.getElementById("guest-name-input").value.trim() ||
+          "Convidado";
+        const amount = document.getElementById(
+          "guest-detected-amount",
+        ).textContent;
+        const lower = name.toLowerCase();
+
+        document.getElementById("guest-display-name").textContent = name;
+        const el2 = document.getElementById("guest-display-name-2");
+        if (el2) el2.textContent = name;
+        document.getElementById("guest-final-amount").textContent = amount;
+
+        const extraEl = document.getElementById("guest-breakdown-extra");
+        if (lower.includes("meireles")) {
+          extraEl.classList.remove("hidden");
+          extraEl.innerHTML =
+            '<span>• Item individual (Coca extra):</span><span class="font-bold">+ R$ 50,00</span>';
+        } else if (lower.includes("roberto")) {
+          extraEl.classList.remove("hidden");
+          extraEl.innerHTML =
+            '<span>• Item individual (Sobremesa doce):</span><span class="font-bold">+ R$ 20,00</span>';
+        } else {
+          extraEl.classList.add("hidden");
+        }
+
+        switchView("pay");
+      }
+
+      function selectGuest(name, amount) {
+        document.getElementById("guest-name-input").value = name;
+        onGuestNameChange();
+        confirmGuestEntry();
+      }
+
+      function copyPixKey() {
+        navigator.clipboard.writeText("ryan.fac@pixu.com.br");
+        const btn = document.getElementById("btn-copy-pix");
+        btn.textContent = "Copiado!";
+        setTimeout(() => {
+          btn.textContent = "Copiar chave";
+        }, 2000);
+      }
+
+      function submitPayment() {
+        document
+          .getElementById("payment-status-box")
+          .classList.remove("hidden");
+        const btn = document.getElementById("btn-confirm-payment");
+        btn.disabled = true;
+        btn.textContent = "Pagamento informado ✓";
+        btn.className =
+          "flex w-full items-center justify-center rounded-xl bg-slate-300 py-3 text-sm font-extrabold text-slate-600 dark:bg-slate-700 dark:text-slate-400";
+      }
+
+      // Inicialização
+      recalculate();
+    </script>
+  </body>
+</html>

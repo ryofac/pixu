@@ -808,6 +808,28 @@ class ChargeViewTests(TestCase):
             'hx-trigger="input changed delay:300ms from:input[name=total]',
         )
 
+    def test_guest_checkbox_refreshes_options_fragment_with_htmx(self):
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:guest_options_preview"),
+            {**self.creation_data(), "guest_invites_enabled": "on"},
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == 200
+        self.assertContains(response, 'name="guest_total_participants"')
+        self.assertNotContains(response, 'data-guest-total-options hidden')
+
+        response = self.client.post(
+            reverse("charges:guest_options_preview"),
+            self.creation_data(),
+            HTTP_HX_REQUEST="true",
+        )
+
+        assert response.status_code == 200
+        self.assertContains(response, 'data-guest-total-options hidden')
+
     def test_conventional_create_post_creates_charge_and_redirects(self):
         self.client.force_login(self.creator)
 
@@ -824,6 +846,34 @@ class ChargeViewTests(TestCase):
         assert charge.description == "Sessão de sábado"
         assert charge.total_cents == 10000
         assert charge.state == Charge.State.AWAITING_ACCEPTANCE
+
+    def test_anonymous_creation_requires_explicit_total_participants(self):
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:create"),
+            {**self.creation_data(), "guest_invites_enabled": "on"},
+        )
+
+        assert response.status_code == 200
+        self.assertContains(response, "Informe quantas pessoas participarão")
+        assert not Charge.objects.filter(title="Cinema").exists()
+
+    def test_anonymous_creation_persists_explicit_total(self):
+        self.client.force_login(self.creator)
+
+        response = self.client.post(
+            reverse("charges:create"),
+            {
+                **self.creation_data(),
+                "guest_invites_enabled": "on",
+                "guest_total_participants": "3",
+            },
+        )
+
+        assert response.status_code == 302
+        charge = Charge.objects.get(title="Cinema")
+        assert charge.guest_total_participants == 3
 
     def test_create_recalculates_shares_when_participant_selection_is_newer_than_preview(
         self,

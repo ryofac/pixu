@@ -219,6 +219,40 @@ class PaymentReceiptView(LoginRequiredMixin, View):
         return response
 
 
+class GuestPaymentReceiptView(View):
+    """Deliver a guest's private receipt only for its own participation."""
+
+    def get(self, request, payment_id: int, participation_id: int, code: str):
+        payment = get_object_or_404(
+            Payment.objects.select_related("debt__participation__charge"),
+            pk=payment_id,
+            debt__participation_id=participation_id,
+        )
+        from pixu.charges.services import get_guest_participation
+        from pixu.charges.guest_views import _session_allows
+
+        get_guest_participation(participation_id=participation_id, personal_code=code)
+        if not _session_allows(request, participation_id):
+            raise PermissionDenied
+        if not payment.receipt:
+            raise PermissionDenied
+        try:
+            file_handle = payment.receipt.open("rb")
+        except (FileNotFoundError, OSError) as error:
+            raise Http404 from error
+        response = FileResponse(
+            file_handle,
+            content_type=payment.receipt_content_type or "application/octet-stream",
+        )
+        response["Content-Disposition"] = content_disposition_header(
+            as_attachment=False,
+            filename=payment.receipt_original_name or "comprovante",
+        )
+        response["X-Content-Type-Options"] = "nosniff"
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+
 class PaymentReceiptUpdateView(LoginRequiredMixin, View):
     def post(self, request, payment_id: int):
         payment = get_object_or_404(

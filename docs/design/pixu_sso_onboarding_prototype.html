@@ -1,0 +1,1373 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="description" content="Protótipo navegável Pixu — Autenticação com SSO (Google e GitHub) e onboarding com Chave Pix.">
+    <title>Pixu — Protótipo de SSO e Onboarding de Chave Pix</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --pixu-canvas: #fff4f3;
+        --pixu-surface: #ffffff;
+        --pixu-surface-raised: #fffafa;
+        --pixu-text: #2d3748;
+        --pixu-text-muted: #5b6573;
+        --pixu-border: #e8d5d8;
+        --pixu-border-subtle: #f2e5e6;
+        --pixu-border-strong: #d7c2c6;
+        --pixu-brand: #ec275f;
+        --pixu-brand-action: #b91649;
+        --pixu-brand-hover: #97133d;
+        --pixu-sakura-soft: #ffdbdb;
+        --pixu-success: #176b45;
+        --pixu-success-surface: #eaf6ef;
+        --pixu-success-border: #b7dec6;
+        --pixu-warning: #805400;
+        --pixu-warning-surface: #fff4d6;
+        --pixu-warning-border: #e8d59f;
+        --pixu-danger: #a12632;
+        --pixu-danger-surface: #fff0f0;
+        --pixu-danger-border: #eec1c4;
+        --pixu-info-surface: #eef4fa;
+        --pixu-info-border: #c9d8e8;
+        --pixu-focus: #1d5ca8;
+        --pixu-logo-diamond: #d4e0ee;
+        --pixu-logo-cutout: #fff4f3;
+
+        --font-app: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --pixu-canvas: #0f172a;
+        --pixu-surface: #1e293b;
+        --pixu-surface-raised: #273449;
+        --pixu-text: #f8fafc;
+        --pixu-text-muted: #cbd5e1;
+        --pixu-border: #475569;
+        --pixu-border-subtle: #334155;
+        --pixu-border-strong: #64748b;
+        --pixu-brand: #ffa7a6;
+        --pixu-brand-action: #b91649;
+        --pixu-brand-hover: #97133d;
+        --pixu-sakura-soft: #512739;
+        --pixu-success: #86efac;
+        --pixu-success-surface: #123526;
+        --pixu-success-border: #2c6a49;
+        --pixu-warning: #fcd34d;
+        --pixu-warning-surface: #422f11;
+        --pixu-warning-border: #705318;
+        --pixu-danger: #fda4af;
+        --pixu-danger-surface: #451f2a;
+        --pixu-danger-border: #743743;
+        --pixu-info-surface: #1e344b;
+        --pixu-info-border: #355675;
+        --pixu-focus: #93c5fd;
+        --pixu-logo-diamond: #273449;
+        --pixu-logo-cutout: #0f172a;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--pixu-canvas);
+        color: var(--pixu-text);
+        font-family: var(--font-app);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button, input, select, textarea { font: inherit; }
+      a { color: var(--pixu-brand-action); text-decoration: underline; text-underline-offset: 3px; }
+      :focus-visible { outline: 3px solid var(--pixu-focus); outline-offset: 3px; }
+
+      /* Control Toolbar */
+      .proto-toolbar {
+        background: var(--pixu-surface);
+        border-bottom: 1px solid var(--pixu-border);
+        padding: 0.5rem 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.825rem;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+      }
+      .proto-toolbar-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-weight: 700;
+        color: var(--pixu-brand-action);
+        background: var(--pixu-sakura-soft);
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+      }
+      .proto-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .proto-btn {
+        background: var(--pixu-surface-raised);
+        color: var(--pixu-text);
+        border: 1px solid var(--pixu-border);
+        padding: 0.35rem 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.15s ease;
+      }
+      .proto-btn:hover {
+        background: var(--pixu-border-subtle);
+      }
+      .proto-btn.active {
+        background: var(--pixu-brand-action);
+        color: #ffffff;
+        border-color: var(--pixu-brand-action);
+      }
+
+      /* Viewport Wrapper */
+      .viewport-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        padding: 1.5rem 1rem 3rem;
+        transition: all 0.25s ease;
+      }
+      .viewport-container.mode-mobile {
+        max-width: 440px;
+        margin: 0 auto;
+        padding: 1rem 0 3rem;
+      }
+      .viewport-container.mode-mobile .app-frame {
+        width: 100%;
+        max-width: 420px;
+        border: 1px solid var(--pixu-border);
+        border-radius: 28px;
+        overflow: hidden;
+        background: var(--pixu-canvas);
+        box-shadow: 0 18px 40px -10px rgba(0,0,0,0.18);
+        min-height: 720px;
+      }
+      .viewport-container.mode-desktop {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      .viewport-container.mode-desktop .app-frame {
+        width: 100%;
+      }
+
+      /* App Shell Header */
+      .app-header {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        background: var(--pixu-canvas);
+        border-bottom: 1px solid var(--pixu-border);
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .brand-link {
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        color: var(--pixu-text);
+      }
+
+      /* Screen Switching */
+      .screen {
+        display: none;
+      }
+      .screen.active {
+        display: block;
+        animation: fadeIn 0.2s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Layout: Entrance (Auth) */
+      .auth-layout {
+        display: grid;
+        gap: 2rem;
+        padding: 1.5rem 1rem;
+        align-items: center;
+      }
+      @media (min-width: 900px) {
+        .auth-layout {
+          grid-template-columns: minmax(0, 1.2fr) minmax(22rem, 30rem);
+          gap: 3.5rem;
+          padding: 3rem 1.5rem;
+        }
+      }
+
+      .auth-hero {
+        order: 2;
+      }
+      @media (min-width: 900px) {
+        .auth-hero {
+          order: 1;
+        }
+      }
+      .auth-tag {
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.12em;
+        font-weight: 800;
+        color: var(--pixu-brand-action);
+        margin-bottom: 0.5rem;
+      }
+      .auth-title {
+        font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+        font-weight: 800;
+        line-height: 1.2;
+        margin: 0 0 0.75rem;
+        color: var(--pixu-text);
+      }
+      .auth-desc {
+        font-size: 1rem;
+        color: var(--pixu-text-muted);
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+      }
+      .auth-benefits {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .auth-benefit-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        font-size: 0.925rem;
+        font-weight: 600;
+      }
+      .auth-check-icon {
+        color: var(--pixu-success);
+        font-weight: 900;
+        margin-top: 0.1rem;
+      }
+
+      /* Auth Card */
+      .auth-card {
+        order: 1;
+        background: var(--pixu-surface);
+        border: 1px solid var(--pixu-border);
+        border-radius: 24px;
+        padding: 1.75rem;
+        box-shadow: 0 10px 30px -5px rgba(0,0,0,0.06);
+      }
+      @media (min-width: 900px) {
+        .auth-card {
+          order: 2;
+          padding: 2.25rem;
+        }
+      }
+      .card-header {
+        margin-bottom: 1.5rem;
+      }
+      .card-title {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin: 0 0 0.35rem;
+        color: var(--pixu-text);
+      }
+      .card-subtitle {
+        font-size: 0.925rem;
+        color: var(--pixu-text-muted);
+        margin: 0;
+      }
+
+      /* SSO Buttons */
+      .sso-group {
+        display: grid;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+      .btn-sso {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        border: 1px solid transparent;
+      }
+      .btn-sso:active {
+        transform: scale(0.98);
+      }
+
+      /* Google Button */
+      .btn-google {
+        background: var(--pixu-surface);
+        color: var(--pixu-text);
+        border-color: var(--pixu-border-strong);
+      }
+      .btn-google:hover {
+        background: var(--pixu-surface-raised);
+        border-color: var(--pixu-text-muted);
+      }
+
+      /* GitHub Button */
+      .btn-github {
+        background: #24292e;
+        color: #ffffff;
+        border-color: #24292e;
+      }
+      .btn-github:hover {
+        background: #1b1f23;
+      }
+      :root[data-theme="dark"] .btn-github {
+        background: var(--pixu-surface-raised);
+        color: var(--pixu-text);
+        border-color: var(--pixu-border);
+      }
+      :root[data-theme="dark"] .btn-github:hover {
+        background: var(--pixu-border);
+      }
+
+      /* Semantic Divider */
+      .auth-divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 1.5rem 0;
+        color: var(--pixu-text-muted);
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: lowercase;
+      }
+      .auth-divider::before, .auth-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--pixu-border);
+      }
+
+      /* Standard Form Controls */
+      .form-group {
+        display: grid;
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+      }
+      .form-label {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--pixu-text);
+      }
+      .form-input {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--pixu-border-strong);
+        background: var(--pixu-surface);
+        color: var(--pixu-text);
+        font-size: 0.95rem;
+        transition: border-color 0.15s ease;
+      }
+      .form-input:focus {
+        border-color: var(--pixu-focus);
+      }
+      .form-hint {
+        font-size: 0.8rem;
+        color: var(--pixu-text-muted);
+        line-height: 1.4;
+      }
+
+      /* Primary Action Button */
+      .btn-primary {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.75rem 1.25rem;
+        background: var(--pixu-brand-action);
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-weight: 800;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(185, 22, 73, 0.25);
+        transition: all 0.15s ease;
+      }
+      .btn-primary:hover {
+        background: var(--pixu-brand-hover);
+      }
+      .btn-primary:active {
+        transform: scale(0.98);
+      }
+
+      .btn-secondary {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.75rem 1.25rem;
+        background: transparent;
+        color: var(--pixu-text-muted);
+        border: 1px solid var(--pixu-border);
+        border-radius: 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.15s ease;
+      }
+      .btn-secondary:hover {
+        background: var(--pixu-surface-raised);
+        color: var(--pixu-text);
+      }
+
+      .auth-footer {
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--pixu-border-subtle);
+        font-size: 0.875rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      /* Onboarding Flow Styles */
+      .onboarding-card {
+        max-width: 540px;
+        margin: 2rem auto;
+        background: var(--pixu-surface);
+        border: 1px solid var(--pixu-border);
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px -5px rgba(0,0,0,0.06);
+      }
+      .user-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.35rem 0.8rem;
+        border-radius: 9999px;
+        background: var(--pixu-sakura-soft);
+        color: var(--pixu-brand-action);
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+      }
+      .user-avatar-circle {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--pixu-brand-action);
+        color: #ffffff;
+        display: grid;
+        place-items: center;
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .info-notice {
+        background: var(--pixu-info-surface);
+        border: 1px solid var(--pixu-info-border);
+        border-radius: 12px;
+        padding: 0.875rem 1rem;
+        font-size: 0.875rem;
+        color: var(--pixu-text);
+        margin: 1.25rem 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+      .info-notice-icon {
+        font-size: 1.2rem;
+        line-height: 1;
+      }
+
+      /* Dashboard Mock */
+      .dash-layout {
+        max-width: 1040px;
+        margin: 1.5rem auto;
+        padding: 0 1rem;
+      }
+      .dash-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .dash-welcome {
+        font-size: 1.6rem;
+        font-weight: 800;
+        margin: 0;
+      }
+
+      /* Warning Banner for Missing Pix Key */
+      .banner-warning {
+        background: var(--pixu-warning-surface);
+        border: 1px solid var(--pixu-warning-border);
+        border-left: 5px solid var(--pixu-warning);
+        border-radius: 14px;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        animation: fadeIn 0.3s ease;
+      }
+      @media (min-width: 640px) {
+        .banner-warning {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+        }
+      }
+      .banner-warning-content {
+        display: flex;
+        gap: 0.85rem;
+        align-items: flex-start;
+      }
+      .banner-warning-icon {
+        font-size: 1.4rem;
+        line-height: 1;
+      }
+      .banner-warning-title {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--pixu-warning);
+        margin: 0 0 0.25rem;
+      }
+      .banner-warning-text {
+        font-size: 0.875rem;
+        color: var(--pixu-text);
+        margin: 0;
+        line-height: 1.4;
+      }
+      .banner-warning-action {
+        white-space: nowrap;
+        background: var(--pixu-warning);
+        color: #ffffff;
+        font-weight: 700;
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        border: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .banner-warning-action:hover {
+        opacity: 0.9;
+      }
+
+      /* Success Banner for Configured Pix Key */
+      .banner-success {
+        background: var(--pixu-success-surface);
+        border: 1px solid var(--pixu-success-border);
+        border-left: 5px solid var(--pixu-success);
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        animation: fadeIn 0.3s ease;
+      }
+      .banner-success-title {
+        font-size: 0.925rem;
+        font-weight: 800;
+        color: var(--pixu-success);
+        margin: 0 0 0.15rem;
+      }
+      .banner-success-text {
+        font-size: 0.85rem;
+        color: var(--pixu-text);
+        margin: 0;
+      }
+
+      /* Mock Dashboard Metrics */
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      .metric-card {
+        background: var(--pixu-surface);
+        border: 1px solid var(--pixu-border);
+        border-radius: 16px;
+        padding: 1.25rem;
+      }
+      .metric-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--pixu-text-muted);
+        margin-bottom: 0.35rem;
+      }
+      .metric-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--pixu-text);
+      }
+
+      /* Mock Activity List */
+      .card-block {
+        background: var(--pixu-surface);
+        border: 1px solid var(--pixu-border);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+      .card-block-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0 0 1rem;
+      }
+
+      /* Modal Simulation for Pix Key Editing */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .modal-backdrop.active {
+        display: flex;
+      }
+      .modal-box {
+        background: var(--pixu-surface);
+        border: 1px solid var(--pixu-border);
+        border-radius: 20px;
+        width: 100%;
+        max-width: 480px;
+        padding: 1.75rem;
+        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.3);
+      }
+
+      /* Loading State Overlay Simulation */
+      .loading-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 1.1rem;
+        gap: 1rem;
+        flex-direction: column;
+      }
+      .loading-overlay.active {
+        display: flex;
+      }
+      .spinner {
+        width: 42px;
+        height: 42px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: var(--pixu-brand);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Top Prototype Control Bar -->
+    <header class="proto-toolbar" role="region" aria-label="Controles do Protótipo">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <span class="proto-toolbar-badge">
+          <span>●</span> Protótipo Interativo
+        </span>
+        <span style="font-weight: 600; color: var(--pixu-text-muted);">
+          SSO (Google & GitHub) + Onboarding Pix
+        </span>
+      </div>
+
+      <div class="proto-controls">
+        <label for="proto-theme-select" style="font-weight: 600; font-size: 0.8rem; color: var(--pixu-text-muted);">Tema:</label>
+        <select id="proto-theme-select" class="proto-btn" onchange="setTheme(this.value)">
+          <option value="light">☀️ Claro</option>
+          <option value="dark">🌙 Escuro</option>
+          <option value="system">🖥️ Sistema</option>
+        </select>
+
+        <button class="proto-btn active" id="btn-view-desktop" onclick="setViewMode('desktop')">💻 Desktop</button>
+        <button class="proto-btn" id="btn-view-mobile" onclick="setViewMode('mobile')">📱 Celular</button>
+        <button class="proto-btn" style="color: var(--pixu-brand-action); font-weight: 700;" onclick="resetFlow()">↺ Reiniciar Fluxo</button>
+      </div>
+    </header>
+
+    <!-- Main Viewport -->
+    <div class="viewport-container mode-desktop" id="viewport-container">
+      <div class="app-frame">
+        <!-- Pixu App Navigation Header -->
+        <header class="app-header">
+          <a href="javascript:void(0)" onclick="resetFlow()" class="brand-link" aria-label="Pixu início">
+            <!-- Inline Pixu System Core Logo -->
+            <svg class="pixu-brand-logo" viewBox="0 0 420 160" width="112" height="42" role="img" aria-label="Pixu" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="pixu-sakura-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FFA7A6" />
+                  <stop offset="40%" stop-color="#F25477" />
+                  <stop offset="100%" stop-color="#EC275F" />
+                </linearGradient>
+                <filter id="pixu-logo-glow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="10" />
+                </filter>
+                <path id="pixu-sakura-petal" d="M 0 0 C -22 -20, -25 -48, -12 -58 L 0 -48 L 12 -58 C 25 -48, 22 -20, 0 0 Z" />
+                <path id="pixu-mini-petal" d="M 0 0 C -10 -10, -12 -24, -6 -29 L 0 -24 L 6 -29 C 12 -24, 10 -10, 0 0 Z" />
+              </defs>
+              <g id="logo-symbol">
+                <rect x="32" y="32" width="96" height="96" rx="22" transform="rotate(45 80 80)" fill="var(--pixu-logo-diamond, #D4E0EE)" />
+                <circle cx="80" cy="85" r="30" fill="#EC275F" opacity=".25" filter="url(#pixu-logo-glow)" />
+                <g transform="translate(80 80) scale(.8)">
+                  <use href="#pixu-sakura-petal" fill="url(#pixu-sakura-gradient)" />
+                  <use href="#pixu-sakura-petal" transform="rotate(72)" fill="url(#pixu-sakura-gradient)" />
+                  <use href="#pixu-sakura-petal" transform="rotate(144)" fill="url(#pixu-sakura-gradient)" />
+                  <use href="#pixu-sakura-petal" transform="rotate(216)" fill="url(#pixu-sakura-gradient)" />
+                  <use href="#pixu-sakura-petal" transform="rotate(288)" fill="url(#pixu-sakura-gradient)" />
+                </g>
+                <g transform="translate(80 80)" fill="none" stroke="var(--pixu-logo-cutout, #FFF4F3)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M -18 -18 L -3 -3 M 18 -18 L 3 -3 M -18 18 L -3 3 M 18 18 L 3 3" />
+                  <circle r="3.5" fill="var(--pixu-logo-cutout, #FFF4F3)" stroke="none" />
+                </g>
+                <use href="#pixu-mini-petal" transform="translate(135 35) rotate(45) scale(.36)" fill="#FFA7A6" opacity=".6" />
+                <use href="#pixu-mini-petal" transform="translate(20 110) rotate(-110) scale(.5)" fill="#F25477" opacity=".4" />
+              </g>
+              <text x="170" y="84" dominant-baseline="middle" fill="currentColor" font-family="ui-rounded, 'SF Pro Rounded', system-ui, sans-serif" font-size="88" font-weight="800" letter-spacing="-1.5">Pi<tspan fill="var(--pixu-brand, #EC275F)">x</tspan>u</text>
+            </svg>
+          </a>
+
+          <div id="header-user-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+            <button class="proto-btn" onclick="toggleThemeQuick()" aria-label="Alternar tema">
+              <svg id="quick-theme-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="display:inline-block;"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+              <svg id="quick-theme-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            </button>
+            <div id="user-profile-badge" style="display:none; align-items:center; gap:0.5rem;">
+              <span class="user-avatar-circle" id="nav-avatar">U</span>
+              <span id="nav-username" style="font-size:0.9rem; font-weight:700;">Usuário</span>
+              <button class="proto-btn" style="padding:0.25rem 0.5rem; font-size:0.75rem;" onclick="resetFlow()">Sair</button>
+            </div>
+          </div>
+        </header>
+
+        <!-- SCREEN 1: LOGIN / ENTRANCE COM SSO -->
+        <main id="screen-entrance" class="screen active">
+          <section class="auth-layout">
+            <!-- Left Column: Value Proposition -->
+            <div class="auth-hero">
+              <p class="auth-tag">Conta Pixu</p>
+              <h1 class="auth-title">Despesas compartilhadas, com mais clareza.</h1>
+              <p class="auth-desc">Crie cobranças, acompanhe convites e deixe cada participação combinada antes de a cobrança ficar ativa.</p>
+              <ul class="auth-benefits">
+                <li class="auth-benefit-item">
+                  <svg class="auth-check-icon" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <span>Acesso ágil em 1 clique com sua conta Google ou GitHub</span>
+                </li>
+                <li class="auth-benefit-item">
+                  <svg class="auth-check-icon" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <span>Rateio transparente com soma exata em centavos</span>
+                </li>
+                <li class="auth-benefit-item">
+                  <svg class="auth-check-icon" width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                  <span>Sua chave Pix compartilhada apenas quando necessária</span>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Right Column: Authentication Card -->
+            <div class="auth-card">
+              <div class="card-header">
+                <h2 class="card-title" id="auth-card-heading">Entre na sua conta</h2>
+                <p class="card-subtitle">Escolha seu método preferido para acessar suas cobranças.</p>
+              </div>
+
+              <!-- SSO Action Buttons -->
+              <div class="sso-group">
+                <!-- Google SSO -->
+                <button type="button" class="btn-sso btn-google" onclick="simulateOAuth('google')" aria-label="Continuar com Google">
+                  <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.665-5.17 3.665-9.12z"/>
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.28v3.13C3.26 21.3 7.34 24 12 24z"/>
+                    <path fill="#FBBC05" d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.58H1.28C.46 8.2 0 10.04 0 12s.46 3.8 1.28 5.42l4-3.13z"/>
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.7 1.28 6.58l4 3.13c.95-2.83 3.6-4.96 6.72-4.96z"/>
+                  </svg>
+                  <span>Continuar com Google</span>
+                </button>
+
+                <!-- GitHub SSO -->
+                <button type="button" class="btn-sso btn-github" onclick="simulateOAuth('github')" aria-label="Continuar com GitHub">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                  </svg>
+                  <span>Continuar com GitHub</span>
+                </button>
+              </div>
+
+              <!-- Divider -->
+              <div class="auth-divider">ou entre com e-mail e senha</div>
+
+              <!-- Conventional Form -->
+              <form onsubmit="handleManualLogin(event)">
+                <div class="form-group">
+                  <label class="form-label" for="manual-login-id">E-mail ou nome de usuário</label>
+                  <input type="text" id="manual-login-id" class="form-input" placeholder="seu@email.com ou @usuario" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="manual-password">Senha</label>
+                  <input type="password" id="manual-password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 0.5rem;">
+                  Entrar
+                </button>
+              </form>
+
+              <div class="auth-footer">
+                <a href="javascript:void(0)" onclick="alert('Simulação: fluxo de recuperação por e-mail.')">Esqueci minha senha</a>
+                <a href="javascript:void(0)" onclick="toggleAuthMode(this)">Criar uma conta</a>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <!-- SCREEN 2: ONBOARDING COM SOLICITAÇÃO DE CHAVE PIX E USERNAME -->
+        <main id="screen-onboarding" class="screen">
+          <div style="padding: 1.5rem 1rem;">
+            <div class="onboarding-card">
+              <div class="user-badge">
+                <span class="user-avatar-circle" id="onboard-avatar">G</span>
+                <span>Conectado via <strong id="onboard-provider">Google</strong> como <span id="onboard-email">usuario@exemplo.com</span></span>
+              </div>
+
+              <h2 style="font-size: 1.5rem; font-weight: 800; margin: 0 0 0.5rem;">Complete seu perfil</h2>
+              <p style="color: var(--pixu-text-muted); margin: 0 0 1.25rem;">
+                Escolha seu nome de identificação no Pixu e, se quiser, já informe sua chave Pix para receber cotas de rateio.
+              </p>
+
+              <form onsubmit="savePixKey(event)">
+                <!-- 1. Nome Completo -->
+                <div class="form-group">
+                  <label class="form-label" for="fullname-input">Seu nome de exibição</label>
+                  <input type="text" id="fullname-input" class="form-input" oninput="handleNameChange(this.value)" required>
+                </div>
+
+                <!-- 2. Nome de Usuário com sugestão automática -->
+                <div class="form-group" style="margin-top: 1rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label class="form-label" for="username-suggested">Seu nome de usuário (@)</label>
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--pixu-brand-action); background:var(--pixu-sakura-soft); padding:0.15rem 0.5rem; border-radius:999px;">
+                      Sugestão pelo nome
+                    </span>
+                  </div>
+                  <div style="position:relative; display:flex; align-items:center;">
+                    <span style="position:absolute; left:1rem; font-weight:800; color:var(--pixu-text-muted); pointer-events:none;">@</span>
+                    <input type="text" id="username-suggested" class="form-input" style="padding-left:2rem;" required oninput="state.userManuallyEditedUsername = true;">
+                  </div>
+                  <span class="form-hint">Outras pessoas usarão seu @username para adicionar você em cobranças.</span>
+                </div>
+
+                <!-- Sugestões rápidas de username -->
+                <div id="username-chips" style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:-0.4rem; margin-bottom:1.25rem;">
+                  <!-- Gerado dinamicamente via JS -->
+                </div>
+
+                <!-- Divisor Visual -->
+                <div style="height:1px; background:var(--pixu-border-subtle); margin:1.5rem 0 1.25rem;"></div>
+
+                <!-- 3. Chave Pix Principal -->
+                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                  <label class="form-label" style="font-size:1rem; margin-bottom:0.25rem;">Chave Pix principal (opcional agora)</label>
+                  <span style="font-size:0.8rem; color:var(--pixu-text-muted);">Pode fazer depois</span>
+                </div>
+
+                <!-- Informative Banner about Pix Key -->
+                <div class="info-notice" style="margin: 0.5rem 0 1rem;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0; margin-top:0.1rem;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <div>
+                    <strong>Aviso:</strong> A chave Pix é informada por você e não é validada junto ao banco. Ela só aparece para os amigos quando você for o recebedor de uma cobrança.
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="pix-key-value">Sua chave Pix</label>
+                  <input type="text" id="pix-key-value" class="form-input" placeholder="Cole sua chave (CPF, e-mail, celular ou aleatória)">
+                  <span class="form-hint">O Pixu não valida a chave; basta colar exatamente como está no seu aplicativo bancário.</span>
+                </div>
+
+                <!-- Simple, Accessible Button Group -->
+                <div style="display: grid; gap: 0.75rem; margin-top: 1.75rem;">
+                  <button type="submit" class="btn-primary">
+                    Salvar e continuar
+                  </button>
+                  <button type="button" class="btn-secondary" onclick="skipPixKey()">
+                    Fazer depois
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </main>
+
+        <!-- SCREEN 3: DASHBOARD PÓS-AUTENTICAÇÃO -->
+        <main id="screen-dashboard" class="screen">
+          <div class="dash-layout">
+            <!-- Warning Banner (Shown if user skipped Pix key) -->
+            <div id="banner-pix-missing" class="banner-warning" style="display: none;">
+              <div class="banner-warning-content">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--pixu-warning); flex-shrink:0; margin-top:0.1rem;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div>
+                  <h3 class="banner-warning-title">Sua chave Pix ainda não foi configurada</h3>
+                  <p class="banner-warning-text">
+                    Você pode participar de cobranças normalmente, mas precisará cadastrar uma chave para poder receber dinheiro quando criar um rateio.
+                  </p>
+                </div>
+              </div>
+              <div>
+                <button type="button" class="banner-warning-action" onclick="openPixModal()">
+                  Configurar chave Pix
+                </button>
+              </div>
+            </div>
+
+            <!-- Success Banner (Shown if user configured Pix key) -->
+            <div id="banner-pix-configured" class="banner-success" style="display: none;">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="color:var(--pixu-success); flex-shrink:0;"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <div>
+                <h3 class="banner-success-title">Chave Pix ativa no seu perfil</h3>
+                <p class="banner-success-text">Sua chave Pix (<strong id="dash-pix-display"></strong>) está pronta para ser compartilhada com os participantes dos seus rateios.</p>
+              </div>
+            </div>
+
+            <!-- Dashboard Welcome & Quick Actions -->
+            <div class="dash-header">
+              <div>
+                <h1 class="dash-welcome">Olá, <span id="dash-user-name">Usuário</span>!</h1>
+                <p style="color: var(--pixu-text-muted); margin: 0.25rem 0 0;">Aqui está o resumo dos seus rateios e cobranças ativas.</p>
+              </div>
+              <button class="btn-primary" style="width: auto; padding: 0.65rem 1.25rem;" onclick="handleNewCharge()">
+                + Nova cobrança
+              </button>
+            </div>
+
+            <!-- Financial Summary Metrics -->
+            <div class="metric-grid">
+              <div class="metric-card">
+                <div class="metric-label">A Receber</div>
+                <div class="metric-val" style="color: var(--pixu-success);">R$ 0,00</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">A Pagar</div>
+                <div class="metric-val" style="color: var(--pixu-brand-action);">R$ 0,00</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Compensação Potencial</div>
+                <div class="metric-val" style="color: var(--pixu-text-muted);">R$ 0,00</div>
+              </div>
+            </div>
+
+            <!-- Active Charges Block -->
+            <div class="card-block">
+              <h2 class="card-block-title">Suas cobranças recentes</h2>
+              <div style="text-align: center; padding: 2.5rem 1rem; color: var(--pixu-text-muted);">
+                <p style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--pixu-text);">Nenhuma cobrança ativa ainda</p>
+                <p style="font-size: 0.9rem; max-width: 400px; margin: 0 auto 1.5rem;">Crie um rateio com seus amigos para dividir churrascos, presentes ou contas coletivas.</p>
+                <button class="btn-secondary" style="width: auto; padding: 0.6rem 1.25rem; display: inline-flex;" onclick="handleNewCharge()">
+                  Criar primeiro rateio
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- MODAL: CONFIGURAR CHAVE PIX PENDENTE -->
+    <div id="modal-pix" class="modal-backdrop" onclick="closePixModalOnBackdrop(event)">
+      <div class="modal-box">
+        <h3 style="font-size: 1.3rem; font-weight: 800; margin: 0 0 0.5rem;">Cadastrar Chave Pix</h3>
+        <p style="color: var(--pixu-text-muted); font-size: 0.9rem; margin-bottom: 1.25rem;">
+          Informe sua chave para que outros participantes possam pagar você diretamente no aplicativo do banco deles.
+        </p>
+
+        <form onsubmit="savePixModal(event)">
+          <div class="form-group">
+            <label class="form-label" for="modal-pix-val">Sua chave Pix</label>
+            <input type="text" id="modal-pix-val" class="form-input" placeholder="Cole sua chave (CPF, e-mail, celular ou aleatória)" required>
+            <span class="form-hint">O Pixu não valida o formato; basta colar sua chave.</span>
+          </div>
+          <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: flex-end;">
+            <button type="button" class="btn-secondary" style="width: auto;" onclick="closePixModal()">Cancelar</button>
+            <button type="submit" class="btn-primary" style="width: auto;">Salvar chave</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- SIMULATED LOADING OVERLAY -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <span id="loading-text">Conectando ao provedor...</span>
+    </div>
+
+    <script>
+      // State Management
+      const state = {
+        theme: 'light',
+        viewMode: 'desktop',
+        currentScreen: 'entrance',
+        user: {
+          name: '',
+          email: '',
+          username: '',
+          provider: '',
+          pixKey: ''
+        }
+      };
+
+      // Theme Control
+      function setTheme(theme) {
+        state.theme = theme;
+        document.getElementById('proto-theme-select').value = theme;
+        const root = document.documentElement;
+
+        if (theme === 'system') {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        } else {
+          root.setAttribute('data-theme', theme);
+        }
+
+        const isEffectiveDark = root.getAttribute('data-theme') === 'dark';
+        const sunIcon = document.getElementById('quick-theme-sun');
+        const moonIcon = document.getElementById('quick-theme-moon');
+        if (sunIcon && moonIcon) {
+          sunIcon.style.display = isEffectiveDark ? 'none' : 'inline-block';
+          moonIcon.style.display = isEffectiveDark ? 'inline-block' : 'none';
+        }
+      }
+
+      function toggleThemeQuick() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        setTheme(next);
+      }
+
+      // View Mode (Desktop vs Mobile Frame)
+      function setViewMode(mode) {
+        state.viewMode = mode;
+        const container = document.getElementById('viewport-container');
+        const btnDesktop = document.getElementById('btn-view-desktop');
+        const btnMobile = document.getElementById('btn-view-mobile');
+
+        if (mode === 'mobile') {
+          container.className = 'viewport-container mode-mobile';
+          btnMobile.classList.add('active');
+          btnDesktop.classList.remove('active');
+        } else {
+          container.className = 'viewport-container mode-desktop';
+          btnDesktop.classList.add('active');
+          btnMobile.classList.remove('active');
+        }
+      }
+
+      // Screen Navigation
+      function showScreen(screenId) {
+        state.currentScreen = screenId;
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        const target = document.getElementById('screen-' + screenId);
+        if (target) target.classList.add('active');
+
+        // Header User Badge Sync
+        const userBadge = document.getElementById('user-profile-badge');
+        if (screenId === 'dashboard') {
+          userBadge.style.display = 'flex';
+          document.getElementById('nav-avatar').textContent = (state.user.name || 'U').charAt(0).toUpperCase();
+          document.getElementById('nav-username').textContent = state.user.name || state.user.username;
+        } else {
+          userBadge.style.display = 'none';
+        }
+      }
+
+      // Simulated OAuth SSO Handshake
+      function simulateOAuth(provider) {
+        const overlay = document.getElementById('loading-overlay');
+        const text = document.getElementById('loading-text');
+
+        // State Management
+        state.userManuallyEditedUsername = false;
+
+        // Clean text to slug format
+        function slugify(text) {
+          return text
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]/g, '');
+        }
+
+        // Generate Username Suggestions from Name
+        function generateUsernameSuggestions(name) {
+          if (!name || !name.trim()) return ['usuario'];
+          const parts = name.trim().split(/\s+/).filter(Boolean);
+          const first = slugify(parts[0] || 'usuario');
+          const last = parts.length > 1 ? slugify(parts[parts.length - 1]) : '';
+
+          const suggestions = [];
+          if (last) {
+            suggestions.push(`${first}${last}`);
+            suggestions.push(`${first}.${last}`);
+            suggestions.push(`${first}_${last}`);
+          } else {
+            suggestions.push(first);
+            suggestions.push(`${first}.pixu`);
+            suggestions.push(`${first}_pixu`);
+          }
+          return suggestions;
+        }
+
+        function renderUsernameChips(name) {
+          const container = document.getElementById('username-chips');
+          const suggestions = generateUsernameSuggestions(name);
+          container.innerHTML = suggestions.map((sug, i) => `
+            <button type="button" class="proto-btn" style="font-size:0.75rem; padding:0.2rem 0.55rem; border-radius:999px; ${i === 0 ? 'border-color:var(--pixu-brand); color:var(--pixu-brand-action); font-weight:700;' : ''}" onclick="applyUsernameSuggestion('${sug}')">
+              @${sug}
+            </button>
+          `).join('');
+        }
+
+        function applyUsernameSuggestion(val) {
+          document.getElementById('username-suggested').value = val;
+          state.userManuallyEditedUsername = true;
+        }
+
+        function handleNameChange(name) {
+          if (!state.userManuallyEditedUsername) {
+            const suggestions = generateUsernameSuggestions(name);
+            if (suggestions.length > 0) {
+              document.getElementById('username-suggested').value = suggestions[0];
+            }
+          }
+          renderUsernameChips(name);
+        }
+
+        if (provider === 'google') {
+          text.textContent = 'Autenticando via Google Accounts...';
+          state.user.name = 'Ana Beatriz';
+          state.user.email = 'ana.beatriz@gmail.com';
+          state.user.provider = 'Google';
+        } else {
+          text.textContent = 'Autenticando via GitHub OAuth...';
+          state.user.name = 'Ryan Santos';
+          state.user.email = 'ryan.dev@github.com';
+          state.user.provider = 'GitHub';
+        }
+
+        overlay.classList.add('active');
+
+        setTimeout(() => {
+          overlay.classList.remove('active');
+
+          // Populate Onboarding Screen
+          state.userManuallyEditedUsername = false;
+          document.getElementById('onboard-avatar').textContent = state.user.name.charAt(0);
+          document.getElementById('onboard-provider').textContent = state.user.provider;
+          document.getElementById('onboard-email').textContent = state.user.email;
+          document.getElementById('fullname-input').value = state.user.name;
+
+          const suggestions = generateUsernameSuggestions(state.user.name);
+          document.getElementById('username-suggested').value = suggestions[0] || 'usuario';
+          renderUsernameChips(state.user.name);
+
+          showScreen('onboarding');
+        }, 800);
+      }
+
+      // Manual Login / Signup Simulation
+      function handleManualLogin(e) {
+        e.preventDefault();
+        const id = document.getElementById('manual-login-id').value;
+        const heading = document.getElementById('auth-card-heading').textContent;
+
+        const isSignup = heading.includes('Crie');
+
+        state.user.name = id.split('@')[0] || 'Novo Usuário';
+        state.user.email = id.includes('@') ? id : id + '@pixu.app';
+        state.user.provider = 'E-mail';
+
+        if (isSignup) {
+          // If signup, also take them through onboarding!
+          state.userManuallyEditedUsername = false;
+          document.getElementById('onboard-avatar').textContent = state.user.name.charAt(0).toUpperCase();
+          document.getElementById('onboard-provider').textContent = 'E-mail e senha';
+          document.getElementById('onboard-email').textContent = state.user.email;
+          document.getElementById('fullname-input').value = state.user.name;
+
+          const suggestions = generateUsernameSuggestions(state.user.name);
+          document.getElementById('username-suggested').value = suggestions[0] || 'usuario';
+          renderUsernameChips(state.user.name);
+
+          showScreen('onboarding');
+        } else {
+          state.user.username = id.replace('@', '');
+          state.user.pixKey = '';
+          renderDashboard();
+          showScreen('dashboard');
+        }
+      }
+
+      function toggleAuthMode(linkEl) {
+        const heading = document.getElementById('auth-card-heading');
+        const submitBtn = document.querySelector('#screen-entrance .btn-primary');
+        if (heading.textContent.includes('Entre')) {
+          heading.textContent = 'Crie sua conta';
+          submitBtn.textContent = 'Criar conta e continuar';
+          linkEl.textContent = 'Já tem conta? Entrar';
+        } else {
+          heading.textContent = 'Entre na sua conta';
+          submitBtn.textContent = 'Entrar';
+          linkEl.textContent = 'Criar uma conta';
+        }
+      }
+
+      // Placeholder helper for Pix key
+      function updatePixPlaceholder(type) {
+        const input = document.getElementById('pix-key-value');
+        if (type === 'cpf') input.placeholder = '000.000.000-00';
+        else if (type === 'email') input.placeholder = 'seu.email@provedor.com';
+        else if (type === 'phone') input.placeholder = '(11) 98765-4321';
+        else input.placeholder = '8b3c9071-4648-4396-857e-39fd...';
+      }
+
+      // Onboarding Action: Save All Data
+      function savePixKey(e) {
+        e.preventDefault();
+        const nameVal = document.getElementById('fullname-input').value.trim();
+        const userVal = document.getElementById('username-suggested').value.trim();
+        const keyVal = document.getElementById('pix-key-value').value.trim();
+
+        if (nameVal) state.user.name = nameVal;
+        if (userVal) state.user.username = userVal;
+        state.user.pixKey = keyVal;
+
+        renderDashboard();
+        showScreen('dashboard');
+      }
+
+      // Onboarding Action: Skip Pix Key (saves name and username)
+      function skipPixKey() {
+        const nameVal = document.getElementById('fullname-input').value.trim();
+        const userVal = document.getElementById('username-suggested').value.trim();
+
+        if (nameVal) state.user.name = nameVal;
+        if (userVal) state.user.username = userVal;
+        state.user.pixKey = '';
+
+        renderDashboard();
+        showScreen('dashboard');
+      }
+
+      // Render Dashboard based on whether Pix key exists
+      function renderDashboard() {
+        document.getElementById('dash-user-name').textContent = state.user.name || state.user.username;
+
+        const bannerMissing = document.getElementById('banner-pix-missing');
+        const bannerConfigured = document.getElementById('banner-pix-configured');
+
+        if (!state.user.pixKey) {
+          bannerMissing.style.display = 'flex';
+          bannerConfigured.style.display = 'none';
+        } else {
+          bannerMissing.style.display = 'none';
+          bannerConfigured.style.display = 'flex';
+          document.getElementById('dash-pix-display').textContent = state.user.pixKey;
+        }
+      }
+
+      // Modal Controls
+      function openPixModal() {
+        document.getElementById('modal-pix').classList.add('active');
+        document.getElementById('modal-pix-val').focus();
+      }
+      function closePixModal() {
+        document.getElementById('modal-pix').classList.remove('active');
+      }
+      function closePixModalOnBackdrop(e) {
+        if (e.target.id === 'modal-pix') closePixModal();
+      }
+      function savePixModal(e) {
+        e.preventDefault();
+        const val = document.getElementById('modal-pix-val').value.trim();
+        if (val) {
+          state.user.pixKey = val;
+          closePixModal();
+          renderDashboard();
+        }
+      }
+
+      // Quick test for New Charge button
+      function handleNewCharge() {
+        if (!state.user.pixKey) {
+          alert('Atenção: Você ainda não cadastrou sua chave Pix. Ao criar esta cobrança com você como recebedor, seus amigos não terão uma chave para copiar até que você cadastre uma.');
+        } else {
+          alert('Abrindo formulário de criação de cobrança com sua chave ' + state.user.pixKey + ' vinculada!');
+        }
+      }
+
+      // Reset everything to test again
+      function resetFlow() {
+        state.user = { name: '', email: '', username: '', provider: '', pixKey: '' };
+        document.getElementById('pix-key-value').value = '';
+        document.getElementById('manual-login-id').value = '';
+        document.getElementById('manual-password').value = '';
+        showScreen('entrance');
+      }
+
+      // Init on load
+      setTheme('light');
+    </script>
+  </body>
+</html>

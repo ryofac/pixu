@@ -6,7 +6,7 @@
   <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
       <h3 class="break-words text-lg font-extrabold text-pixu-ink" id="debt-{{ debt.pk }}-title">
-        {% if debt.debtor_id == request.user.id %}{% translate "Você deve a" %} {{ debt.creditor.name|default:debt.creditor.username }}{% else %}{{ debt.debtor.name|default:debt.debtor.username }} {% translate "deve a você" %}{% endif %}
+        {% if debt.debtor_id == request.user.id %}{% translate "Você deve a" %} {{ debt.creditor.name|default:debt.creditor.username }}{% else %}{% if debt.debtor %}{{ debt.debtor.name|default:debt.debtor.username }}{% elif debt.participation.guest_name %}{{ debt.participation.guest_name }}{% else %}{% translate "Convidado" %}{% endif %} {% translate "deve a você" %}{% endif %}
       </h3>
       <p class="mt-1 text-sm text-pixu-muted">{% translate "Dívida de" %} {{ debt.original_cents|brl_from_cents }}</p>
     </div>

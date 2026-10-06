@@ -10,6 +10,11 @@ from django.utils.translation import gettext_lazy as _
 CHARGE_TITLE_MAX_LENGTH = 120
 CHARGE_DESCRIPTION_MAX_LENGTH = 1000
 CHARGE_CANCELLATION_REASON_MAX_LENGTH = 500
+GUEST_NAME_MAX_LENGTH = 120
+GUEST_TOKEN_DIGEST_MAX_LENGTH = 64
+DEFAULT_GUEST_ENTRY_LIMIT = 10
+DEFAULT_GUEST_ACCESS_TTL_DAYS = 7
+MAX_GUEST_TOTAL_PARTICIPANTS = 100
 
 
 class Charge(models.Model):
@@ -63,6 +68,52 @@ class Charge(models.Model):
         max_length=CHARGE_CANCELLATION_REASON_MAX_LENGTH,
         blank=True,
     )
+    guest_invites_enabled = models.BooleanField(
+        _("entradas anônimas habilitadas"),
+        default=False,
+    )
+    guest_total_participants = models.PositiveSmallIntegerField(
+        _("total explícito de participantes"),
+        null=True,
+        blank=True,
+    )
+    guest_entry_limit = models.PositiveSmallIntegerField(
+        _("limite de entradas convidadas"),
+        default=DEFAULT_GUEST_ENTRY_LIMIT,
+    )
+    guest_access_ttl_days = models.PositiveSmallIntegerField(
+        _("validade do acesso convidado em dias"),
+        default=DEFAULT_GUEST_ACCESS_TTL_DAYS,
+    )
+    guest_entries_open = models.BooleanField(
+        _("entradas convidadas abertas"),
+        default=False,
+    )
+    guest_entries_closed_at = models.DateTimeField(
+        _("entradas fechadas em"),
+        null=True,
+        blank=True,
+    )
+    guest_entry_token_digest = models.CharField(
+        _("digest do link convidado"),
+        max_length=GUEST_TOKEN_DIGEST_MAX_LENGTH,
+        blank=True,
+    )
+    guest_entry_code_digest = models.CharField(
+        _("digest do código convidado"),
+        max_length=GUEST_TOKEN_DIGEST_MAX_LENGTH,
+        blank=True,
+    )
+    guest_entry_token_created_at = models.DateTimeField(
+        _("link convidado criado em"),
+        null=True,
+        blank=True,
+    )
+    guest_entry_token_revoked_at = models.DateTimeField(
+        _("link convidado revogado em"),
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-created_at", "-pk"]
@@ -78,6 +129,19 @@ class Charge(models.Model):
                     state__in=("AWAITING_ACCEPTANCE", "ACTIVE", "CANCELLED"),
                 ),
                 name="charge_state_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(guest_entry_limit__gte=1, guest_entry_limit__lte=100),
+                name="guest_entry_limit_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(guest_total_participants__isnull=True)
+                | Q(guest_total_participants__gte=1, guest_total_participants__lte=100),
+                name="guest_total_participants_valid",
+            ),
+            models.CheckConstraint(
+                condition=Q(guest_access_ttl_days__gte=1, guest_access_ttl_days__lte=30),
+                name="guest_access_ttl_valid",
             ),
         ]
 
@@ -103,8 +167,46 @@ class Participation(models.Model):
         on_delete=models.PROTECT,
         related_name="charge_participations",
         verbose_name=_("participante"),
+        null=True,
+        blank=True,
+    )
+    guest_name = models.CharField(
+        _("nome autodeclarado do convidado"),
+        max_length=GUEST_NAME_MAX_LENGTH,
+        blank=True,
+        null=True,
+    )
+    guest_name_normalized = models.CharField(
+        _("nome convidado normalizado"),
+        max_length=GUEST_NAME_MAX_LENGTH,
+        blank=True,
+        null=True,
+    )
+    guest_access_digest = models.CharField(
+        _("digest do código pessoal"),
+        max_length=GUEST_TOKEN_DIGEST_MAX_LENGTH,
+        blank=True,
+    )
+    guest_access_created_at = models.DateTimeField(
+        _("código pessoal criado em"),
+        null=True,
+        blank=True,
+    )
+    guest_access_expires_at = models.DateTimeField(
+        _("código pessoal expira em"),
+        null=True,
+        blank=True,
+    )
+    guest_claimed_at = models.DateTimeField(
+        _("entrada convidada em"),
+        null=True,
+        blank=True,
     )
     share_cents = models.PositiveBigIntegerField(_("cota em centavos"))
+    base_share_cents = models.PositiveBigIntegerField(
+        _("parcela da base comum em centavos"),
+        default=0,
+    )
     state = models.CharField(
         _("estado do convite"),
         choices=State,
@@ -139,10 +241,59 @@ class Participation(models.Model):
                 ),
                 name="participation_state_valid",
             ),
+            models.CheckConstraint(
+                condition=(
+                    Q(user__isnull=False, guest_name__isnull=True)
+                    | Q(user__isnull=True, guest_name__isnull=False)
+                ),
+                name="participation_single_identity",
+            ),
         ]
 
     def __str__(self) -> str:
-        return f"{self.user} — {self.charge}"
+        identity = self.user or self.guest_name or "Convidado"
+        return f"{identity} — {self.charge}"
+
+
+class ChargeItem(models.Model):
+    """An optional individual extra assigned to one participation."""
+
+    DESCRIPTION_MAX_LENGTH = 160
+
+    charge = models.ForeignKey(
+        Charge,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name=_("cobrança"),
+    )
+    participation = models.ForeignKey(
+        Participation,
+        on_delete=models.SET_NULL,
+        related_name="items",
+        verbose_name=_("responsável"),
+        null=True,
+        blank=True,
+    )
+    description = models.CharField(
+        _("descrição"),
+        max_length=DESCRIPTION_MAX_LENGTH,
+    )
+    amount_cents = models.PositiveBigIntegerField(_("valor em centavos"))
+    created_at = models.DateTimeField(_("criado em"), default=timezone.now, editable=False)
+
+    class Meta:
+        ordering = ["pk"]
+        verbose_name = _("item da cobrança")
+        verbose_name_plural = _("itens da cobrança")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount_cents__gt=0),
+                name="charge_item_amount_positive",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.description} — {self.amount_cents}¢"
 
 
 class Debt(models.Model):
@@ -157,6 +308,8 @@ class Debt(models.Model):
         on_delete=models.PROTECT,
         related_name="debts_to_pay",
         verbose_name=_("devedor"),
+        null=True,
+        blank=True,
     )
     creditor = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -181,7 +334,7 @@ class Debt(models.Model):
                 name="debt_original_nonnegative",
             ),
             models.CheckConstraint(
-                condition=~Q(debtor=F("creditor")),
+                condition=Q(debtor__isnull=True) | ~Q(debtor=F("creditor")),
                 name="debt_parties_must_differ",
             ),
         ]

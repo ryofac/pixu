@@ -6,9 +6,17 @@ from django.views import defaults as default_views
 from django.views.generic import TemplateView
 
 from pixu.dashboard.views import HomeView
+from pixu.dashboard.views import PwaManifestView
+from pixu.dashboard.views import PwaServiceWorkerView
 
 urlpatterns = [
     path("", HomeView.as_view(), name="home"),
+    path("manifest.webmanifest", PwaManifestView.as_view(), name="pwa_manifest"),
+    path(
+        "service-worker.js",
+        PwaServiceWorkerView.as_view(),
+        name="pwa_service_worker",
+    ),
     path(
         "about/",
         TemplateView.as_view(template_name="pages/about.html"),

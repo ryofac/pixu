@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% load charge_format i18n %}
+
+{% block title %}Seu acesso · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="mx-auto max-w-xl space-y-5" aria-labelledby="guest-access-title">
+    <header>
+      <p class="text-sm font-bold text-pixu-action">Entrada criada</p>
+      <h1 class="mt-2 text-2xl font-extrabold text-pixu-ink" id="guest-access-title">Guarde seu código pessoal</h1>
+      <p class="mt-2 text-sm leading-relaxed text-pixu-muted">Ele identifica somente sua participação em {{ charge.title }}. O nome é autodeclarado e não cria uma conta Pixu.</p>
+      {% if charge.guest_total_participants %}<p class="mt-1 text-sm leading-relaxed text-pixu-muted">A cota foi calculada sobre {{ charge.guest_total_participants }} pessoas no total e poderá ser confirmada antes do fechamento das entradas.</p>{% endif %}
+    </header>
+    <div class="grid gap-4 rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6">
+      <div class="rounded-xl border border-sakura-1 bg-sakura-4 p-4 dark:border-pink-900/40 dark:bg-pink-950/20">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold uppercase tracking-wide text-pixu-muted dark:text-sakura-3">{% translate "Código pessoal" %}</span>
+          <button type="button"
+                  class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-pixu-action px-3 py-1.5 text-xs font-extrabold text-white shadow-sm transition hover:brightness-110 active:scale-95"
+                  onclick="copyTextToClipboard(this, '{{ personal_code|escapejs }}')"
+                  aria-label="{% translate 'Copiar código pessoal' %}">
+            <svg class="size-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span>{% translate "Copiar código" %}</span>
+          </button>
+        </div>
+        <p class="mt-2 break-all font-mono text-xl font-black tracking-[.16em] text-pixu-action dark:text-sakura-3 sm:text-2xl">{{ personal_code }}</p>
+      </div>
+
+      <div class="rounded-xl border border-pixu-border bg-slate-50 p-3.5 dark:border-dark-border dark:bg-slate-800/60">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold uppercase tracking-wide text-pixu-muted dark:text-dark-muted">{% translate "Link direto da sua cota" %}</span>
+          <button type="button"
+                  class="inline-flex min-h-9 items-center justify-center gap-1 rounded-lg border border-pixu-border bg-white px-2.5 py-1 text-xs font-bold text-pixu-ink shadow-2xs hover:bg-slate-50 dark:border-dark-border dark:bg-dark-surface dark:text-dark-text"
+                  onclick="copyTextToClipboard(this, '{{ personal_url|escapejs }}')"
+                  aria-label="{% translate 'Copiar link da cota' %}">
+            <span>{% translate "Copiar link" %}</span>
+          </button>
+        </div>
+        <p class="mt-1.5 break-all text-xs text-pixu-muted dark:text-dark-muted">{{ personal_url }}</p>
+      </div>
+
+      <a class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 text-center font-extrabold text-white no-underline shadow-md transition hover:brightness-110 active:scale-[0.98]" href="{{ personal_url }}">
+        {% translate "Abrir minha cota" %} ›
+      </a>
+    </div>
+  </section>
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script defer>
+    function copyTextToClipboard(button, text) {
+      const originalHtml = button.innerHTML;
+      const onSuccess = () => {
+        button.innerHTML = '<span>✓ Copiado!</span>';
+        button.classList.add("!bg-green-700");
+        setTimeout(() => {
+          button.innerHTML = originalHtml;
+          button.classList.remove("!bg-green-700");
+        }, 2000);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+          fallbackCopy(text, onSuccess);
+        });
+      } else {
+        fallbackCopy(text, onSuccess);
+      }
+    }
+    function fallbackCopy(text, cb) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (cb) cb();
+    }
+  </script>
+{% endblock javascript %}

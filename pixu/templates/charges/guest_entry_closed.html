@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block title %}Entrada encerrada · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="mx-auto max-w-xl space-y-4" aria-labelledby="guest-closed-title">
+    <h1 class="text-2xl font-extrabold text-pixu-ink" id="guest-closed-title">Entrada encerrada</h1>
+    <p class="rounded-[20px] border border-pixu-border bg-pixu-surface p-5 text-sm leading-relaxed text-pixu-muted">Você saiu de {{ charge.title }}. Se precisar participar novamente, peça ao criador um novo link enquanto as entradas estiverem abertas.</p>
+  </section>
+{% endblock content %}

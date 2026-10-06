@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load form_fields charge_format i18n %}
+
+{% block title %}Entrar no rateio · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="mx-auto max-w-xl space-y-5" aria-labelledby="guest-entry-title">
+    <header>
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-sakura-2 px-3 py-1 text-xs font-extrabold text-pixu-action dark:bg-pink-950 dark:text-sakura-3">{% translate "Pixu · Entrada convidada" %}</span>
+      <h1 class="mt-2.5 text-2xl font-extrabold leading-tight text-pixu-ink sm:text-3xl" id="guest-entry-title">{{ charge.title }}</h1>
+      <div class="mt-3.5 rounded-xl border border-sakura-1 bg-pixu-info-surface p-3.5 text-sm shadow-2xs">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Total da cobrança" %}</span>
+          <strong class="text-lg font-black text-pixu-action">R$ {{ charge.total_cents|brl_from_cents }}</strong>
+        </div>
+        {% if charge.guest_total_participants %}
+          <div class="mt-2 border-t border-sakura-1/70 pt-2 text-xs text-pixu-muted">
+            {% blocktranslate with count=charge.guest_total_participants %}Divisão fixada em <strong>{{ count }} pessoas</strong>. Sua cota já usa essa base e poderá ser paga assim que você confirmar.{% endblocktranslate %}
+          </div>
+        {% endif %}
+      </div>
+    </header>
+    {% if form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% if charge.guest_entries_open %}
+      <form class="grid gap-4 rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6" method="post" novalidate>
+        {% csrf_token %}
+        <div class="grid gap-2">
+          <label for="{{ form.name.id_for_label }}">{{ form.name.label }}</label>
+          {% render_accessible_field form.name %}
+          <span class="text-xs leading-relaxed text-pixu-muted">{{ form.name.help_text }}</span>
+          {% if form.name.errors %}<ul class="text-sm text-pixu-danger" id="{{ form.name.auto_id }}_errors" role="alert">{% for error in form.name.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink" role="note">Seu nome é autodeclarado. Quem tiver este link poderá entrar, e o código pessoal será a forma de voltar para a sua cota.</div>
+        <button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md" type="submit">Entrar no rateio</button>
+      </form>
+    {% else %}
+      <div class="rounded-[20px] border border-pixu-border bg-pixu-surface p-5 text-sm leading-relaxed text-pixu-muted shadow-sm" role="status">As entradas desta cobrança já foram fechadas. Use seu código pessoal para continuar.</div>
+    {% endif %}
+  </section>
+{% endblock content %}

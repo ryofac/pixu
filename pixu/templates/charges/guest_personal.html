@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load form_fields charge_format i18n %}
+
+{% block title %}Minha cota · {{ charge.title }}{% endblock title %}
+
+{% block content %}
+  <section class="mx-auto max-w-2xl space-y-5" aria-labelledby="guest-personal-title">
+    <header>
+      <p class="text-sm font-bold text-pixu-action">Acesso temporário · {{ display_name }}</p>
+      <h1 class="mt-2 break-words text-2xl font-extrabold text-pixu-ink" id="guest-personal-title">{{ charge.title }}</h1>
+      <p class="mt-2 text-sm leading-relaxed text-pixu-muted">Seu acesso mostra apenas esta cobrança. O nome é autodeclarado e o código pessoal não dá acesso a outras cotas.</p>
+    </header>
+    {% if status_message %}<p class="rounded-xl border px-4 py-3 text-sm leading-relaxed{% if status_is_error %} border-red-200 bg-red-50 text-pixu-danger{% else %} border-green-200 bg-green-50 text-pixu-success{% endif %}" role="{% if status_is_error %}alert{% else %}status{% endif %}">{{ status_message }}</p>{% endif %}
+    <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6">
+      <div class="flex items-center justify-between gap-4"><span class="text-sm text-pixu-muted">Sua cota</span><strong class="text-2xl font-extrabold text-pixu-action">R$ {{ participation.share_cents|brl_from_cents }}</strong></div>
+      <dl class="mt-5 grid gap-3 border-t border-pixu-border pt-4 text-sm sm:grid-cols-2">
+        <div><dt class="text-pixu-muted">Base comum</dt><dd class="mt-1 font-bold">R$ {{ participation.base_share_cents|brl_from_cents }}</dd></div>
+        {% if charge.guest_total_participants %}<div><dt class="text-pixu-muted">Total declarado</dt><dd class="mt-1 font-bold">{{ charge.guest_total_participants }} pessoas</dd></div>{% endif %}
+        <div><dt class="text-pixu-muted">Quem recebe</dt><dd class="mt-1 font-bold">{{ charge.creditor.name|default:charge.creditor.username }}</dd></div>
+      </dl>
+      {% if participation.items.all %}
+        <details class="group mt-4 border-t border-pixu-border pt-3">
+          <summary class="flex cursor-pointer list-none items-center justify-between text-sm font-extrabold text-pixu-ink">
+            <span class="inline-flex items-center gap-1.5">
+              <svg class="size-4 shrink-0 text-pixu-action transition-transform duration-200 group-open:rotate-90" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+              <span>{% translate "Itens individuais atribuídos" %} ({{ participation.items.all|length }})</span>
+            </span>
+            <span class="text-xs font-bold text-pixu-action group-open:hidden">{% translate "Ver itens" %} ▾</span>
+            <span class="hidden text-xs font-bold text-pixu-muted group-open:inline">{% translate "Ocultar" %} ▴</span>
+          </summary>
+          <ul class="mt-3 grid gap-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-800/50">
+            {% for item in participation.items.all %}
+              <li class="flex items-center justify-between gap-3 text-xs sm:text-sm">
+                <span>{{ item.description }}</span>
+                <strong class="font-extrabold text-pixu-ink">R$ {{ item.amount_cents|brl_from_cents }}</strong>
+              </li>
+            {% endfor %}
+          </ul>
+        </details>
+      {% endif %}
+      {% if pix_key %}
+        <div class="mt-4 rounded-xl border border-sakura-1 bg-sakura-4 p-3.5 sm:p-4">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0 flex-1">
+              <span class="block text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Chave Pix do recebedor" %} ({{ charge.creditor.name|default:charge.creditor.username }})</span>
+              <strong class="mt-1 block truncate font-mono text-sm font-extrabold text-pixu-ink sm:text-base" id="guest-pix-key">{{ pix_key }}</strong>
+            </div>
+            <button type="button"
+                    class="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-pixu-action-solid px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:brightness-110 active:scale-95 sm:min-w-36"
+                    onclick="copyTextToClipboard(this, '{{ pix_key|escapejs }}')"
+                    aria-label="{% translate 'Copiar chave Pix' %}">
+              <svg class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>{% translate "Copiar chave Pix" %}</span>
+            </button>
+          </div>
+          <span class="mt-2 block text-[11px] text-pixu-muted">{% translate "Abra o aplicativo do seu banco, faça a transferência Pix e anexe o comprovante abaixo." %}</span>
+        </div>
+      {% endif %}
+    </article>
+    {% if participation.state == 'PENDING' %}
+      <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-pixu-ink">{% if charge.guest_entries_open and charge.guest_total_participants %}O total de pessoas foi fixado pelo cobrador. Confira sua cota e confirme para liberar o pagamento agora, mesmo com o link aberto.{% elif charge.guest_entries_open %}Aguarde o criador fechar as entradas. Depois confira sua cota e confirme.{% else %}Confira sua cota e confirme para liberar o pagamento.{% endif %}</div>
+      {% if charge.guest_total_participants or not charge.guest_entries_open %}<form method="post" class="grid gap-3 sm:grid-cols-2"><input type="hidden" name="expected_share_cents" value="{{ participation.share_cents }}"><input type="hidden" name="expected_creditor_id" value="{{ charge.creditor_id }}">{% csrf_token %}{% if charge.guest_total_participants or not charge.guest_entries_open %}<button class="min-h-12 rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white" name="action" value="confirm" type="submit">Confirmar minha cota</button>{% endif %}{% if charge.guest_entries_open %}<button class="min-h-12 rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted" name="action" value="leave" type="submit">Sair do rateio</button>{% endif %}</form>{% endif %}
+    {% elif debt and debt.payment_balance %}
+      <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6"><div class="flex items-center justify-between gap-4"><h2 class="text-lg font-extrabold text-pixu-ink">Pagamento</h2><span class="text-sm font-bold text-pixu-muted">Disponível: R$ {{ debt.payment_balance.available_cents|brl_from_cents }}</span></div><form class="mt-4 grid gap-4" method="post" enctype="multipart/form-data" action="{% url 'charges:guest_pay' participation.pk request.resolver_match.kwargs.code %}" novalidate>{% csrf_token %}{% for field in payment_form %}<div class="grid gap-2"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.name == "receipt" %}{% include "settlements/partials/file_input.html" with field=field %}{% else %}{% render_accessible_field field %}{% endif %}{% if field.help_text %}<span class="text-xs leading-relaxed text-pixu-muted">{{ field.help_text }}</span>{% endif %}{% if field.errors %}<ul class="text-sm text-pixu-danger" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}</div>{% endfor %}<button class="min-h-12 rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white" type="submit">Registrar pagamento pendente</button></form></article>
+    {% endif %}
+  </section>
+{% endblock content %}
+
+{% block javascript %}
+  {{ block.super }}
+  <script defer>
+    function copyTextToClipboard(button, text) {
+      const originalHtml = button.innerHTML;
+      const onSuccess = () => {
+        button.innerHTML = '<span>✓ Copiado!</span>';
+        button.classList.add("!bg-green-700");
+        setTimeout(() => {
+          button.innerHTML = originalHtml;
+          button.classList.remove("!bg-green-700");
+        }, 2000);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(onSuccess).catch(() => {
+          fallbackCopy(text, onSuccess);
+        });
+      } else {
+        fallbackCopy(text, onSuccess);
+      }
+    }
+    function fallbackCopy(text, cb) {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (cb) cb();
+    }
+  </script>
+{% endblock javascript %}

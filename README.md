@@ -121,15 +121,15 @@ O ambiente local inclui o [Garage](https://garagehq.deuxfleurs.fr/documentation/
 
 A configuração Django seleciona o backend por `PIXU_STORAGE_BACKEND`. Para Garage ou outro serviço S3-compatible, defina `PIXU_STORAGE_BACKEND=storages.backends.s3.S3Storage` e configure pelo `.env` as variáveis abaixo, redirecionadas nos arquivos `.envs` correspondentes.
 
-| Variável | Função |
-| --- | --- |
-| `PIXU_S3_BUCKET_NAME` | Bucket privado para comprovantes. |
-| `PIXU_S3_ENDPOINT_URL` | Endpoint S3; local: `http://garage:3900` dentro do Compose. |
-| `PIXU_S3_REGION_NAME` | Região esperada pelo provedor S3-like. |
-| `PIXU_S3_ACCESS_KEY_ID` | Identificador de acesso com escopo limitado ao bucket. |
-| `PIXU_S3_SECRET_ACCESS_KEY` | Segredo correspondente; nunca versionar ou registrar em logs. |
-| `PIXU_S3_ADDRESSING_STYLE` | Estilo suportado pelo provedor: `auto`, `path` ou `virtual`. |
-| `PIXU_S3_USE_SSL` | `True` para endpoints remotos com TLS; `False` somente no Garage local. |
+| Variável                    | Função                                                                  |
+| --------------------------- | ----------------------------------------------------------------------- |
+| `PIXU_S3_BUCKET_NAME`       | Bucket privado para comprovantes.                                       |
+| `PIXU_S3_ENDPOINT_URL`      | Endpoint S3; local: `http://garage:3900` dentro do Compose.             |
+| `PIXU_S3_REGION_NAME`       | Região esperada pelo provedor S3-like.                                  |
+| `PIXU_S3_ACCESS_KEY_ID`     | Identificador de acesso com escopo limitado ao bucket.                  |
+| `PIXU_S3_SECRET_ACCESS_KEY` | Segredo correspondente; nunca versionar ou registrar em logs.           |
+| `PIXU_S3_ADDRESSING_STYLE`  | Estilo suportado pelo provedor: `auto`, `path` ou `virtual`.            |
+| `PIXU_S3_USE_SSL`           | `True` para endpoints remotos com TLS; `False` somente no Garage local. |
 
 Para validar pelo Django em Compose, o endpoint local deve ser `http://garage:3900`; `localhost` dentro do container aponta para o próprio container Django. Para uma ferramenta executada diretamente na máquina host, use `http://localhost:3900`. A região usada pelo cliente e pelo Garage deve coincidir. Não publique o bucket e não habilite ACL pública.
 
@@ -225,6 +225,7 @@ Mantenha as pontes de SMTP e Celery em `.envs/.production/.django` e os valores 
    ```
 
    O conjunto inclui Django/Gunicorn, `celeryworker`, PostgreSQL, Redis, Nginx e Traefik com HTTPS. DNS e acesso às portas 80/443 precisam estar prontos para emissão do certificado.
+
 4. Verifique os serviços e logs:
 
    ```sh

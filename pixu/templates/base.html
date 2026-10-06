@@ -5,10 +5,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#fff4f3" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="description" content="Aplicação para dividir despesas e acompanhar obrigações entre amigos." />
     <meta name="author" content="Pixu Team" />
     <title>{% block title %}Pixu{% endblock title %}</title>
     <link rel="icon" type="image/x-icon" href="{% static 'images/favicons/favicon.ico' %}?v=2" />
+    <link rel="manifest" href="{% url 'pwa_manifest' %}" />
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/pwa/apple-touch-icon.png' %}" />
     <script src="{% static 'js/theme-init.js' %}"></script>
     <link href="{% static 'css/tailwind.css' %}" rel="stylesheet" />
     {% block css %}{% endblock css %}
@@ -132,6 +137,19 @@
       </div>
       {% block modal %}{% endblock modal %}
       {% block inline_javascript %}{% endblock inline_javascript %}
+      <aside class="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 mx-auto hidden max-w-md sm:hidden" data-install-prompt hidden aria-labelledby="install-prompt-title" aria-live="polite">
+        <div class="rounded-2xl border border-pixu-border bg-pixu-surface p-3 shadow-xl">
+          <div class="flex items-start gap-3">
+            <img class="size-12 shrink-0 rounded-xl" src="{% static 'images/pwa/icon-192.png' %}" alt="" aria-hidden="true" />
+            <div class="min-w-0 flex-1">
+              <h2 class="text-sm font-extrabold text-pixu-ink" id="install-prompt-title">Instale o Pixu</h2>
+              <p class="mt-1 text-xs leading-relaxed text-pixu-muted" data-install-message>Tenha suas cobranças sempre à mão, com acesso rápido pelo celular.</p>
+            </div>
+            <button class="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-xl text-xl leading-none text-pixu-muted hover:bg-pixu-surface-raised hover:text-pixu-ink" type="button" data-install-dismiss aria-label="Agora não">×</button>
+          </div>
+          <button class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:brightness-110" type="button" data-install-action>Instalar app</button>
+        </div>
+      </aside>
     {% endblock body %}
   </body>
 </html>

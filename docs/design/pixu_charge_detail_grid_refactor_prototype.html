@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Protótipo · Menu Contextual + Bottom Sheet · Pixu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Nunito", "sans-serif"] },
+            colors: {
+              pixu: {
+                brand: "#EC275F",
+                action: "#B91649",
+                "action-solid": "#EC275F",
+                accent: "#FFA7A6",
+                surface: "#FFFFFF",
+                "surface-raised": "#F8FAFC",
+                ink: "#2D3748",
+                muted: "#5B6573",
+                border: "#E8D5D8",
+                danger: "#A12632",
+                pending: "#805400",
+                success: "#176B45",
+                "info-surface": "#F4F7FB",
+              },
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .device-frame {
+        transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    </style>
+  </head>
+  <body class="flex h-full flex-col bg-slate-900 font-sans text-slate-100 antialiased">
+
+    <!-- TOPBAR DO SIMULADOR -->
+    <header class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950 px-4 py-3 shadow-md">
+      <div class="flex items-center gap-2">
+        <span class="rounded bg-pixu-action-solid px-2 py-0.5 text-xs font-black text-white">PROTÓTIPO FINAL</span>
+        <h1 class="text-sm font-extrabold text-white">Menu Contextual ("···") + Bottom Sheet Responsivo</h1>
+      </div>
+
+      <!-- SELETORES DE VIEWPORT COM IFRAME REAL -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-400 font-bold hidden sm:inline">Simular Viewport:</span>
+        <div class="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900 p-1 text-xs font-bold text-slate-300">
+          <button type="button" id="vp-mobile" onclick="setIframeWidth('390px', 'vp-mobile')" class="rounded px-3 py-1.5 transition bg-white text-slate-900 font-black shadow-xs">
+            📱 Mobile (390px)
+          </button>
+          <button type="button" id="vp-tablet" onclick="setIframeWidth('768px', 'vp-tablet')" class="rounded px-3 py-1.5 transition hover:bg-slate-800 hover:text-white">
+            Tablet (768px)
+          </button>
+          <button type="button" id="vp-desktop" onclick="setIframeWidth('100%', 'vp-desktop')" class="rounded px-3 py-1.5 transition hover:bg-slate-800 hover:text-white">
+            💻 Desktop (100%)
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ÁREA DO VIEWPORT -->
+    <main class="relative flex flex-1 items-center justify-center overflow-auto bg-slate-900 p-2 sm:p-4">
+      <div id="frame-container" class="device-frame mx-auto h-full w-[390px] overflow-hidden rounded-2xl border border-slate-700 bg-white shadow-2xl">
+        <iframe id="preview-frame" class="h-full w-full border-0 bg-slate-50" title="Preview da tela"></iframe>
+      </div>
+    </main>
+
+    <!-- SCRIPT DO SIMULADOR -->
+    <script>
+      function generatePreviewHtml() {
+        return `<!doctype html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["Nunito", "sans-serif"] },
+          colors: {
+            pixu: {
+              brand: "#EC275F",
+              action: "#B91649",
+              "action-solid": "#EC275F",
+              accent: "#FFA7A6",
+              surface: "#FFFFFF",
+              "surface-raised": "#F8FAFC",
+              ink: "#2D3748",
+              muted: "#5B6573",
+              border: "#E8D5D8",
+              danger: "#A12632",
+              pending: "#805400",
+              success: "#176B45",
+              "info-surface": "#F4F7FB",
+            },
+            sakura: {
+              1: "#D4E0EE",
+              2: "#FFDBDB",
+              3: "#FFA7A6",
+              4: "#FFF4F3",
+              6: "#EC275F",
+            }
+          }
+        }
+      }
+    };
+  <\/script>
+  <style>
+    /* Animação suave do Bottom Sheet no Mobile */
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .animate-slide-up {
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-full bg-slate-100 font-sans text-pixu-ink antialiased p-3 sm:p-5 lg:p-7 pb-20 sm:pb-8">
+
+  <div class="mx-auto max-w-6xl space-y-4 sm:space-y-6">
+
+    <!-- CABEÇALHO DA COBRANÇA COM MENU CONTEXTUAL ("···") -->
+    <header class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <a class="mb-1.5 inline-flex text-xs font-bold text-pixu-action no-underline hover:underline" href="#">‹ Cobranças</a>
+        <h1 class="text-2xl font-extrabold leading-tight text-pixu-ink sm:text-3xl">Churrasco de Sábado</h1>
+        <p class="mt-1 text-xs sm:text-sm text-pixu-muted">Criada por Você (admin) · Carnes, carvão e bebidas.</p>
+      </div>
+
+      <!-- STATUS & MENU DE AÇÕES "···" -->
+      <div class="flex items-center gap-2 relative">
+        <span class="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-extrabold text-pixu-success">
+          <span class="size-2 rounded-full bg-pixu-success"></span> Ativa
+        </span>
+
+        <!-- BOTÃO DE AÇÕES DO CRIADOR (DROPDOWN) -->
+        <div class="relative">
+          <button type="button"
+                  onclick="toggleContextMenu(event)"
+                  id="btn-context-menu"
+                  class="flex size-9 items-center justify-center rounded-xl border border-pixu-border bg-white text-pixu-ink shadow-2xs hover:bg-slate-50 active:scale-95 transition"
+                  aria-label="Mais opções desta cobrança"
+                  title="Opções da cobrança">
+            <svg class="size-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="1.25"/>
+              <circle cx="19" cy="12" r="1.25"/>
+              <circle cx="5" cy="12" r="1.25"/>
+            </svg>
+          </button>
+
+          <!-- MENU DROPDOWN FLUTUANTE -->
+          <div id="context-menu" class="hidden absolute right-0 top-11 z-40 w-56 rounded-2xl border border-pixu-border bg-white p-1.5 shadow-xl">
+            <span class="block px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-pixu-muted">Ações do Criador</span>
+
+            <button type="button" onclick="openBottomSheet('sheet-item')" class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-pixu-ink hover:bg-sakura-1 hover:text-pixu-action text-left transition">
+              <svg class="size-4 text-pixu-action" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              Adicionar item extra
+            </button>
+
+            <button type="button" onclick="alert('Redireciona para /charges/72/edit-shares de forma dedicada e limpa')" class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-pixu-ink hover:bg-slate-50 text-left transition">
+              <svg class="size-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Ajustar cotas / recebedor
+            </button>
+
+            <div class="my-1 border-t border-pixu-border/60"></div>
+
+            <button type="button" onclick="openBottomSheet('sheet-cancel')" class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-pixu-danger hover:bg-red-50 text-left transition">
+              <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              Cancelar cobrança
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- GRID PRINCIPAL EQUILIBRADA (SIDEBAR LIMPA SEM ACORDEONS) -->
+    <div class="grid items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,1fr)] xl:gap-6">
+
+      <!-- COLUNA PRINCIPAL DA ESQUERDA: ATIVIDADE OPERACIONAL (PAGAMENTOS + PARTICIPANTES) -->
+      <div class="grid min-w-0 content-start gap-4 sm:gap-5 order-2 lg:order-1">
+
+        <!-- 1. PAGAMENTOS E CONFIRMAÇÕES PIX -->
+        <section class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between border-b border-pixu-border/60 pb-3">
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold text-pixu-ink">Pagamentos e Saldos</h2>
+              <p class="text-xs text-pixu-muted">Confirmações manuais do recebedor e status das dívidas.</p>
+            </div>
+            <span class="w-fit rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-pixu-pending">
+              1 Pix a confirmar
+            </span>
+          </div>
+
+          <!-- Dívida Roberto Carlos (Com confirmação pendente) -->
+          <article class="mt-3.5 rounded-2xl border border-pixu-border/80 bg-slate-50/70 p-3.5 sm:p-4">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h3 class="font-extrabold text-pixu-ink text-sm sm:text-base">Roberto Carlos <span class="font-normal text-pixu-muted">deve a você</span></h3>
+                <p class="text-xs text-pixu-muted">Dívida de R$ 130,00 (cota R$ 90,00 + R$ 40,00 Picanha)</p>
+              </div>
+              <strong class="text-sm text-pixu-ink">R$ 50,00 aberto</strong>
+            </div>
+
+            <!-- Balanço em 4 caixas -->
+            <dl class="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4 text-center">
+              <div class="rounded-xl bg-white p-2 shadow-2xs"><dt class="text-[10px] font-bold uppercase text-pixu-muted">Aberto</dt><dd class="text-xs sm:text-sm font-extrabold text-pixu-ink">R$ 50,00</dd></div>
+              <div class="rounded-xl bg-amber-50 p-2"><dt class="text-[10px] font-bold uppercase text-pixu-pending">Aguardando</dt><dd class="text-xs sm:text-sm font-extrabold text-pixu-pending">R$ 30,00</dd></div>
+              <div class="rounded-xl bg-green-50 p-2"><dt class="text-[10px] font-bold uppercase text-pixu-success">Confirmado</dt><dd class="text-xs sm:text-sm font-extrabold text-pixu-success">R$ 50,00</dd></div>
+              <div class="rounded-xl bg-slate-100 p-2"><dt class="text-[10px] font-bold uppercase text-pixu-muted">Compensado</dt><dd class="text-xs sm:text-sm font-extrabold text-pixu-action">R$ 0,00</dd></div>
+            </dl>
+
+            <!-- Ação de confirmação direta -->
+            <div class="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50/90 p-2.5 sm:p-3">
+              <div class="min-w-0">
+                <p class="text-xs font-bold text-pixu-pending">Transferência de <strong>R$ 30,00</strong> informada</p>
+                <a href="#" class="text-[11px] font-bold text-pixu-action underline">Ver comprovante</a>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button type="button" class="min-h-9 rounded-xl bg-pixu-success px-3 text-xs font-extrabold text-white shadow-2xs hover:brightness-110">Confirmar Pix</button>
+                <button type="button" class="min-h-9 rounded-xl border border-pixu-border bg-white px-2.5 text-xs font-bold text-pixu-muted hover:text-pixu-danger">Recusar</button>
+              </div>
+            </div>
+          </article>
+
+          <!-- Dívida Mariana Silva -->
+          <article class="mt-2.5 rounded-2xl border border-pixu-border/80 bg-slate-50/70 p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h3 class="font-extrabold text-pixu-ink text-sm sm:text-base">Mariana Silva <span class="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700">Convidada</span></h3>
+                <p class="text-xs text-pixu-muted">Dívida de R$ 95,00 · Nenhum pagamento ainda</p>
+              </div>
+              <strong class="text-sm text-pixu-ink">R$ 95,00 aberto</strong>
+            </div>
+          </article>
+        </section>
+
+        <!-- 2. PARTICIPANTES & COTAS DETALHADAS -->
+        <section class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5">
+          <div class="mb-2 flex items-center justify-between">
+            <h2 class="text-base sm:text-lg font-extrabold text-pixu-ink">Participantes (4)</h2>
+            <span class="text-xs text-pixu-muted">Cota base: R$ 75,00</span>
+          </div>
+          <ul class="divide-y divide-pixu-border/70 text-xs sm:text-sm">
+            <li class="flex items-center justify-between py-2.5">
+              <div>
+                <span class="font-extrabold text-pixu-ink">Você (admin)</span>
+                <span class="ml-1 rounded-full bg-pixu-info-surface px-1.5 py-0.5 text-[10px] font-extrabold text-pixu-action">Recebedor</span>
+                <div class="text-xs text-pixu-muted">Recebe dos participantes</div>
+              </div>
+              <span class="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-extrabold text-pixu-success">Aceita</span>
+            </li>
+            <li class="flex items-center justify-between py-2.5">
+              <div>
+                <span class="font-extrabold text-pixu-ink">Roberto Carlos</span>
+                <div class="text-xs text-pixu-muted">R$ 130,00 · <strong class="text-pixu-ink">Picanha Extra (R$ 40,00)</strong></div>
+              </div>
+              <span class="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-extrabold text-pixu-success">Aceita</span>
+            </li>
+            <li class="flex items-center justify-between py-2.5">
+              <div>
+                <span class="font-extrabold text-pixu-ink">Beatriz Souza</span>
+                <div class="text-xs text-pixu-muted">R$ 75,00</div>
+              </div>
+              <span class="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-extrabold text-pixu-success">Aceita</span>
+            </li>
+            <li class="flex items-center justify-between py-2.5">
+              <div>
+                <span class="font-extrabold text-pixu-ink">Mariana Silva</span>
+                <span class="ml-1 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-700">Convidada</span>
+                <div class="text-xs text-pixu-muted">R$ 95,00 · <strong class="text-pixu-ink">Sobremesa (R$ 20,00)</strong></div>
+              </div>
+              <span class="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-extrabold text-pixu-success">Aceita</span>
+            </li>
+          </ul>
+        </section>
+
+      </div>
+
+      <!-- COLUNA DA DIREITA: SIDEBAR RESPIRADA (SOMENTE RESUMO + LINK DA MESA) -->
+      <aside class="grid min-w-0 content-start gap-4 sm:gap-5 order-1 lg:order-2">
+
+        <!-- CARD RESUMO -->
+        <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5">
+          <div class="flex items-baseline justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-pixu-muted">Total da Conta</span>
+            <strong class="text-xl sm:text-2xl font-black text-pixu-ink">R$ 360,00</strong>
+          </div>
+          <div class="mt-2.5 flex items-center justify-between border-t border-pixu-border/60 pt-2 text-xs">
+            <span class="text-pixu-muted">Quem recebe</span>
+            <strong class="text-pixu-ink">Você (admin)</strong>
+          </div>
+          <div class="mt-1.5 flex items-center justify-between text-xs">
+            <span class="text-pixu-muted">Sua cota</span>
+            <strong class="font-extrabold text-pixu-action">R$ 75,00</strong>
+          </div>
+        </article>
+
+        <!-- CARD LINK DA MESA (CONVIDADOS ANÔNIMOS) -->
+        <article class="rounded-[20px] border border-sakura-1 bg-pixu-info-surface p-4 shadow-sm sm:p-5">
+          <div class="flex items-center justify-between gap-2">
+            <h3 class="text-sm font-extrabold text-pixu-ink">Link da Mesa (Convidados)</h3>
+            <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-extrabold text-pixu-success">
+              <span class="size-1.5 rounded-full bg-pixu-success"></span> Abertas
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-pixu-muted">1/6 entradas. Qualquer pessoa com o link pode entrar e confirmar.</p>
+
+          <div class="mt-3 flex items-center gap-1.5">
+            <button type="button" class="flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-xl bg-pixu-action-solid px-3 text-xs font-extrabold text-white shadow-2xs hover:brightness-110 active:scale-95">
+              <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+              <span>Compartilhar</span>
+            </button>
+            <button type="button" class="flex min-h-10 items-center justify-center rounded-xl border border-pixu-border bg-white px-3 text-xs font-bold text-pixu-ink hover:bg-slate-50" title="Copiar link">
+              <svg class="size-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+          </div>
+
+          <!-- Opções rápidas do link (sem poluir a tela) -->
+          <div class="mt-2.5 flex items-center justify-between border-t border-pixu-border/60 pt-2 text-[11px] text-pixu-muted">
+            <button type="button" class="hover:text-pixu-ink font-bold">Fechar entradas</button>
+            <span>·</span>
+            <button type="button" class="hover:text-pixu-ink font-bold">Gerar novo link</button>
+          </div>
+        </article>
+
+      </aside>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- BOTTOM SHEET RESPONSIVO: DESLIZA DE BAIXO NO MOBILE / CENTRALIZA NO DESKTOP -->
+  <!-- ========================================================================= -->
+
+  <!-- SHEET: ADICIONAR ITEM EXTRA -->
+  <div id="sheet-item" class="fixed inset-0 z-50 hidden">
+    <!-- Backdrop com blur suave -->
+    <div onclick="closeBottomSheet('sheet-item')" class="absolute inset-0 bg-black/60 backdrop-blur-2xs transition-opacity"></div>
+
+    <!-- Painel: Bottom Sheet no Mobile / Modal no Desktop -->
+    <div class="absolute bottom-0 inset-x-0 sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:bottom-auto w-full sm:max-w-md rounded-t-[28px] sm:rounded-[24px] border border-pixu-border bg-white p-5 sm:p-6 shadow-2xl animate-slide-up sm:animate-none">
+
+      <!-- Puxador (Drag Handle) no Mobile -->
+      <div class="sm:hidden -mt-1 mb-3 flex justify-center">
+        <div class="h-1.5 w-12 rounded-full bg-slate-300"></div>
+      </div>
+
+      <div class="flex items-center justify-between border-b border-pixu-border/60 pb-3">
+        <div>
+          <h3 class="text-base sm:text-lg font-extrabold text-pixu-ink">Adicionar Item Extra</h3>
+          <p class="text-xs text-pixu-muted">Atribua um consumo específico a quem consumiu.</p>
+        </div>
+        <button type="button" onclick="closeBottomSheet('sheet-item')" class="flex size-8 items-center justify-center rounded-full bg-slate-100 text-pixu-muted hover:bg-slate-200 text-sm font-bold">
+          ✕
+        </button>
+      </div>
+
+      <form class="mt-4 space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-pixu-muted">Descrição do item</label>
+          <input type="text" class="mt-1 w-full rounded-xl border border-pixu-border px-3.5 py-2.5 text-xs text-pixu-ink focus:border-pixu-action focus:outline-none" placeholder="Ex: Cerveja artesanal, Sobremesa...">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-pixu-muted">Valor em Reais (R$)</label>
+          <input type="text" class="mt-1 w-full rounded-xl border border-pixu-border px-3.5 py-2.5 text-sm font-extrabold text-pixu-ink focus:border-pixu-action focus:outline-none" placeholder="0,00">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-pixu-muted">Para quem é este consumo?</label>
+          <select class="mt-1 w-full rounded-xl border border-pixu-border px-3.5 py-2.5 text-xs text-pixu-ink focus:border-pixu-action focus:outline-none bg-white">
+            <option>Roberto Carlos</option>
+            <option>Beatriz Souza</option>
+            <option>Mariana Silva (Convidada)</option>
+          </select>
+        </div>
+
+        <div class="mt-5 flex gap-2.5 pt-2">
+          <button type="button" onclick="closeBottomSheet('sheet-item')" class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-pixu-border font-bold text-xs text-pixu-muted hover:bg-slate-50">
+            Cancelar
+          </button>
+          <button type="button" onclick="alert('Item adicionado com sucesso!'); closeBottomSheet('sheet-item');" class="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-pixu-action-solid font-extrabold text-xs text-white shadow-md hover:brightness-110">
+            Adicionar Item
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SHEET: CANCELAR COBRANÇA -->
+  <div id="sheet-cancel" class="fixed inset-0 z-50 hidden">
+    <div onclick="closeBottomSheet('sheet-cancel')" class="absolute inset-0 bg-black/60 backdrop-blur-2xs transition-opacity"></div>
+    <div class="absolute bottom-0 inset-x-0 sm:inset-x-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:bottom-auto w-full sm:max-w-md rounded-t-[28px] sm:rounded-[24px] border border-red-200 bg-white p-5 sm:p-6 shadow-2xl animate-slide-up sm:animate-none">
+      <div class="sm:hidden -mt-1 mb-3 flex justify-center">
+        <div class="h-1.5 w-12 rounded-full bg-slate-300"></div>
+      </div>
+      <div class="flex items-center justify-between border-b border-red-100 pb-3">
+        <h3 class="text-base sm:text-lg font-extrabold text-pixu-danger">Cancelar Cobrança</h3>
+        <button type="button" onclick="closeBottomSheet('sheet-cancel')" class="flex size-8 items-center justify-center rounded-full bg-slate-100 text-pixu-muted text-sm font-bold">✕</button>
+      </div>
+      <p class="mt-3 text-xs leading-relaxed text-pixu-muted">Os pagamentos serão marcados como revogados e os convites pendentes serão invalidados. O Pixu não estorna transferências feitas fora do aplicativo.</p>
+      <div class="mt-4 flex gap-2.5">
+        <button type="button" onclick="closeBottomSheet('sheet-cancel')" class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-pixu-border font-bold text-xs text-pixu-muted">Voltar</button>
+        <button type="button" class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-red-300 bg-red-50 font-bold text-xs text-pixu-danger hover:bg-red-100">Confirmar cancelamento</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleContextMenu(e) {
+      e.stopPropagation();
+      const menu = document.getElementById('context-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    document.addEventListener('click', function(e) {
+      const menu = document.getElementById('context-menu');
+      const btn = document.getElementById('btn-context-menu');
+      if (menu && !menu.contains(e.target) && !btn.contains(e.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+
+    function openBottomSheet(id) {
+      document.getElementById('context-menu').classList.add('hidden');
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeBottomSheet(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+  <\/script>
+</body>
+</html>`;
+      }
+
+      function updateIframe() {
+        const frame = document.getElementById('preview-frame');
+        frame.srcdoc = generatePreviewHtml();
+      }
+
+      function setIframeWidth(width, btnId) {
+        const container = document.getElementById('frame-container');
+        container.style.width = width;
+
+        ['vp-mobile', 'vp-tablet', 'vp-desktop'].forEach(id => {
+          const btn = document.getElementById(id);
+          if (id === btnId) {
+            btn.className = "rounded px-3 py-1.5 transition bg-white text-slate-900 font-black shadow-xs";
+          } else {
+            btn.className = "rounded px-3 py-1.5 transition hover:bg-slate-800 hover:text-white";
+          }
+        });
+      }
+
+      // Inicia por padrão no Mobile (390px)
+      setIframeWidth('390px', 'vp-mobile');
+      updateIframe();
+    </script>
+  </body>
+</html>

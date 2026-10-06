@@ -333,10 +333,12 @@ def _lock_payment_context(payment_id: int):
 def record_payment(
     *,
     debt_id: int,
-    actor,
+    actor=None,
     amount_cents: int,
     reference: str = "",
     receipt=None,
+    guest_participation_id: int | None = None,
+    guest_code: str | None = None,
 ) -> Payment:
     """Reserve a partial payment and lock its charge atomically."""
     if isinstance(amount_cents, bool) or not isinstance(amount_cents, int):
@@ -354,8 +356,22 @@ def record_payment(
             pk=debt_stub.participation.charge_id,
         )
         debt = Debt.objects.select_for_update().get(pk=debt_id)
-        if debt.debtor_id != actor.pk:
-            raise PermissionDenied
+        if guest_participation_id is not None:
+            from pixu.charges.services import get_guest_participation
+
+            if guest_code is None or guest_participation_id != debt.participation_id:
+                raise PermissionDenied
+            guest_participation = get_guest_participation(
+                participation_id=guest_participation_id,
+                personal_code=guest_code,
+            )
+            if guest_participation.state != Participation.State.ACCEPTED:
+                raise ValidationError(_("Confirme sua cota antes de registrar o pagamento."))
+            payer_id = guest_participation.user_id
+        else:
+            if actor is None or debt.debtor_id != actor.pk:
+                raise PermissionDenied
+            payer_id = debt.debtor_id
         if charge.state != Charge.State.ACTIVE:
             raise ValidationError(_("Só é possível pagar uma cobrança ativa."))
         balance = payment_balance(debt)
@@ -366,7 +382,7 @@ def record_payment(
         receipt_data = validate_receipt(receipt) if receipt else None
         payment = Payment(
             debt=debt,
-            payer_id=debt.debtor_id,
+            payer_id=payer_id,
             creditor_id=debt.creditor_id,
             amount_cents=amount_cents,
             reference=reference,
@@ -397,6 +413,11 @@ def confirm_payment(*, payment_id: int, actor) -> Payment:
         payment.confirmed_by = actor
         payment.confirmed_at = timezone.now()
         payment.save(update_fields=["state", "confirmed_by", "confirmed_at"])
+        if debt.debtor_id is None and payment_balance(debt).open_cents <= 0:
+            participation = debt.participation
+            participation.guest_access_digest = ""
+            participation.guest_access_expires_at = timezone.now()
+            participation.save(update_fields=["guest_access_digest", "guest_access_expires_at"])
         return payment
 
 

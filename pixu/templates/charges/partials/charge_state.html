@@ -4,28 +4,84 @@
     <p class="mb-4 rounded-xl border px-4 py-3 text-sm leading-relaxed{% if status_is_error %} border-red-200 bg-red-50 text-pixu-danger{% else %} border-green-200 bg-green-50 text-pixu-success{% endif %}" role="{% if status_is_error %}alert{% else %}status{% endif %}" tabindex="-1" data-focus-after-swap>{{ status_message }}</p>
   {% endif %}
 
-  <div class="grid items-start gap-5 lg:grid-cols-[minmax(18rem,.9fr)_minmax(0,1.1fr)] xl:gap-7">
-    <div class="grid min-w-0 content-start gap-4">
-      <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
-        <div class="flex items-center justify-between gap-3 text-sm">
-          <span class="text-pixu-muted">Estado</span>
-          {% include "charges/partials/status_badge.html" with charge=charge %}
-        </div>
-        <div class="mt-4 flex items-center justify-between gap-3 text-sm">
-          <span class="text-pixu-muted">Total</span>
-          <strong class="text-base">{{ charge.total_cents|brl_from_cents }}</strong>
-        </div>
-        <div class="mt-3 flex items-start justify-between gap-3 text-sm">
-          <span class="text-pixu-muted">Quem recebe</span>
-          <strong class="min-w-0 break-words text-right">{{ charge.creditor.name|default:charge.creditor.username }}</strong>
-        </div>
-        {% if my_participation %}
-          <div class="mt-3 flex items-center justify-between gap-3 text-sm">
-            <span class="text-pixu-muted">Sua cota</span>
-            <strong class="text-pixu-action">{{ my_participation.share_cents|brl_from_cents }}</strong>
+  <div class="grid items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,1fr)] xl:gap-6">
+    <div class="order-2 grid min-w-0 content-start gap-4 sm:gap-5 lg:order-1">
+      {% if my_participation and my_participation.state == 'PENDING' %}
+        <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5">
+          <div class="rounded-xl border border-sakura-1 bg-pixu-info-surface px-4 py-3 text-sm leading-relaxed text-pixu-ink">
+            {% if my_participation.user_id == charge.creditor_id %}Você é o recebedor; sua cota não gera dívida contra você.{% else %}Ao aceitar, você concorda com sua cota e com o pagamento a {{ charge.creditor.name|default:charge.creditor.username }}.{% endif %} A cobrança aguarda a resposta de todos os participantes atuais.
           </div>
-        {% endif %}
-        {% if charge.description %}<p class="mt-4 border-t border-pixu-border pt-4 text-sm leading-relaxed text-pixu-muted">{{ charge.description }}</p>{% endif %}
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <form method="post" action="{% url 'charges:accept' charge.pk my_participation.pk %}" hx-post="{% url 'charges:accept' charge.pk my_participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
+              {% csrf_token %}
+              <input type="hidden" name="expected_share_cents" value="{{ my_participation.share_cents }}">
+              <input type="hidden" name="expected_creditor_id" value="{{ charge.creditor_id }}">
+              <button class="flex min-h-12 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110" type="submit">Aceitar participação</button>
+            </form>
+            <form method="post" action="{% url 'charges:decline' charge.pk my_participation.pk %}" hx-post="{% url 'charges:decline' charge.pk my_participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
+              {% csrf_token %}
+              <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted hover:text-pixu-ink" type="submit">Recusar convite</button>
+            </form>
+          </div>
+        </article>
+      {% elif my_participation and my_participation.state == 'ACCEPTED' %}
+        <p class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-relaxed text-pixu-success" role="status">{% if charge.state == 'CANCELLED' %}{% translate "Sua participação foi aceita e permanece no histórico; a cobrança foi cancelada." %}{% else %}{% translate "Sua participação foi aceita." %}{% if charge.state == 'AWAITING_ACCEPTANCE' %} {% translate "A cobrança ainda aguarda os demais convites." %}{% endif %}{% endif %}</p>
+      {% endif %}
+
+      {% if debts %}
+        <section class="grid gap-4" aria-labelledby="payments-title">
+          <div>
+            <h2 class="text-xl font-extrabold text-pixu-ink" id="payments-title">Pagamentos e saldos</h2>
+            <p class="mt-1 text-sm leading-relaxed text-pixu-muted">O saldo aberto só diminui depois da confirmação manual do recebedor.</p>
+          </div>
+          {% for debt in debts %}
+            {% include "settlements/partials/payment_state.html" %}
+          {% endfor %}
+        </section>
+      {% endif %}
+
+      <section class="min-w-0 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5" aria-labelledby="participants-title">
+        <div class="mb-2 flex items-center justify-between gap-3">
+          <h2 class="text-lg font-extrabold text-pixu-ink" id="participants-title">Participantes</h2>
+          <span class="text-xs font-bold text-pixu-muted">{% blocktranslate count people=participations|length %}{{ people }} pessoa{% plural %}{{ people }} pessoas{% endblocktranslate %}</span>
+        </div>
+        <div class="divide-y divide-pixu-border">
+          {% for participation in participations %}
+            <div class="flex items-center justify-between gap-4 py-3 sm:py-4">
+              <div class="min-w-0">
+                <strong class="break-words">{% if participation.user_id == request.user.id %}Você{% elif participation.guest_name %}{{ participation.guest_name }}{% else %}{{ participation.user.name|default:participation.user.username }}{% endif %}</strong>
+                <div class="mt-1 text-sm text-pixu-muted">R$ {{ participation.share_cents|brl_from_cents }}</div>
+                {% if participation.items.all %}<ul class="mt-1 text-xs text-pixu-muted">{% for item in participation.items.all %}<li>{{ item.description }} · R$ {{ item.amount_cents|brl_from_cents }}</li>{% endfor %}</ul>{% endif %}
+                {% if charge.creator_id == request.user.id and participation.receipt_payments %}
+                  <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                    {% for payment in participation.receipt_payments %}
+                      <a class="text-sm font-bold text-pixu-action underline-offset-2 hover:underline" href="{% url 'settlements:receipt' payment.pk %}">{% translate "Ver comprovante" %}{% if participation.receipt_payments|length > 1 %} {{ forloop.counter }}{% endif %}</a>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <span class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-extrabold{% if participation.state == 'ACCEPTED' %} border-green-200/80 bg-green-50 text-pixu-success{% elif participation.state == 'DECLINED' %} border-red-200/80 bg-red-50 text-pixu-danger{% elif participation.state == 'CANCELLED' %} border-pixu-border bg-pixu-surface-raised text-pixu-muted{% else %} border-amber-200/80 bg-amber-50 text-pixu-pending{% endif %}">
+                <span class="h-1.5 w-1.5 rounded-full {% if participation.state == 'ACCEPTED' %}bg-pixu-success{% elif participation.state == 'DECLINED' %}bg-pixu-danger{% elif participation.state == 'CANCELLED' %}bg-pixu-muted{% else %}bg-pixu-pending{% endif %}" aria-hidden="true"></span>
+                {{ participation.get_state_display }}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+    </div>
+
+    <aside class="order-1 grid min-w-0 content-start gap-4 sm:gap-5 lg:order-2">
+      <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5">
+        <div class="flex items-baseline justify-between gap-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-pixu-muted">Total da conta</span>
+          <strong class="text-xl font-black text-pixu-ink sm:text-2xl">{{ charge.total_cents|brl_from_cents }}</strong>
+        </div>
+        <dl class="mt-3 grid gap-2 border-t border-pixu-border/60 pt-3 text-sm">
+          <div class="flex items-center justify-between gap-3"><dt class="text-pixu-muted">Quem recebe</dt><dd class="min-w-0 break-words text-right font-extrabold text-pixu-ink">{{ charge.creditor.name|default:charge.creditor.username }}</dd></div>
+          {% if my_participation %}<div class="flex items-center justify-between gap-3"><dt class="text-pixu-muted">Sua cota</dt><dd class="font-extrabold text-pixu-action">{{ my_participation.share_cents|brl_from_cents }}</dd></div>{% endif %}
+        </dl>
+        {% if charge.description %}<p class="mt-3 border-t border-pixu-border pt-3 text-sm leading-relaxed text-pixu-muted">{{ charge.description }}</p>{% endif %}
         {% if charge.state == 'CANCELLED' %}
           <div class="mt-4 rounded-xl border border-pixu-border bg-pixu-surface-raised px-4 py-3 text-sm leading-relaxed text-pixu-muted" role="status">
             <p>{% blocktranslate with who=charge.cancelled_by.name|default:charge.cancelled_by.username when=charge.cancelled_at|date:"d/m/Y H:i" %}Cancelada por {{ who }} em {{ when }}.{% endblocktranslate %}</p>
@@ -35,117 +91,97 @@
         {% endif %}
       </article>
 
-      {% if my_participation and my_participation.state == 'PENDING' %}
-        <div class="rounded-xl border border-sakura-1 bg-pixu-info-surface px-4 py-3 text-sm leading-relaxed text-pixu-ink">{% if my_participation.user_id == charge.creditor_id %}Você é o recebedor; sua cota não gera dívida contra você.{% else %}Ao aceitar, você concorda com sua cota e com o pagamento a {{ charge.creditor.name|default:charge.creditor.username }}.{% endif %} A cobrança aguarda a resposta de todos os participantes atuais.</div>
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-          <form method="post" action="{% url 'charges:accept' charge.pk my_participation.pk %}" hx-post="{% url 'charges:accept' charge.pk my_participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
-            {% csrf_token %}
-            <input type="hidden" name="expected_share_cents" value="{{ my_participation.share_cents }}">
-            <input type="hidden" name="expected_creditor_id" value="{{ charge.creditor_id }}">
-            <button class="flex min-h-12 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110" type="submit">Aceitar participação</button>
-          </form>
-          <form method="post" action="{% url 'charges:decline' charge.pk my_participation.pk %}" hx-post="{% url 'charges:decline' charge.pk my_participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
-            {% csrf_token %}
-            <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted hover:text-pixu-ink" type="submit">Recusar convite</button>
-          </form>
-        </div>
-      {% elif my_participation and my_participation.state == 'ACCEPTED' %}
-        <p class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-relaxed text-pixu-success" role="status">{% if charge.state == 'CANCELLED' %}{% translate "Sua participação foi aceita e permanece no histórico; a cobrança foi cancelada." %}{% else %}{% translate "Sua participação foi aceita." %}{% if charge.state == 'AWAITING_ACCEPTANCE' %} {% translate "A cobrança ainda aguarda os demais convites." %}{% endif %}{% endif %}</p>
-      {% endif %}
-
-      {% if can_edit %}
-        <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
-          <h2 class="mb-1 text-lg font-extrabold text-pixu-ink">Cotas e recebedor</h2>
-          <p class="mb-4 text-sm leading-relaxed text-pixu-muted">Cotas já aceitas por outras pessoas não mudam. A soma precisa continuar igual ao total.</p>
-          <form class="grid gap-4" method="post" action="{% url 'charges:edit_shares' charge.pk %}" hx-post="{% url 'charges:edit_shares' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
-            {% csrf_token %}
-            {% if share_form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ share_form.non_field_errors }}</div>{% endif %}
-            {% for field in share_form %}
-              <div class="grid gap-2">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {% render_accessible_field field %}
-                {% if field.help_text %}<span class="text-xs leading-relaxed text-pixu-muted" id="{{ field.auto_id }}_help">{{ field.help_text }}</span>{% endif %}
-                {% if field.errors %}<ul class="text-sm text-pixu-danger" id="{{ field.auto_id }}_errors" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-              </div>
-            {% endfor %}
-            <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-pixu-surface px-4 py-2.5 font-bold text-pixu-action hover:bg-sakura-2" type="submit">Salvar alterações</button>
-          </form>
-        </article>
-
-        {% for row in replacement_rows %}
-          <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
-            <h2 class="mb-1 text-base font-extrabold text-pixu-ink">Substituir convite recusado</h2>
-            <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{{ row.participation.user.name|default:row.participation.user.username }} recusou. A nova pessoa recebe a cota de {{ row.participation.share_cents|brl_from_cents }}.</p>
-            <form class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" method="post" action="{% url 'charges:replace_participant' charge.pk row.participation.pk %}" hx-post="{% url 'charges:replace_participant' charge.pk row.participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
-              {% csrf_token %}
-              <div class="grid gap-2">
-                <label for="{{ row.form.replacement.id_for_label }}">{{ row.form.replacement.label }}</label>
-                {% render_accessible_field row.form.replacement %}
-                {% if row.form.replacement.errors %}<ul class="text-sm text-pixu-danger" id="{{ row.form.replacement.auto_id }}_errors" role="alert">{% for error in row.form.replacement.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-                {% if row.form.non_field_errors %}<span class="text-sm text-pixu-danger" role="alert">{{ row.form.non_field_errors }}</span>{% endif %}
-              </div>
-              <button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110 sm:min-w-40" type="submit">Enviar convite</button>
-            </form>
-          </article>
-        {% endfor %}
-      {% endif %}
-
-      {% if can_cancel %}
-        <details class="rounded-[20px] border border-red-200 bg-pixu-surface p-4 shadow-sm sm:p-6">
-          <summary class="cursor-pointer list-inside text-base font-extrabold text-pixu-danger">{% translate "Cancelar cobrança" %}</summary>
-          <p class="mt-3 text-sm leading-relaxed text-pixu-muted">{% translate "Os pagamentos serão marcados como revogados e os convites pendentes serão invalidados. O Pixu não estorna transferências feitas fora do aplicativo. Cobranças com compensações não podem ser canceladas." %}</p>
-          <form class="mt-4 grid gap-3" method="post" action="{% url 'charges:cancel' charge.pk %}" hx-post="{% url 'charges:cancel' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
-            {% csrf_token %}
-            <div class="grid gap-2">
-              <label for="{{ cancellation_form.reason.id_for_label }}">{{ cancellation_form.reason.label }}</label>
-              {% render_accessible_field cancellation_form.reason %}
-              {% if cancellation_form.reason.errors %}<ul class="text-sm text-pixu-danger" id="{{ cancellation_form.reason.auto_id }}_errors" role="alert">{% for error in cancellation_form.reason.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
-              {% if cancellation_form.non_field_errors %}<div class="text-sm text-pixu-danger" role="alert">{{ cancellation_form.non_field_errors }}</div>{% endif %}
-            </div>
-            <button class="flex min-h-11 items-center justify-center rounded-xl border border-red-300 bg-pixu-surface px-4 py-2.5 font-bold text-pixu-danger hover:bg-red-50" type="submit">{% translate "Confirmar cancelamento" %}</button>
-          </form>
-        </details>
-      {% endif %}
-    </div>
-
-    <article class="min-w-0 rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
-      <div class="mb-2 flex items-center justify-between gap-3">
-        <h2 class="text-lg font-extrabold text-pixu-ink">Participantes</h2>
-        <span class="text-xs font-bold text-pixu-muted">{% blocktranslate count people=participations|length %}{{ people }} pessoa{% plural %}{{ people }} pessoas{% endblocktranslate %}</span>
-      </div>
-      <div class="divide-y divide-pixu-border">
-        {% for participation in participations %}
-          <div class="flex items-center justify-between gap-4 py-3 sm:py-4">
-            <div class="min-w-0">
-              <strong class="break-words">{% if participation.user_id == request.user.id %}Você{% else %}{{ participation.user.name|default:participation.user.username }}{% endif %}</strong>
-              <div class="mt-1 text-sm text-pixu-muted">R$ {{ participation.share_cents|brl_from_cents }}</div>
-              {% if charge.creator_id == request.user.id and participation.receipt_payments %}
-                <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-                  {% for payment in participation.receipt_payments %}
-                    <a class="text-sm font-bold text-pixu-action underline-offset-2 hover:underline" href="{% url 'settlements:receipt' payment.pk %}">{% translate "Ver comprovante" %}{% if participation.receipt_payments|length > 1 %} {{ forloop.counter }}{% endif %}</a>
-                  {% endfor %}
-                </div>
-              {% endif %}
-            </div>
-            <span class="shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-extrabold{% if participation.state == 'ACCEPTED' %} border-green-200/80 bg-green-50 text-pixu-success{% elif participation.state == 'DECLINED' %} border-red-200/80 bg-red-50 text-pixu-danger{% elif participation.state == 'CANCELLED' %} border-pixu-border bg-pixu-surface-raised text-pixu-muted{% else %} border-amber-200/80 bg-amber-50 text-pixu-pending{% endif %}">
-              <span class="h-1.5 w-1.5 rounded-full {% if participation.state == 'ACCEPTED' %}bg-pixu-success{% elif participation.state == 'DECLINED' %}bg-pixu-danger{% elif participation.state == 'CANCELLED' %}bg-pixu-muted{% else %}bg-pixu-pending{% endif %}" aria-hidden="true"></span>
-              {{ participation.get_state_display }}
+      {% if charge.guest_invites_enabled and charge.creator_id == request.user.id %}
+        <article class="rounded-[20px] border border-sakura-1 bg-pixu-info-surface p-4 shadow-sm sm:p-5">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-base font-extrabold text-pixu-ink">{% translate "Entradas anônimas" %}</h2>
+            <span class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-extrabold {% if charge.guest_entries_open %}border-green-200/80 bg-green-50 text-pixu-success{% else %}border-pixu-border bg-pixu-surface-raised text-pixu-muted{% endif %}">
+              <span class="size-1.5 rounded-full {% if charge.guest_entries_open %}bg-pixu-success{% else %}bg-pixu-muted{% endif %}" aria-hidden="true"></span>
+              {% if charge.guest_entries_open %}{% translate "Abertas" %}{% else %}{% translate "Fechadas" %}{% endif %}
             </span>
           </div>
-        {% endfor %}
-      </div>
-    </article>
+          <p class="mt-1 text-sm leading-relaxed text-pixu-muted">{{ guest_entry_count }}/{{ charge.guest_entry_limit }} entradas.{% if charge.guest_total_participants %} Total declarado: {{ charge.guest_total_participants }} pessoas; cada cota usa esse total fixo.{% endif %} O link compartilhado só aceita novos nomes enquanto estiver aberto.</p>
+          {% if guest_share_url %}
+            <div class="mt-3 rounded-xl border border-pixu-border bg-pixu-surface p-3.5 shadow-2xs">
+              <span class="block text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Link compartilhado" %}</span>
+              <div class="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input id="guest-share-url" class="min-w-0 flex-1 truncate rounded-xl border border-pixu-border bg-slate-50 px-3 py-2 text-xs font-bold text-pixu-ink dark:border-dark-border dark:bg-slate-800" value="{{ guest_share_url }}" readonly>
+                <div class="flex items-center gap-2">
+                  <button type="button" class="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-pixu-action-solid px-4 py-2.5 text-xs font-extrabold text-white shadow-sm transition hover:brightness-110 active:scale-95 sm:flex-none" data-share-url="{{ guest_share_url }}" data-share-title="Pixu · {{ charge.title }}" data-share-text="Acesse o rateio de {{ charge.title }} e confira sua cota:" data-copied-label="{% translate 'Link copiado!' %}">
+                    <svg class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+                    <span>{% translate "Compartilhar" %}</span>
+                  </button>
+                  <button type="button" class="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-pixu-border bg-pixu-surface px-3 py-2 text-xs font-bold text-pixu-ink hover:bg-slate-50" data-copy-text="{{ guest_share_url }}" data-copied-label="{% translate 'Copiado!' %}" aria-label="{% translate 'Copiar link' %}">
+                    <svg class="size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  </button>
+                </div>
+              </div>
+              <p class="mt-2 text-xs text-pixu-muted">Código: <strong class="font-mono text-pixu-ink">{{ guest_credentials.code }}</strong></p>
+            </div>
+          {% endif %}
+          <div class="mt-3 border-t border-pixu-border/60 pt-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="text-xs font-bold text-pixu-ink">{% translate "Gerenciar link de entradas" %}</span>
+              <div class="flex flex-wrap gap-2">
+                {% if charge.guest_entries_open %}<form method="post" action="{% url 'charges:guest_entries_manage' charge.pk %}">{% csrf_token %}<button class="min-h-10 rounded-xl bg-pixu-action-solid px-3.5 py-2 text-xs font-bold text-white shadow-2xs" name="action" value="close" type="submit">{% translate "Fechar entradas" %}</button></form>{% else %}<form method="post" action="{% url 'charges:guest_entries_manage' charge.pk %}">{% csrf_token %}<button class="min-h-10 rounded-xl border border-pixu-border bg-pixu-surface px-3.5 py-2 text-xs font-bold text-pixu-action shadow-2xs" name="action" value="reopen" type="submit">{% translate "Reabrir antes do pagamento" %}</button></form>{% endif %}
+                <form method="post" action="{% url 'charges:guest_entries_manage' charge.pk %}">{% csrf_token %}<button class="min-h-10 rounded-xl border border-pixu-border bg-pixu-surface px-3.5 py-2 text-xs font-bold text-pixu-muted shadow-2xs hover:text-pixu-ink" name="action" value="rotate" type="submit">{% translate "Gerar novo link" %}</button></form>
+                {% if charge.guest_entries_open %}<form method="post" action="{% url 'charges:guest_entries_manage' charge.pk %}">{% csrf_token %}<button class="min-h-10 rounded-xl border border-red-200 bg-pixu-surface px-3.5 py-2 text-xs font-bold text-pixu-danger shadow-2xs hover:bg-red-50" name="action" value="revoke" type="submit">{% translate "Revogar link" %}</button></form>{% endif %}
+              </div>
+            </div>
+          </div>
+        </article>
+      {% endif %}
+
+    </aside>
   </div>
 
-  {% if debts %}
-    <div class="mt-5 grid gap-4 lg:mt-7">
-      <div>
-        <h2 class="text-xl font-extrabold text-pixu-ink">Pagamentos e saldos</h2>
-        <p class="mt-1 text-sm leading-relaxed text-pixu-muted">O saldo aberto só diminui depois da confirmação manual do recebedor.</p>
-      </div>
-      {% for debt in debts %}
-        {% include "settlements/partials/payment_state.html" %}
-      {% endfor %}
+  {% if can_edit %}
+    <div class="hidden fixed inset-0 z-50" id="charge-item-modal" role="dialog" aria-modal="true" aria-labelledby="charge-item-modal-title" aria-hidden="true" data-modal>
+      <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" data-modal-backdrop></div>
+      <section class="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-t-[28px] border border-pixu-border bg-pixu-surface p-5 shadow-2xl sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:bottom-auto sm:w-[min(100%-2rem,32rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[24px] sm:p-6">
+        <div class="mb-3 flex justify-center sm:hidden"><span class="h-1.5 w-12 rounded-full bg-pixu-border" aria-hidden="true"></span></div>
+        <div class="flex items-start justify-between gap-4 border-b border-pixu-border/60 pb-3">
+          <div><h2 class="text-lg font-extrabold text-pixu-ink" id="charge-item-modal-title">Adicionar item extra</h2><p class="mt-1 text-sm leading-relaxed text-pixu-muted">Atribua um consumo específico a quem consumiu.</p></div>
+          <button class="grid size-10 shrink-0 place-items-center rounded-full bg-pixu-surface-raised text-lg text-pixu-muted hover:text-pixu-ink" type="button" data-modal-close aria-label="Fechar">×</button>
+        </div>
+        <form class="mt-4 grid gap-3" method="post" action="{% url 'charges:add_item' charge.pk %}" hx-post="{% url 'charges:add_item' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
+          {% csrf_token %}
+          {% if item_form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ item_form.non_field_errors }}</div>{% endif %}
+          {% for field in item_form %}<div class="grid gap-2"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{% render_accessible_field field %}{% if field.errors %}<ul class="text-sm text-pixu-danger" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}</div>{% endfor %}
+          {% if charge.items.all %}<ul class="grid gap-2 border-t border-pixu-border pt-4 text-sm">{% for item in charge.items.all %}<li class="flex justify-between gap-3"><span>{{ item.description }} · {% if item.participation.guest_name %}{{ item.participation.guest_name }}{% elif item.participation.user %}{{ item.participation.user.name|default:item.participation.user.username }}{% else %}{% translate "Convidado" %}{% endif %}</span><strong>R$ {{ item.amount_cents|brl_from_cents }}</strong></li>{% endfor %}</ul>{% endif %}
+          <div class="mt-2 flex gap-2.5"><button class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 font-bold text-sm text-pixu-muted" type="button" data-modal-close>Cancelar</button><button class="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-2.5 text-sm font-extrabold text-white shadow-md transition hover:brightness-110" type="submit">Adicionar item</button></div>
+        </form>
+      </section>
+    </div>
+
+    <div class="hidden fixed inset-0 z-50" id="charge-shares-modal" role="dialog" aria-modal="true" aria-labelledby="charge-shares-modal-title" aria-hidden="true" data-modal>
+      <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" data-modal-backdrop></div>
+      <section class="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-t-[28px] border border-pixu-border bg-pixu-surface p-5 shadow-2xl sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:bottom-auto sm:w-[min(100%-2rem,38rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[24px] sm:p-6">
+        <div class="mb-3 flex justify-center sm:hidden"><span class="h-1.5 w-12 rounded-full bg-pixu-border" aria-hidden="true"></span></div>
+        <div class="flex items-start justify-between gap-4 border-b border-pixu-border/60 pb-3"><div><h2 class="text-lg font-extrabold text-pixu-ink" id="charge-shares-modal-title">Ajustar cotas e recebedor</h2><p class="mt-1 text-sm leading-relaxed text-pixu-muted">Cotas aceitas não mudam; a soma precisa continuar igual ao total.</p></div><button class="grid size-10 shrink-0 place-items-center rounded-full bg-pixu-surface-raised text-lg text-pixu-muted hover:text-pixu-ink" type="button" data-modal-close aria-label="Fechar">×</button></div>
+        <form class="mt-4 grid gap-4" method="post" action="{% url 'charges:edit_shares' charge.pk %}" hx-post="{% url 'charges:edit_shares' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
+          {% csrf_token %}
+          {% if share_form.non_field_errors %}<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-pixu-danger" role="alert">{{ share_form.non_field_errors }}</div>{% endif %}
+          {% for field in share_form %}<div class="grid gap-2"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{% render_accessible_field field %}{% if field.help_text %}<span class="text-xs leading-relaxed text-pixu-muted" id="{{ field.auto_id }}_help">{{ field.help_text }}</span>{% endif %}{% if field.errors %}<ul class="text-sm text-pixu-danger" id="{{ field.auto_id }}_errors" role="alert">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}</div>{% endfor %}
+          <button class="flex min-h-11 items-center justify-center rounded-xl border border-sakura-6 bg-pixu-surface px-4 py-2.5 font-bold text-pixu-action hover:bg-sakura-2" type="submit">Salvar alterações</button>
+        </form>
+        {% for row in replacement_rows %}<article class="mt-5 border-t border-pixu-border pt-4"><h3 class="text-base font-extrabold text-pixu-ink">Substituir convite recusado</h3><p class="mt-1 text-sm leading-relaxed text-pixu-muted">{% if row.participation.guest_name %}{{ row.participation.guest_name }}{% elif row.participation.user %}{{ row.participation.user.name|default:row.participation.user.username }}{% else %}{% translate "Convidado" %}{% endif %} recusou. A nova pessoa recebe a cota de {{ row.participation.share_cents|brl_from_cents }}.</p><form class="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end" method="post" action="{% url 'charges:replace_participant' charge.pk row.participation.pk %}" hx-post="{% url 'charges:replace_participant' charge.pk row.participation.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>{% csrf_token %}<div class="grid gap-2"><label for="{{ row.form.replacement.id_for_label }}">{{ row.form.replacement.label }}</label>{% render_accessible_field row.form.replacement %}{% if row.form.replacement.errors %}<ul class="text-sm text-pixu-danger" id="{{ row.form.replacement.auto_id }}_errors" role="alert">{% for error in row.form.replacement.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}{% if row.form.non_field_errors %}<span class="text-sm text-pixu-danger" role="alert">{{ row.form.non_field_errors }}</span>{% endif %}</div><button class="flex min-h-12 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white shadow-md transition hover:brightness-110 sm:min-w-40" type="submit">Enviar convite</button></form></article>{% endfor %}
+      </section>
+    </div>
+  {% endif %}
+
+  {% if can_cancel %}
+    <div class="hidden fixed inset-0 z-50" id="charge-cancel-modal" role="dialog" aria-modal="true" aria-labelledby="charge-cancel-modal-title" aria-hidden="true" data-modal>
+      <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" data-modal-backdrop></div>
+      <section class="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-t-[28px] border border-red-200 bg-pixu-surface p-5 shadow-2xl sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:bottom-auto sm:w-[min(100%-2rem,32rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[24px] sm:p-6">
+        <div class="mb-3 flex justify-center sm:hidden"><span class="h-1.5 w-12 rounded-full bg-red-200" aria-hidden="true"></span></div>
+        <div class="flex items-start justify-between gap-4 border-b border-red-100 pb-3"><div><h2 class="text-lg font-extrabold text-pixu-danger" id="charge-cancel-modal-title">Cancelar cobrança</h2><p class="mt-1 text-sm leading-relaxed text-pixu-muted">Os pagamentos serão revogados e os convites pendentes serão invalidados.</p></div><button class="grid size-10 shrink-0 place-items-center rounded-full bg-pixu-surface-raised text-lg text-pixu-muted hover:text-pixu-ink" type="button" data-modal-close aria-label="Fechar">×</button></div>
+        <p class="mt-3 text-sm leading-relaxed text-pixu-muted">{% translate "O Pixu não estorna transferências feitas fora do aplicativo. Cobranças com compensações não podem ser canceladas." %}</p>
+        <form class="mt-4 grid gap-3" method="post" action="{% url 'charges:cancel' charge.pk %}" hx-post="{% url 'charges:cancel' charge.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button" novalidate>
+          {% csrf_token %}<div class="grid gap-2"><label for="{{ cancellation_form.reason.id_for_label }}">{{ cancellation_form.reason.label }}</label>{% render_accessible_field cancellation_form.reason %}{% if cancellation_form.reason.errors %}<ul class="text-sm text-pixu-danger" id="{{ cancellation_form.reason.auto_id }}_errors" role="alert">{% for error in cancellation_form.reason.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}{% if cancellation_form.non_field_errors %}<div class="text-sm text-pixu-danger" role="alert">{{ cancellation_form.non_field_errors }}</div>{% endif %}</div>
+          <div class="mt-2 flex gap-2.5"><button class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 font-bold text-sm text-pixu-muted" type="button" data-modal-close>Voltar</button><button class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-bold text-pixu-danger hover:bg-red-100" type="submit">{% translate "Confirmar cancelamento" %}</button></div>
+        </form>
+      </section>
     </div>
   {% endif %}
 </div>

@@ -33,12 +33,14 @@ from .forms import AcceptParticipationForm
 from .forms import ChargeAllocationForm
 from .forms import ChargeCancellationForm
 from .forms import ChargeCreateForm
+from .forms import ChargeItemForm
 from .forms import ChargeSharesForm
 from .forms import ReplaceParticipantForm
 from .models import Charge
 from .models import Debt
 from .models import Participation
 from .services import accept_participation
+from .services import add_charge_item
 from .services import cancel_charge
 from .services import create_charge
 from .services import decline_participation
@@ -52,6 +54,7 @@ if TYPE_CHECKING:
 @dataclass
 class ChargeDetailState:
     share_form: ChargeSharesForm | None = None
+    item_form: ChargeItemForm | None = None
     replacement_form: ReplaceParticipantForm | None = None
     replacement_participation_id: int | None = None
     compensation_form: CompensationForm | None = None
@@ -225,6 +228,13 @@ def _charge_detail_context(
     return {
         "charge": charge,
         "participations": participations,
+        "guest_entry_count": sum(
+            1
+            for participation in participations
+            if participation.guest_access_digest
+            and participation.state
+            in (Participation.State.PENDING, Participation.State.ACCEPTED)
+        ),
         "my_participation": my_participation,
         "can_edit": can_edit,
         "can_cancel": can_cancel,
@@ -237,6 +247,7 @@ def _charge_detail_context(
         ),
         "share_form": state.share_form
         or (ChargeSharesForm(charge) if can_edit else None),
+        "item_form": state.item_form or (ChargeItemForm(charge) if can_edit else None),
         "replacement_rows": replacement_rows,
         "status_message": state.status_message,
         "status_is_error": state.status_is_error,
@@ -318,7 +329,11 @@ class ChargeCreateView(LoginRequiredMixin, FormView):
             data=None if preview else self.request.POST,
         )
         allocation_form = context["allocation_form"]
-        if preview or (allocation_form.is_bound and not allocation_form.is_valid()):
+        if preview or (
+            allocation_form is not None
+            and allocation_form.is_bound
+            and not allocation_form.is_valid()
+        ):
             return self.render_to_response(self.get_context_data(form=form, **context))
         try:
             charge = create_charge(
@@ -329,7 +344,11 @@ class ChargeCreateView(LoginRequiredMixin, FormView):
                 invitee_ids=form.invitee_ids,
                 creditor_id=form.cleaned_data["creditor"].pk,
                 include_creator=form.cleaned_data["include_creator"],
-                shares_by_user=allocation_form.shares_by_user,
+                shares_by_user=allocation_form.shares_by_user if allocation_form else None,
+                guest_invites_enabled=form.cleaned_data.get("guest_invites_enabled", False),
+                guest_total_participants=form.cleaned_data.get("guest_total_participants"),
+                guest_entry_limit=form.cleaned_data.get("guest_entry_limit") or 10,
+                guest_access_ttl_days=form.cleaned_data.get("guest_access_ttl_days") or 7,
             )
         except ValidationError as error:
             form.add_error(None, error.messages)
@@ -340,6 +359,9 @@ class ChargeCreateView(LoginRequiredMixin, FormView):
             if charge.state == Charge.State.AWAITING_ACCEPTANCE
             else _("Cobrança criada e ativa."),
         )
+        credentials = getattr(charge, "_guest_credentials", None)
+        if credentials:
+            self.request.session[f"pixu_guest_credentials:{charge.pk}"] = credentials
         return redirect("charges:detail", pk=charge.pk)
 
 
@@ -361,10 +383,16 @@ def _allocation_context(form, data=None):
         has_current_manual_shares = bool(posted_share_fields) and (
             posted_share_fields == current_share_fields
         )
+        fixed_participant_count = (
+            form.cleaned_data.get("guest_total_participants")
+            if form.cleaned_data.get("guest_invites_enabled")
+            else None
+        )
         allocation_form = ChargeAllocationForm(
             people=form.participants,
             total_cents=form.total_cents,
-            data=data if has_current_manual_shares else None,
+            participant_count=fixed_participant_count,
+            data=(data if has_current_manual_shares and fixed_participant_count is None else None),
         )
     return {
         "allocation_form": allocation_form,
@@ -390,6 +418,19 @@ class ChargeCreatePreviewView(LoginRequiredMixin, View):
         )
 
 
+class GuestOptionsPreviewView(LoginRequiredMixin, View):
+    """Return the anonymous-entry options after the checkbox changes."""
+
+    def post(self, request: HttpRequest) -> HttpResponse:
+        form = ChargeCreateForm(actor=request.user, data=request.POST)
+        form.is_valid()
+        return render(
+            request,
+            "charges/partials/guest_options.html",
+            {"form": form},
+        )
+
+
 class ChargeDetailView(LoginRequiredMixin, DetailView):
     template_name = "charges/charge_detail.html"
     context_object_name = "charge"
@@ -400,7 +441,63 @@ class ChargeDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(_charge_detail_context(self.object, self.request.user))
+        context["guest_credentials"] = self.request.session.get(
+            f"pixu_guest_credentials:{self.object.pk}",
+        )
+        context["guest_share_url"] = (
+            self.request.build_absolute_uri(
+                reverse(
+                    "charges:guest_entry",
+                    args=[self.object.pk, context["guest_credentials"]["token"]],
+                ),
+            )
+            if context["guest_credentials"]
+            else ""
+        )
         return context
+
+
+class ChargeItemCreateView(LoginRequiredMixin, View):
+    def post(self, request: HttpRequest, pk: int) -> HttpResponse:
+        charge = get_object_or_404(_visible_charges(request.user), pk=pk)
+        if charge.creator_id != request.user.pk:
+            raise PermissionDenied
+        form = ChargeItemForm(charge, data=request.POST)
+        status_message = ""
+        status_is_error = False
+        if form.is_valid():
+            try:
+                add_charge_item(
+                    charge_id=charge.pk,
+                    actor=request.user,
+                    description=form.cleaned_data["description"],
+                    amount_cents=form.amount_cents,
+                    participation_id=form.cleaned_data["participation"].pk,
+                )
+            except (PermissionDenied, ValidationError) as error:
+                if isinstance(error, PermissionDenied):
+                    raise
+                form.add_error(None, error.messages)
+            else:
+                status_message = _("Item adicionado e cotas recalculadas.")
+        if not status_message:
+            status_message = _("Revise os dados do item.")
+            status_is_error = True
+        charge.refresh_from_db()
+        context = _charge_detail_context(
+            charge,
+            request.user,
+            ChargeDetailState(
+                item_form=form,
+                status_message=status_message,
+                status_is_error=status_is_error,
+            ),
+        )
+        if _is_htmx(request):
+            return render(request, "charges/partials/charge_state.html", context, status=400 if status_is_error else 200)
+        if status_is_error:
+            return render(request, "charges/charge_detail.html", {"charge": charge, **context}, status=400)
+        return redirect("charges:detail", pk=charge.pk)
 
 
 class ChargeCancelView(LoginRequiredMixin, View):

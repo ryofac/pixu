@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import uuid
 
 from django.contrib.auth import get_user_model
@@ -18,6 +19,41 @@ from pixu.settlements.services import confirm_payment
 from pixu.settlements.services import record_payment
 
 User = get_user_model()
+
+
+class PwaTests(TestCase):
+    def test_base_template_advertises_manifest_and_mobile_install_prompt(self):
+        response = self.client.get(reverse("home"))
+
+        assert response.status_code == 200
+        self.assertContains(response, f'href="{reverse("pwa_manifest")}"')
+        self.assertContains(response, "data-install-prompt")
+
+    def test_manifest_declares_installable_shell_and_high_definition_icons(self):
+        response = self.client.get(reverse("pwa_manifest"))
+
+        assert response.status_code == 200
+        assert (
+            response["Content-Type"].split(";", maxsplit=1)[0]
+            == "application/manifest+json"
+        )
+        manifest = json.loads(response.content)
+        assert manifest["display"] == "standalone"
+        assert manifest["start_url"] == "/"
+        assert manifest["scope"] == "/"
+        assert {icon["sizes"] for icon in manifest["icons"]} == {"192x192", "512x512"}
+        assert all(icon["purpose"] == "any maskable" for icon in manifest["icons"])
+
+    def test_service_worker_is_root_scoped_and_network_only(self):
+        response = self.client.get(reverse("pwa_service_worker"))
+
+        assert response.status_code == 200
+        assert (
+            response["Content-Type"].split(";", maxsplit=1)[0]
+            == "application/javascript"
+        )
+        self.assertContains(response, "event.respondWith(fetch(event.request))")
+        self.assertNotContains(response, "caches.open")
 
 
 class ProductEntryTests(TestCase):

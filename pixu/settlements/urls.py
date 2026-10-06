@@ -5,6 +5,7 @@ from .views import PaymentCreateView
 from .views import PaymentReceiptDeleteView
 from .views import PaymentReceiptUpdateView
 from .views import PaymentReceiptView
+from .views import GuestPaymentReceiptView
 from .views import RejectPaymentView
 
 app_name = "settlements"
@@ -25,6 +26,11 @@ urlpatterns = [
         "payments/<int:payment_id>/receipt/",
         PaymentReceiptView.as_view(),
         name="receipt",
+    ),
+    path(
+        "guest/payments/<int:payment_id>/<int:participation_id>/<str:code>/receipt/",
+        GuestPaymentReceiptView.as_view(),
+        name="guest_receipt",
     ),
     path(
         "payments/<int:payment_id>/receipt/update/",
