@@ -2,6 +2,7 @@
 # ------------------------------------------------------------------------------
 USE_DOCKER=yes
 DJANGO_ACCOUNT_ALLOW_REGISTRATION=True
+DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS}
 IPYTHONDIR=/app/.ipython
 
 # Email (valores concretos ficam no .env ignorado)

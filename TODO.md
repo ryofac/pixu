@@ -8,6 +8,7 @@ Este arquivo acompanha o roadmap geral. Mudanças OpenSpec em andamento ficam em
 - [x] Configurar os apps Django iniciais, build local de Tailwind e cópia local do HTMX.
 - [x] Adicionar `AGENTS.md`, OpenSpec, skills de ai-memory, grill-me, Chrome DevTools e ferramentas do Pixu.
 - [x] Criar exemplos de variáveis de produção sem incluir credenciais reais.
+- [x] Preparar stack de VM para Portainer, imagens locais, ACME HTTP-01 via DuckDNS e template `.env.vm`.
 
 ## Decisões de escopo resolvidas
 

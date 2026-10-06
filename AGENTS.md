@@ -11,7 +11,7 @@
 - O projeto foi iniciado com Cookiecutter Django. Preserve a separação entre `config/` e os apps Django em `pixu/`.
 - Use templates Django renderizados no servidor e HTMX para interações incrementais. Não introduza SPA ou API pública sem uma mudança aprovada no OpenSpec.
 - Tailwind é compilado localmente com npm; mantenha `package-lock.json` e `uv.lock` coerentes com os manifestos. Não inclua Tailwind por CDN.
-- O Compose local usa `.envs/.local/`; produção usa `docker-compose.production.yml` e `.envs/.production/`. Só arquivos `.example` sem segredos podem ser versionados em `.envs/.production/`.
+- O Compose local usa `.envs/.local/`; a produção com DNS usa `docker-compose.production.yml` e `.envs/.production/`; a produção em VM sem DNS usa `docker-compose.vm.yml` com variáveis importadas de `.env.vm` no Portainer. Só arquivos `.example` sem segredos podem ser versionados em `.envs/.production/`; `.env.vm` nunca deve ser versionado.
 - Os apps `charges`, `settlements` e `dashboard` são esqueletos até que o plano OpenSpec correspondente seja implementado.
 - Consulte `.agents/skills/pixu-dev-tools/SKILL.md` para comandos e integração das ferramentas locais.
 - A skill `chrome-devtools` usa o MCP definido em `.codex/config.toml`; o servidor é iniciado sob demanda pelo `npx`.

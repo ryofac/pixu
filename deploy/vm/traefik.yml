@@ -1,0 +1,70 @@
+log:
+  level: INFO
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: web-secure
+          scheme: https
+
+  web-secure:
+    address: ":443"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      # Substitua pelo e-mail usado para avisos de renovação.
+      email: "seu-email@example.com"
+      storage: /etc/traefik/acme/acme.json
+      httpChallenge:
+        entryPoint: web
+
+http:
+  routers:
+    web-media-router:
+      # Substitua pelo hostname criado no DuckDNS.
+      rule: "Host(`pixu-seunome.duckdns.org`) && PathPrefix(`/media/`)"
+      priority: 100
+      entryPoints:
+        - web-secure
+      middlewares:
+        - csrf
+      service: django-media
+      tls:
+        certResolver: letsencrypt
+
+    web-secure-router:
+      rule: "Host(`pixu-seunome.duckdns.org`)"
+      priority: 10
+      entryPoints:
+        - web-secure
+      middlewares:
+        - csrf
+      service: django
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    csrf:
+      headers:
+        hostsProxyHeaders:
+          - X-CSRFToken
+
+  services:
+    django:
+      loadBalancer:
+        servers:
+          - url: http://django:5000
+
+    django-media:
+      loadBalancer:
+        servers:
+          - url: http://nginx:80
+
+providers:
+  file:
+    filename: /etc/traefik/traefik.yml
+    watch: true

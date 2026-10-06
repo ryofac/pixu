@@ -275,8 +275,12 @@ pixu/media/
 .pytest_cache/
 .ipython/
 .env
+.env.vm
+.env.vm.*
+!.env.vm.example
 .envs/*
 !.envs/.local/
 !.envs/.production/
 .envs/.production/*
 !.envs/.production/*.example
+deploy/vm/tls/

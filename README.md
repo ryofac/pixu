@@ -45,10 +45,18 @@ Requisitos: Docker com Compose, Node.js 20.19 ou superior e npm. Para executar c
 ```sh
 npm ci
 npm run build
-docker compose -f docker-compose.local.yml up --build
+docker compose -f docker-compose.local.yml up --build --renew-anon-volumes --force-recreate
 ```
 
 A aplicação fica em `http://localhost:8000`. O Compose local inicia Django, PostgreSQL, Redis, o worker do Celery e o Garage. As migrações são aplicadas ao iniciar o Django. Para recompilar CSS enquanto edita templates, rode `npm run css:watch` em outro terminal. O modo local padrão usa e-mail de console: confirmações de conta e redefinições aparecem nos logs do Django, sem envio pela internet.
+
+Quando `pyproject.toml` ou `uv.lock` mudar, recrie também o volume anônimo `/app/.venv` para que o container não reutilize dependências antigas:
+
+```sh
+docker compose -f docker-compose.local.yml up --build --renew-anon-volumes --force-recreate
+```
+
+Essa opção não remove os volumes nomeados dos dados locais. Não use `docker compose down -v` para corrigir dependências, pois ele apaga o banco e os dados do Garage.
 
 Para experimentar a aplicação, abra `/accounts/signup/`, crie uma conta e confirme o endereço pelo link que aparece em `just logs django`. Depois entre em `/accounts/login/`. Para criar uma conta administrativa local, rode `just manage createsuperuser`.
 
@@ -189,6 +197,44 @@ DJANGO_SERVER_EMAIL="Pixu <pixu-app@example.com>"
 ```
 
 Mantenha as pontes de SMTP e Celery em `.envs/.production/.django` e os valores no `.env` ignorado ou no cofre de segredos. O broker e o backend de resultados do Celery usam Redis, configurado por `CELERY_BROKER_URL` e `CELERY_RESULT_BACKEND`; o `celeryworker` precisa permanecer ativo. Depois do deploy, teste uma recuperação de senha real em uma caixa autorizada e confira os logs do worker. Para contas Workspace, confirme as políticas com o administrador ou avalie o relay SMTP descrito na [documentação de envio do Workspace](https://support.google.com/a/answer/176600).
+
+### Deploy em VM com DuckDNS e Let's Encrypt (Portainer)
+
+Para uma VM sem domínio próprio, use um hostname DuckDNS apontado para o IP público da Oracle e `docker-compose.vm.yml`. O Traefik usa ACME HTTP-01 para emitir e renovar um certificado Let's Encrypt; não é necessário copiar certificado ou chave para a VM.
+
+1. Crie o hostname no DuckDNS, aponte-o para o IP público da VM e prepare as variáveis:
+
+   ```sh
+   cp .env.vm.example .env.vm
+   # edite .env.vm; não versione esse arquivo
+   ```
+
+   Substitua `pixu-seunome.duckdns.org` e `seu-email@example.com` em `deploy/vm/traefik.yml`. Copie esse arquivo já preenchido para o caminho definido por `PIXU_TRAEFIK_CONFIG` na VM (por padrão `/opt/pixu/traefik/traefik.yml`). O Compose monta esse arquivo sobre a configuração embutida na imagem, portanto mudanças de hostname ou e-mail não exigem novo build da imagem. `DJANGO_ALLOWED_HOSTS` e `DJANGO_CSRF_TRUSTED_ORIGINS` devem usar o hostname, por exemplo `https://pixu-seunome.duckdns.org`. O SMTP precisa ser configurado para que confirmação de cadastro e recuperação de senha funcionem.
+
+2. Na máquina de build, compile os assets e construa as imagens que serão carregadas na VM:
+
+   ```sh
+   ./scripts/build-vm-images.sh
+   ```
+
+   O script também gera automaticamente `pixu-vm-images.tar.gz`. Para usar outro caminho, defina `PIXU_VM_IMAGES_BUNDLE` antes de executá-lo. Transfira esse arquivo para a VM e carregue-o com `docker load`:
+
+   ```sh
+   # na VM:
+   docker load < pixu-vm-images.tar.gz
+   ```
+
+3. Crie uma Stack no Portainer usando `docker-compose.vm.yml`. Em **Environment variables**, importe `.env.vm` ou cadastre as mesmas variáveis manualmente. A porta 80 precisa estar acessível à Let's Encrypt para o desafio HTTP-01; 443 também deve estar liberada para o acesso HTTPS.
+
+4. Faça o deploy da Stack. O Django coleta os arquivos estáticos e inicia Gunicorn; o worker Celery, PostgreSQL, Redis, Nginx e Traefik sobem pelo mesmo Compose. O `start` de produção não executa migrações automaticamente: depois do primeiro deploy, abra o console do container Django no Portainer e execute `python manage.py migrate` (e repita esse passo quando uma nova imagem trouxer migrações). Se quiser validar a interpolação antes de colar no Portainer, rode localmente:
+
+   ```sh
+   docker compose --env-file .env.vm -f docker-compose.vm.yml config
+   ```
+
+5. Acesse `https://pixu-seunome.duckdns.org/`. O primeiro deploy pode levar alguns segundos para emitir o certificado. O volume `pixu_vm_traefik_acme` mantém a conta ACME e os certificados para as renovações seguintes.
+
+O stack usa volumes nomeados para PostgreSQL, comprovantes em `pixu_vm_media` e certificados ACME em `pixu_vm_traefik_acme`. Inclua esses volumes no backup da VM. O arquivo `docker-compose.production.yml` continua sendo o caminho para um deploy com domínio próprio; não misture os dois arquivos no mesmo stack.
 
 ### Deploy de produção
 
