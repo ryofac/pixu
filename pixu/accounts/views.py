@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -13,6 +14,23 @@ from pixu.accounts.forms import AccountProfileForm
 from pixu.accounts.forms import OnboardingForm
 from pixu.accounts.models import PixProfile
 from pixu.accounts.models import User
+from pixu.charges.models import Charge
+
+
+def _charges_shared_with(user, other_user):
+    visible_to_user = Q(creator=user) | Q(creditor=user) | Q(participations__user=user)
+    visible_to_other = (
+        Q(creator=other_user)
+        | Q(creditor=other_user)
+        | Q(participations__user=other_user)
+    )
+    return (
+        Charge.objects.filter(visible_to_user)
+        .filter(visible_to_other)
+        .only("pk", "title", "state")
+        .distinct()
+        .order_by("-created_at", "-pk")
+    )
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
@@ -22,8 +40,15 @@ class UserDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["pix_profile"] = PixProfile.objects.filter(user=self.object).first()
         if self.object.pk == self.request.user.pk:
-            context["pix_profile"] = PixProfile.objects.filter(user=self.object).first()
+            context["is_own_profile"] = True
+        else:
+            context["is_own_profile"] = False
+            context["shared_charges"] = _charges_shared_with(
+                self.request.user,
+                self.object,
+            )
         return context
 
 

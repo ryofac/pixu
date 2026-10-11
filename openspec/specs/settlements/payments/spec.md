@@ -109,12 +109,37 @@ Quando uma cobrança for cancelada logicamente, seus pagamentos MUST permanecer 
 
 ### Requirement: Confirmação e rejeição manuais
 
-Somente o recebedor da dívida MUST poder decidir sobre pagamento `PENDING`. Confirmar MUST alterar o estado para `CONFIRMED`, registrar quem confirmou e quando e reduzir o saldo uma única vez. Rejeitar MUST alterar para `REJECTED`, liberar a reserva e manter o saldo. O sistema MUST aceitar decisões idempotentes sem dupla liquidação e MUST exigir conferência manual; envio de comprovante nunca confirma automaticamente.
+Somente o recebedor da dívida MUST poder decidir manualmente sobre pagamento `PENDING`. Por padrão, a confirmação MUST ser manual: confirmar MUST alterar o estado para `CONFIRMED`, registrar quem confirmou e quando e reduzir o saldo uma única vez; rejeitar MUST alterar para `REJECTED`, liberar a reserva e manter o saldo. O recebedor MAY ativar, para uma dívida específica e por ação autenticada própria, a confirmação automática no Pixu de pagamentos futuros declarados pelo devedor autenticado. Ao registrar um pagamento válido para uma dívida assim configurada, o sistema MUST aplicar as mesmas validações, reservas, limites, autorização e atomicidade existentes, persistir diretamente o pagamento como `CONFIRMED` e registrar data e origem automática da confirmação sem atribuí-la a uma ação manual do recebedor. Pagamentos parciais MUST seguir a mesma regra. Pagamentos de convidados sem conta Pixu MUST permanecer `PENDING` para decisão manual, mesmo se a dívida estiver configurada. Desativar a opção MUST afetar somente declarações futuras e MUST NOT reverter pagamentos já confirmados. Comprovantes nunca constituem verificação bancária; o Pixu MUST NOT executar ou verificar a transferência externa. O sistema MUST manter decisões e registros idempotentes, sem dupla liquidação.
 
 #### Scenario: Recebedor confirma
 
 - **WHEN** o recebedor confirma um pagamento pendente de R$ 20,00
 - **THEN** o pagamento fica `CONFIRMED`, a confirmação registra usuário e data, o saldo aberto passa de R$ 50,00 para R$ 30,00 e uma segunda confirmação não altera o saldo
+
+#### Scenario: Recebedor habilita confirmação para uma dívida
+
+- **WHEN** o recebedor autenticado ativa confirmação automática em uma dívida de uma conta Pixu
+- **THEN** somente declarações futuras para aquela dívida ficam elegíveis e a preferência é identificada como própria daquela cota
+
+#### Scenario: Pagamento integral declarado por conta autenticada é confirmado
+
+- **WHEN** o pagador autenticado registra um pagamento válido para uma dívida com confirmação automática ativa
+- **THEN** o sistema aplica as validações existentes e salva o pagamento como `CONFIRMED` com data e origem automática, sem ação manual posterior
+
+#### Scenario: Pagamento parcial é confirmado automaticamente
+
+- **WHEN** o pagador autenticado registra R$ 20,00 de uma dívida de R$ 50,00 com confirmação automática ativa
+- **THEN** o pagamento é confirmado com origem automática, o saldo aberto passa para R$ 30,00 e o restante continua disponível pelas regras existentes
+
+#### Scenario: Convidado não autenticado permanece no fluxo manual
+
+- **WHEN** uma participação convidada sem conta Pixu declara pagamento para uma dívida com confirmação automática ativa
+- **THEN** o pagamento permanece `PENDING` e somente o recebedor pode confirmá-lo ou rejeitá-lo manualmente
+
+#### Scenario: Desativação não reverte confirmação anterior
+
+- **WHEN** o recebedor desativa confirmação automática depois de um pagamento ser confirmado automaticamente
+- **THEN** o pagamento confirmado e sua liquidação permanecem finais, mas novas declarações voltam a aguardar confirmação manual
 
 #### Scenario: Recebedor rejeita
 
@@ -153,6 +178,27 @@ Os fluxos de perfil, registro, confirmação, rejeição e download MUST funcion
 
 - **WHEN** um usuário autenticado envia uma confirmação por HTMX para dívida de outra pessoa
 - **THEN** o servidor rejeita a ação como na requisição convencional e nenhum estado financeiro muda
+
+### Requirement: Confirmação manual contextual no detalhe da cobrança
+
+Quando o recebedor autenticado visualiza uma participação com pagamento `PENDING`, a linha dessa participação MUST identificar que o Pix aguarda confirmação manual, discriminar o valor pendente sem reduzir prematuramente o saldo aberto e oferecer a ação rápida **“Confirmar recebimento”**. A interface MUST orientar a conferência no extrato antes da decisão e MUST NOT sugerir verificação bancária automática pelo Pixu.
+
+A ação de confirmar ou rejeitar MUST continuar disponível somente ao recebedor da dívida. Criadores que não são recebedores, outros participantes e convidados MUST NOT receber ação de decisão na linha; uma tentativa direta no servidor continua negada. Após uma decisão válida por HTMX, a atualização MUST substituir o conteúdo financeiro afetado, anunciar o resultado e reordenar a participação conforme o novo estado sem exigir recarregamento completo.
+
+#### Scenario: Recebedor confirma Pix pendente pela linha da pessoa
+
+- **WHEN** o recebedor confere o extrato e aciona “Confirmar recebimento” para um Pix `PENDING` no detalhe da cobrança
+- **THEN** o pagamento é confirmado pelas regras existentes, a linha atualiza saldo e estado, e a pessoa é reordenada dentro de seu grupo de identidade
+
+#### Scenario: Criador sem papel de recebedor não vê decisão
+
+- **WHEN** o criador abre a cobrança mas não é o recebedor de uma dívida com Pix `PENDING`
+- **THEN** pode manter os acessos de leitura já autorizados, mas não vê ações de confirmar ou rejeitar e o servidor recusa uma tentativa forjada de decisão
+
+#### Scenario: Pix pendente preserva saldo aberto
+
+- **WHEN** o recebedor vê uma cota com saldo aberto de R$ 117,50 e Pix `PENDING` de R$ 117,50
+- **THEN** a linha identifica o Pix aguardando confirmação e continua apresentando R$ 117,50 como saldo aberto até a confirmação manual
 
 ### Requirement: Internacionalização pt-BR
 

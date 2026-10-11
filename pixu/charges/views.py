@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from django.contrib import messages
@@ -22,13 +21,12 @@ from django.views.generic import TemplateView
 
 from pixu.accounts.models import PixProfile
 from pixu.settlements.forms import CompensationForm
-from pixu.settlements.forms import ReceiptForm
-from pixu.settlements.models import Compensation
-from pixu.settlements.models import Payment
 from pixu.settlements.services import apply_compensation
-from pixu.settlements.services import payment_balance
 from pixu.settlements.services import suggest_compensations
 
+from .detail_context import ChargeDetailState
+from .detail_context import add_guest_session_context
+from .detail_context import charge_detail_context as _charge_detail_context
 from .forms import AcceptParticipationForm
 from .forms import ChargeAllocationForm
 from .forms import ChargeCancellationForm
@@ -51,21 +49,6 @@ if TYPE_CHECKING:
     from django.http import HttpRequest
 
 
-@dataclass
-class ChargeDetailState:
-    share_form: ChargeSharesForm | None = None
-    item_form: ChargeItemForm | None = None
-    replacement_form: ReplaceParticipantForm | None = None
-    replacement_participation_id: int | None = None
-    compensation_form: CompensationForm | None = None
-    compensation_debt_id: int | None = None
-    compensation_reciprocal_debt_id: int | None = None
-    compensation_preview_amount_cents: int | None = None
-    cancellation_form: ChargeCancellationForm | None = None
-    status_message: str = ""
-    status_is_error: bool = False
-
-
 def _visible_charges(user):
     return (
         Charge.objects.filter(
@@ -76,183 +59,6 @@ def _visible_charges(user):
         .prefetch_related("participations__user")
         .distinct()
     )
-
-
-def _attach_creator_receipts(charge, actor, participations):
-    if charge.creator_id != actor.pk:
-        return
-    receipts_by_participation = {}
-    receipts = (
-        Payment.objects.filter(debt__participation__charge=charge)
-        .exclude(receipt="")
-        .select_related("debt__participation")
-        .order_by("created_at", "pk")
-    )
-    for payment in receipts:
-        receipts_by_participation.setdefault(payment.debt.participation_id, []).append(
-            payment,
-        )
-    for participation in participations:
-        participation.receipt_payments = receipts_by_participation.get(
-            participation.pk,
-            [],
-        )
-
-
-def _charge_detail_context(
-    charge: Charge,
-    actor,
-    state: ChargeDetailState | None = None,
-):
-    state = state or ChargeDetailState()
-    participations = list(
-        charge.participations.select_related("user").order_by("user_id", "pk"),
-    )
-    _attach_creator_receipts(charge, actor, participations)
-    can_edit = (
-        charge.creator_id == actor.pk
-        and charge.locked_at is None
-        and charge.state != Charge.State.CANCELLED
-    )
-    can_cancel = charge.creator_id == actor.pk and charge.state in {
-        Charge.State.ACTIVE,
-        Charge.State.AWAITING_ACCEPTANCE,
-    }
-    replacement_rows = []
-    if can_edit and charge.state == Charge.State.AWAITING_ACCEPTANCE:
-        for participation in participations:
-            if participation.state != Participation.State.DECLINED:
-                continue
-            form = (
-                state.replacement_form
-                if participation.pk == state.replacement_participation_id
-                else ReplaceParticipantForm(charge)
-            )
-            replacement_rows.append({"participation": participation, "form": form})
-
-    my_participation = next(
-        (
-            participation
-            for participation in participations
-            if participation.user_id == actor.pk
-        ),
-        None,
-    )
-    debts = list(
-        Debt.objects.filter(
-            participation__charge=charge,
-        )
-        .filter(Q(debtor=actor) | Q(creditor=actor))
-        .select_related(
-            "debtor",
-            "debtor__pix_profile",
-            "creditor",
-            "creditor__pix_profile",
-            "participation",
-        )
-        .prefetch_related("payments__confirmed_by", "payments__rejected_by")
-        .order_by("pk"),
-    )
-    for debt in debts:
-        debt.payment_balance = payment_balance(debt)
-        debt.payment_items = list(debt.payments.all())
-        for payment in debt.payment_items:
-            payment.receipt_form = ReceiptForm()
-        compensation_items = list(
-            Compensation.objects.filter(Q(debt=debt) | Q(reciprocal_debt=debt))
-            .select_related(
-                "debt__participation__charge",
-                "reciprocal_debt__participation__charge",
-                "initiated_by",
-            )
-            .order_by("-created_at", "-pk"),
-        )
-        for compensation in compensation_items:
-            compensation.other_debt = (
-                compensation.reciprocal_debt
-                if compensation.debt_id == debt.pk
-                else compensation.debt
-            )
-        debt.compensation_items = compensation_items
-        debt.compensation_options = []
-        if debt.debtor_id == actor.pk:
-            for option in suggest_compensations(debt_id=debt.pk, actor=actor):
-                form = (
-                    state.compensation_form
-                    if (
-                        state.compensation_debt_id == debt.pk
-                        and state.compensation_reciprocal_debt_id
-                        == option.reciprocal_debt.pk
-                    )
-                    else CompensationForm(
-                        option,
-                        prefix=f"compensation-{debt.pk}-{option.reciprocal_debt.pk}",
-                    )
-                )
-                form.fields["amount"].widget.attrs.update(
-                    {
-                        "hx-get": reverse(
-                            "charges:compensation_preview",
-                            args=[debt.pk, option.reciprocal_debt.pk],
-                        ),
-                        "hx-trigger": "input changed delay:300ms, change",
-                        "hx-include": "closest form",
-                        "hx-target": (
-                            f"#compensation-preview-{debt.pk}-"
-                            f"{option.reciprocal_debt.pk}"
-                        ),
-                        "hx-swap": "innerHTML",
-                    },
-                )
-                is_current_form = (
-                    state.compensation_debt_id == debt.pk
-                    and state.compensation_reciprocal_debt_id
-                    == option.reciprocal_debt.pk
-                )
-                preview_amount_cents = (
-                    state.compensation_preview_amount_cents
-                    if is_current_form
-                    and state.compensation_preview_amount_cents is not None
-                    else option.max_amount_cents
-                )
-                debt.compensation_options.append(
-                    {
-                        "option": option,
-                        "form": form,
-                        "preview_amount_cents": preview_amount_cents,
-                        "preview_remaining_cents": (
-                            option.current_available_cents - preview_amount_cents
-                        ),
-                    },
-                )
-    return {
-        "charge": charge,
-        "participations": participations,
-        "guest_entry_count": sum(
-            1
-            for participation in participations
-            if participation.guest_access_digest
-            and participation.state
-            in (Participation.State.PENDING, Participation.State.ACCEPTED)
-        ),
-        "my_participation": my_participation,
-        "can_edit": can_edit,
-        "can_cancel": can_cancel,
-        "cancellation_form": (
-            state.cancellation_form
-            if state.cancellation_form is not None
-            else ChargeCancellationForm()
-            if can_cancel
-            else None
-        ),
-        "share_form": state.share_form
-        or (ChargeSharesForm(charge) if can_edit else None),
-        "item_form": state.item_form or (ChargeItemForm(charge) if can_edit else None),
-        "replacement_rows": replacement_rows,
-        "status_message": state.status_message,
-        "status_is_error": state.status_is_error,
-        "debts": debts,
-    }
 
 
 def _is_htmx(request) -> bool:
@@ -441,19 +247,7 @@ class ChargeDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update(_charge_detail_context(self.object, self.request.user))
-        context["guest_credentials"] = self.request.session.get(
-            f"pixu_guest_credentials:{self.object.pk}",
-        )
-        context["guest_share_url"] = (
-            self.request.build_absolute_uri(
-                reverse(
-                    "charges:guest_entry",
-                    args=[self.object.pk, context["guest_credentials"]["token"]],
-                ),
-            )
-            if context["guest_credentials"]
-            else ""
-        )
+        add_guest_session_context(context, self.request, self.object)
         return context
 
 

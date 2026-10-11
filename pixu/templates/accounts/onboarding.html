@@ -14,6 +14,11 @@
       <h1 class="text-2xl font-black tracking-tight text-pixu-ink sm:text-3xl" id="page-title">{% translate "Complete seu perfil" %}</h1>
       <p class="mt-2 text-sm leading-relaxed text-pixu-muted">{% translate "Escolha como você será identificado e, se quiser, já informe sua chave Pix para receber cotas de rateio." %}</p>
 
+      <aside class="mt-5 rounded-2xl border border-sakura-1 bg-pixu-info-surface p-4" role="note" aria-labelledby="direct-inclusion-tip">
+        <h2 class="font-extrabold text-pixu-ink" id="direct-inclusion-tip">{% translate "Uma preferência para convites futuros" %}</h2>
+        <p class="mt-1 text-sm leading-relaxed text-pixu-ink">{% translate "No seu perfil, você pode permitir que outras contas Pixu incluam você diretamente em novas cobranças, sem convite e aceite individual. Recomendamos considerar essa opção se você costuma dividir despesas com pessoas da plataforma. Ela começa desativada e só muda quando você escolher." %}</p>
+      </aside>
+
       <form class="mt-6 grid gap-5" method="post" action="{% url 'accounts:onboarding' %}" novalidate>
         {% csrf_token %}
         {{ form.username_manually_edited }}

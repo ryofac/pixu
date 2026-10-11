@@ -1,43 +1,78 @@
 {% extends "base.html" %}
 
-{% block title %}Meu perfil · Pixu{% endblock title %}
+{% block title %}{% if is_own_profile %}Meu perfil{% else %}Perfil de {{ object.name|default:object.username }}{% endif %} · Pixu{% endblock title %}
 
 {% block content %}
   <section class="mx-auto max-w-5xl space-y-5 pt-2 lg:space-y-6 lg:pt-0" aria-labelledby="page-title">
-    <header>
-      <h1 class="mb-2 text-2xl font-extrabold text-pixu-ink sm:text-3xl" id="page-title">Meu perfil</h1>
-      <p class="text-sm leading-relaxed text-pixu-muted">Seus dados e sua chave Pix principal.</p>
+    <header class="flex items-center gap-3">
+      <a class="grid size-11 shrink-0 place-items-center rounded-xl border border-pixu-border bg-pixu-surface text-pixu-ink no-underline hover:bg-pixu-surface-raised focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'charges:list' %}" aria-label="Voltar para cobranças">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+      </a>
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-pixu-muted">Conta Pixu</p>
+        <h1 class="text-2xl font-extrabold text-pixu-ink sm:text-3xl" id="page-title">{% if is_own_profile %}Meu perfil{% else %}Perfil de {{ object.name|default:object.username }}{% endif %}</h1>
+      </div>
     </header>
 
-    <div class="grid items-start gap-5{% if object == request.user %} lg:grid-cols-[minmax(15rem,.7fr)_minmax(0,1.3fr)]{% else %} lg:max-w-md{% endif %}">
-      <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-6 text-center shadow-sm">
-        <div class="mx-auto mb-4 grid size-20 place-items-center rounded-full bg-sakura-2 text-4xl font-extrabold text-sakura-6" aria-hidden="true">{{ object.name|default:object.username|slice:":1"|upper }}</div>
-        <h2 class="mb-1 text-lg font-extrabold text-pixu-ink">{{ object.name|default:object.username }}</h2>
-        <p class="text-sm text-pixu-muted">@{{ object.username }}</p>
-      </article>
-
-      {% if object == request.user %}
-        <div class="grid gap-4">
-          <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
-        <h2 class="mb-2 text-lg font-extrabold text-pixu-ink">Chave Pix principal</h2>
-        {% if pix_profile and pix_profile.pix_key %}
-          <p class="break-all font-bold text-pixu-ink">{{ pix_profile.pix_key }}</p>
-        {% else %}
-          <p class="text-sm text-pixu-muted">Você ainda não cadastrou uma chave Pix.</p>
-        {% endif %}
-        <p class="mt-3 text-xs leading-relaxed text-pixu-muted">A chave é informada por você. O Pixu não verifica a chave junto ao banco.</p>
-          </article>
-
-          <div class="grid gap-3 sm:grid-cols-2">
-            <a class="flex min-h-12 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-3 font-extrabold text-white no-underline shadow-md transition hover:brightness-110" href="{% url 'accounts:update' %}">Editar perfil</a>
-            <a class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted no-underline hover:text-pixu-ink" href="{% url 'account_email' %}">Gerenciar e-mail</a>
-            <form class="sm:col-span-2" method="post" action="{% url 'account_logout' %}">
-              {% csrf_token %}
-              <button class="flex min-h-12 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-3 font-bold text-pixu-muted hover:text-pixu-ink" type="submit">Sair da conta</button>
-            </form>
+    <div class="grid min-w-0 items-start gap-4 lg:grid-cols-2 lg:gap-5">
+      <article class="min-w-0 rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6">
+        <div class="flex min-w-0 items-center gap-4">
+          <div class="grid size-14 shrink-0 place-items-center rounded-full bg-sakura-2 text-xl font-extrabold text-pixu-action" aria-hidden="true">{{ object.name|default:object.username|slice:":1"|upper }}</div>
+          <div class="min-w-0">
+            <h2 class="break-words text-xl font-extrabold text-pixu-ink">{{ object.name|default:object.username }}</h2>
+            <p class="mt-1 break-all text-sm text-pixu-muted">@{{ object.username }}</p>
           </div>
         </div>
-      {% endif %}
+
+        {% if is_own_profile %}
+          <div class="mt-5 grid gap-2 sm:grid-cols-2">
+            <a class="flex min-h-11 items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-2.5 text-sm font-extrabold text-white no-underline shadow-sm transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'accounts:update' %}">Editar perfil</a>
+            <a class="flex min-h-11 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface-raised px-4 py-2.5 text-sm font-bold text-pixu-ink no-underline hover:border-pixu-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'account_email' %}">Gerenciar e-mail</a>
+            <form class="sm:col-span-2" method="post" action="{% url 'account_logout' %}">
+              {% csrf_token %}
+              <button class="flex min-h-11 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 text-sm font-bold text-pixu-muted hover:text-pixu-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" type="submit">Sair da conta</button>
+            </form>
+          </div>
+        {% endif %}
+      </article>
+
+      <article class="min-w-0 rounded-[20px] border border-pixu-border bg-pixu-surface p-5 shadow-sm sm:p-6" aria-labelledby="pix-key-heading">
+        <p class="text-xs font-bold uppercase tracking-wider text-pixu-muted" id="pix-key-heading">Chave Pix principal</p>
+        {% if pix_profile and pix_profile.pix_key %}
+          <div class="mt-3 flex min-w-0 flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <p class="min-w-0 break-all text-base font-extrabold leading-relaxed text-pixu-ink">{{ pix_profile.pix_key }}</p>
+            <button class="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface-raised px-4 py-2.5 text-sm font-bold text-pixu-ink hover:border-pixu-action focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" type="button" data-copy-text="{{ pix_profile.pix_key }}" data-copied-label="Chave copiada!">Copiar chave Pix</button>
+          </div>
+          <p class="mt-3 text-sm leading-relaxed text-pixu-muted">Chave informada pela titular. O Pixu não verifica a chave junto ao banco.</p>
+        {% else %}
+          <p class="mt-3 text-sm font-bold text-pixu-muted">{% if is_own_profile %}Você ainda não informou uma chave Pix.{% else %}{{ object.name|default:object.username }} ainda não informou uma chave Pix.{% endif %}</p>
+          <p class="mt-2 text-sm leading-relaxed text-pixu-muted">Nenhuma chave substituta ou ação de pagamento é exibida.</p>
+          {% if is_own_profile %}<p class="mt-3 text-sm leading-relaxed text-pixu-muted">A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.</p>{% endif %}
+        {% endif %}
+      </article>
     </div>
+
+    {% if not is_own_profile %}
+      <section class="space-y-3 pt-1" aria-labelledby="shared-charges-heading">
+        <div class="flex flex-wrap items-end justify-between gap-2 px-1">
+          <h2 class="text-lg font-extrabold text-pixu-ink" id="shared-charges-heading">Cobranças em comum</h2>
+          <p class="text-sm text-pixu-muted">Apenas cobranças já visíveis para vocês.</p>
+        </div>
+        {% if shared_charges %}
+          <ul class="grid gap-2.5">
+            {% for charge in shared_charges %}
+              <li>
+                <a class="group flex min-h-16 min-w-0 items-center justify-between gap-3 rounded-2xl border border-pixu-border bg-pixu-surface px-4 py-3 text-pixu-ink no-underline transition hover:border-pixu-action hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'charges:detail' charge.pk %}">
+                  <span class="min-w-0"><span class="block truncate font-extrabold">{{ charge.title }}</span><span class="mt-1 block text-sm text-pixu-muted">{{ charge.get_state_display }}</span></span>
+                  <svg class="size-5 shrink-0 text-pixu-action" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface px-4 py-5 text-sm leading-relaxed text-pixu-muted">Vocês ainda não participam de uma mesma cobrança. Quando houver uma, somente seu título e estado aparecerão aqui.</p>
+        {% endif %}
+      </section>
+    {% endif %}
   </section>
 {% endblock content %}

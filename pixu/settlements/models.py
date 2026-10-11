@@ -26,6 +26,10 @@ class Payment(models.Model):
         REJECTED = "REJECTED", _("Rejeitado")
         REVOKED = "REVOKED", _("Revogado")
 
+    class ConfirmationSource(models.TextChoices):
+        MANUAL = "MANUAL", _("Manual")
+        AUTOMATIC = "AUTOMATIC", _("Automática")
+
     debt = models.ForeignKey(
         Debt,
         on_delete=models.PROTECT,
@@ -76,6 +80,12 @@ class Payment(models.Model):
         _("estado"),
         choices=State,
         default=State.PENDING,
+        max_length=12,
+    )
+    confirmation_source = models.CharField(
+        _("origem da confirmação"),
+        choices=ConfirmationSource,
+        default=ConfirmationSource.MANUAL,
         max_length=12,
     )
     created_at = models.DateTimeField(

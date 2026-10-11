@@ -378,8 +378,11 @@ def create_charge(  # noqa: PLR0913 - explicit keyword-only charge terms
             {"invitee_ids": _("Uma pessoa não pode ser convidada mais de uma vez.")},
         )
 
-    invitees = User.objects.filter(pk__in=invitee_ids, is_active=True).in_bulk()
-    if set(invitees) != set(invitee_ids):
+    active_invitee_ids = set(
+        User.objects.filter(pk__in=invitee_ids, is_active=True)
+        .values_list("pk", flat=True),
+    )
+    if active_invitee_ids != set(invitee_ids):
         raise ValidationError(
             {"invitee_ids": _("Selecione somente contas ativas já cadastradas.")},
         )
@@ -424,6 +427,20 @@ def create_charge(  # noqa: PLR0913 - explicit keyword-only charge terms
         _validate_shares(shares_by_user, all_user_ids, total_cents)
         shares = dict(shares_by_user)
     with transaction.atomic():
+        invitees = User.objects.select_for_update().filter(
+            pk__in=invitee_ids,
+            is_active=True,
+        ).in_bulk()
+        if set(invitees) != set(invitee_ids):
+            raise ValidationError(
+                {"invitee_ids": _("Selecione somente contas ativas já cadastradas.")},
+            )
+        directly_accepted_ids = {
+            user_id
+            for user_id, invitee in invitees.items()
+            if invitee.allow_direct_charge_inclusion
+        }
+        has_pending_invitees = bool(set(invitee_ids) - directly_accepted_ids)
         charge = Charge.objects.create(
             creator=creator,
             creditor_id=creditor_id,
@@ -431,7 +448,7 @@ def create_charge(  # noqa: PLR0913 - explicit keyword-only charge terms
             description=cleaned_description,
             total_cents=total_cents,
             state=Charge.State.AWAITING_ACCEPTANCE
-            if guest_invites_enabled or invitee_ids
+            if guest_invites_enabled or has_pending_invitees
             else Charge.State.ACTIVE,
             guest_invites_enabled=guest_invites_enabled,
             guest_total_participants=guest_total_participants,
@@ -458,11 +475,29 @@ def create_charge(  # noqa: PLR0913 - explicit keyword-only charge terms
                     user=invitees[user_id],
                     share_cents=shares[user_id],
                     base_share_cents=shares[user_id],
-                    state=Participation.State.PENDING,
+                    state=(
+                        Participation.State.ACCEPTED
+                        if user_id in directly_accepted_ids
+                        else Participation.State.PENDING
+                    ),
+                    accepted_at=(
+                        timezone.now() if user_id in directly_accepted_ids else None
+                    ),
                 )
                 for user_id in sorted(invitee_ids)
             ],
         )
+        for participation in created_invitees:
+            if (
+                participation.state == Participation.State.ACCEPTED
+                and participation.user_id != charge.creditor_id
+            ):
+                Debt.objects.create(
+                    participation=participation,
+                    debtor_id=participation.user_id,
+                    creditor_id=charge.creditor_id,
+                    original_cents=participation.share_cents,
+                )
         if items:
             participants_by_user = {
                 participation.user_id: participation

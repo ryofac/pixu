@@ -20,6 +20,10 @@ class User(AbstractUser):
         _("onboarding concluído"),
         default=True,
     )
+    allow_direct_charge_inclusion = models.BooleanField(
+        _("permitir inclusão direta em cobranças"),
+        default=False,
+    )
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.

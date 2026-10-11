@@ -8,7 +8,7 @@
     <div>
       <a class="mb-2 inline-flex text-sm font-bold text-pixu-action no-underline" href="{% url 'charges:detail' debt.participation.charge_id %}">‹ {% translate "Detalhe da cobrança" %}</a>
       <h1 class="mb-2 text-2xl font-extrabold text-pixu-ink" id="page-title">{% translate "Registrar pagamento" %}</h1>
-      <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Registre o Pix depois de fazê-lo no aplicativo do seu banco. O recebedor ainda precisará confirmar o recebimento." %}</p>
+      <p class="text-sm leading-relaxed text-pixu-muted">{% translate "Registre o pagamento depois de fazer o Pix no aplicativo do seu banco. O Pixu não verifica a transferência." %}</p>
     </div>
     <div class="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(18rem,.9fr)]">
       <article class="rounded-[20px] border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-6">
@@ -18,6 +18,9 @@
           <button class="mt-3 min-h-11 rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 font-bold text-pixu-action hover:bg-sakura-2" type="button" data-copy-text="{{ debt.creditor.pix_profile.pix_key|escapejs }}">{% translate "Copiar chave Pix" %}</button>
         {% else %}
           <p class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-pixu-pending">{% translate "O recebedor ainda não cadastrou uma chave Pix." %}</p>
+        {% endif %}
+        {% if debt.auto_confirm_payments %}
+          <p class="mt-4 rounded-xl border border-sakura-1 bg-pixu-info-surface px-4 py-3 text-sm leading-relaxed text-pixu-ink">{% translate "O recebedor ativou a confirmação automática nesta cota. Após as validações, este pagamento declarado será confirmado no Pixu, inclusive se for parcial. Isso não verifica nem realiza a transferência." %}</p>
         {% endif %}
         <p class="mt-4 text-sm leading-relaxed text-pixu-muted">{% translate "A chave foi informada pelo usuário. O Pixu não verifica a chave junto ao banco." %}</p>
         <dl class="mt-5 grid gap-3 sm:grid-cols-2">

@@ -32,6 +32,7 @@ from .services import payment_balance
 from .services import record_payment
 from .services import reject_payment
 from .services import replace_receipt
+from .services import set_debt_auto_confirm
 from .services import suggest_compensations
 
 TEST_PASSWORD = "Pixu-tests-only!2026"
@@ -157,7 +158,58 @@ class PaymentServiceTests(TestCase):
         assert confirmed.state == Payment.State.CONFIRMED
         assert confirmed.confirmed_by_id == self.creditor.pk
         assert confirmed.confirmed_at is not None
+        assert confirmed.confirmation_source == Payment.ConfirmationSource.MANUAL
         assert payment_balance(self.debt).open_cents == 8000
+
+    def test_auto_confirmation_is_audited_scoped_to_future_payments(self):
+        enabled_debt = set_debt_auto_confirm(
+            debt_id=self.debt.pk,
+            actor=self.creditor,
+            enabled=True,
+        )
+        automatic = record_payment(
+            debt_id=enabled_debt.pk,
+            actor=self.debtor,
+            amount_cents=2000,
+        )
+
+        assert automatic.state == Payment.State.CONFIRMED
+        assert automatic.confirmation_source == Payment.ConfirmationSource.AUTOMATIC
+        assert automatic.confirmed_by_id is None
+        assert automatic.confirmed_at is not None
+        assert payment_balance(self.debt).open_cents == 8000
+
+        set_debt_auto_confirm(
+            debt_id=self.debt.pk,
+            actor=self.creditor,
+            enabled=False,
+        )
+        manual = record_payment(
+            debt_id=self.debt.pk,
+            actor=self.debtor,
+            amount_cents=1000,
+        )
+        assert manual.state == Payment.State.PENDING
+        assert manual.confirmation_source == Payment.ConfirmationSource.MANUAL
+        assert payment_balance(self.debt).open_cents == 8000
+        assert payment_balance(self.debt).pending_cents == 1000
+
+    def test_only_receiver_can_configure_auto_confirmation_for_active_account_debt(self):
+        with pytest.raises(PermissionDenied):
+            set_debt_auto_confirm(
+                debt_id=self.debt.pk,
+                actor=self.outsider,
+                enabled=True,
+            )
+
+        self.charge.state = Charge.State.CANCELLED
+        self.charge.save(update_fields=["state"])
+        with pytest.raises(ValidationError):
+            set_debt_auto_confirm(
+                debt_id=self.debt.pk,
+                actor=self.creditor,
+                enabled=True,
+            )
 
     def test_reject_releases_reservation_but_keeps_history(self):
         payment = record_payment(
@@ -405,6 +457,23 @@ class PaymentViewTests(TestCase):
         assert response.status_code == 302
         assert Payment.objects.get().amount_cents == 2000
 
+    def test_payment_view_reports_immediate_automatic_confirmation(self):
+        set_debt_auto_confirm(
+            debt_id=self.debt.pk,
+            actor=self.creditor,
+            enabled=True,
+        )
+        self.client.force_login(self.debtor)
+
+        response = self.client.post(
+            reverse("settlements:record", args=[self.debt.pk]),
+            {"amount": "20,00", "reference": "Ingresso"},
+            follow=True,
+        )
+
+        assert response.status_code == 200
+        assert "confirmado automaticamente no Pixu" in response.content.decode()
+
     def test_receiver_can_decide_over_htmx_and_detail_updates(self):
         payment = record_payment(
             debt_id=self.debt.pk,
@@ -419,8 +488,94 @@ class PaymentViewTests(TestCase):
         )
 
         assert response.status_code == 200
-        assert "Pagamento confirmado." in response.content.decode()
-        assert "30,00" in response.content.decode()
+        content = response.content.decode()
+        assert 'id="charge-content"' in content
+        assert f'id="debt-{self.debt.pk}"' in content
+        assert "Pagamento confirmado." in content
+        assert "30,00" in content
+
+    def test_receiver_can_set_auto_confirmation_over_htmx_but_debtor_cannot(self):
+        self.client.force_login(self.creditor)
+        response = self.client.post(
+            reverse("settlements:auto_confirm", args=[self.debt.pk]),
+            {"auto_confirm_payments": "on"},
+            HTTP_HX_REQUEST="true",
+            HTTP_HX_TARGET="charge-content",
+        )
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert 'name="auto_confirm_payments"' in content
+        assert "O Pixu não verifica a transferência" in content
+        self.debt.refresh_from_db()
+        assert self.debt.auto_confirm_payments
+
+        self.client.force_login(self.debtor)
+        forbidden = self.client.post(
+            reverse("settlements:auto_confirm", args=[self.debt.pk]),
+            {"auto_confirm_payments": "on"},
+            HTTP_HX_REQUEST="true",
+        )
+        assert forbidden.status_code == 403
+
+    def test_htmx_rejection_and_validation_error_keep_the_full_charge_fragment(self):
+        payment = record_payment(
+            debt_id=self.debt.pk,
+            actor=self.debtor,
+            amount_cents=2000,
+        )
+        self.client.force_login(self.creditor)
+        rejected = self.client.post(
+            reverse("settlements:reject", args=[payment.pk]),
+            HTTP_HX_REQUEST="true",
+            HTTP_HX_TARGET="charge-content",
+        )
+
+        assert rejected.status_code == 200
+        assert 'id="charge-content"' in rejected.content.decode()
+        assert "Pagamento rejeitado; o valor voltou a ficar disponível." in (
+            rejected.content.decode()
+        )
+
+        invalid = self.client.post(
+            reverse("settlements:confirm", args=[payment.pk]),
+            HTTP_HX_REQUEST="true",
+            HTTP_HX_TARGET="charge-content",
+        )
+
+        assert invalid.status_code == 400
+        invalid_content = invalid.content.decode()
+        assert 'id="charge-content"' in invalid_content
+        assert "Este pagamento não está mais pendente." in invalid_content
+
+    def test_decision_view_keeps_csrf_and_receiver_authorization(self):
+        payment = record_payment(
+            debt_id=self.debt.pk,
+            actor=self.debtor,
+            amount_cents=2000,
+        )
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.creditor)
+        csrf_response = csrf_client.post(
+            reverse("settlements:confirm", args=[payment.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        assert csrf_response.status_code == 403
+        payment.refresh_from_db()
+        assert payment.state == Payment.State.PENDING
+
+        outsider = User.objects.create_user(
+            username="terceiro-da-decisao",
+            password=TEST_PASSWORD,
+        )
+        self.client.force_login(outsider)
+        denied = self.client.post(
+            reverse("settlements:confirm", args=[payment.pk]),
+            HTTP_HX_REQUEST="true",
+        )
+        assert denied.status_code == 403
+        payment.refresh_from_db()
+        assert payment.state == Payment.State.PENDING
 
     def test_charge_detail_renders_pending_receipt_form(self):
         record_payment(

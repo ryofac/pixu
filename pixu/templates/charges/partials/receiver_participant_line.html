@@ -1,0 +1,192 @@
+{% load charge_format i18n %}
+<article class="min-w-0 py-4 first:pt-1 sm:py-5"{% if line.debt %} id="debt-{{ line.debt.pk }}"{% endif %} data-participant-row="{{ line.participation.pk }}">
+  <div class="flex flex-col gap-2">
+    <div class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-2">
+        <h4 class="break-words font-extrabold text-pixu-ink">
+          {% if line.participation.user %}<a class="text-pixu-link underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'accounts:detail' line.participation.user.username %}">{% if line.is_own_share %}{% translate "Você" %}{% else %}{{ line.participation.user.name|default:line.participation.user.username }}{% endif %}</a>{% else %}{{ line.participation.guest_name }}{% endif %}
+        </h4>
+        {% if line.is_own_share %}
+          <span class="inline-flex items-center rounded-full border border-pixu-border bg-pixu-surface-raised px-2.5 py-1 text-xs font-bold text-pixu-muted">{% translate "Cota própria" %}</span>
+        {% elif line.participation.state == 'PENDING' %}
+          <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-extrabold text-pixu-pending">{% translate "Aguardando aceite" %}</span>
+        {% elif line.debt and line.pending_payments %}
+          <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-extrabold text-pixu-pending">{% translate "Pix pendente" %}</span>
+        {% elif line.debt and line.debt.payment_balance.open_cents %}
+          <span class="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-extrabold text-pixu-pending">{% translate "Em aberto" %}</span>
+        {% elif line.debt %}
+          <span class="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-extrabold text-pixu-success">{% translate "Quitada" %}</span>
+        {% endif %}
+      </div>
+      <p class="mt-1 text-sm leading-relaxed text-pixu-muted">
+        {% if line.is_own_share %}
+          {% translate "Sua participação no rateio não gera uma cobrança contra você." %}
+        {% elif line.participation.state == 'PENDING' %}
+          {% translate "Aguardando aceite da participação." %}
+        {% elif line.debt and line.pending_payments %}
+          {% translate "Pix aguardando sua confirmação manual." %}
+        {% elif line.debt and line.debt.payment_balance.open_cents %}
+          {% translate "Saldo aberto" %}: <strong class="font-bold text-pixu-ink">R$ {{ line.debt.payment_balance.open_cents|brl_from_cents }}</strong>{% if line.open_age_label %} · {{ line.open_age_label }}{% endif %}
+        {% elif line.debt %}
+          {% if line.debt.payment_balance.confirmed_cents and line.debt.payment_balance.compensated_cents %}
+            {% translate "Cota quitada por Pix e compensação." %}
+          {% elif line.debt.payment_balance.confirmed_cents %}
+            {% translate "Cota quitada por Pix confirmado." %}
+          {% elif line.debt.payment_balance.compensated_cents %}
+            {% translate "Cota quitada por compensação." %}
+          {% else %}
+            {% translate "Cota quitada." %}
+          {% endif %}
+        {% else %}
+          {{ line.participation.get_state_display }}
+        {% endif %}
+      </p>
+    </div>
+    <div class="shrink-0 text-left sm:text-right">
+      <p class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Cota" %}</p>
+      <p class="mt-1 font-mono text-lg font-black tabular-nums text-pixu-ink">R$ {{ line.participation.share_cents|brl_from_cents }}</p>
+    </div>
+    </div>
+    {% if line.extra_items %}
+      <div class="flex w-fit max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-xl bg-pixu-surface-raised/70 px-3 py-2 font-mono text-sm tabular-nums text-pixu-ink" data-share-composition="itemized" role="group" aria-label="{% translate 'Composição da cota' %}">
+        <strong>R$ {{ line.participation.base_share_cents|brl_from_cents }}</strong>
+        {% for item in line.extra_items %}
+          <span class="inline-flex max-w-full flex-wrap items-center gap-x-1">
+            <span aria-hidden="true" class="font-bold text-pixu-muted">+</span>
+            <strong class="text-pixu-action">R$ {{ item.amount_cents|brl_from_cents }}</strong>
+            <span class="font-sans text-xs font-semibold text-pixu-muted">({% translate "item extra" %})</span>
+          </span>
+        {% endfor %}
+        <span aria-hidden="true" class="font-bold text-pixu-muted">=</span>
+        <strong class="font-black text-pixu-ink">R$ {{ line.participation.share_cents|brl_from_cents }}</strong>
+      </div>
+    {% endif %}
+    {% if line.debt and not line.pending_payments %}
+      {% include "charges/partials/receiver_participant_details_button.html" %}
+    {% endif %}
+  </div>
+
+  {% if line.debt and line.pending_payments %}
+    <div class="mt-4 grid gap-3" aria-label="{% translate 'Pix aguardando confirmação' %}">
+      {% for payment in line.pending_payments %}
+        <section class="rounded-xl border border-amber-200 bg-amber-50 p-3.5" id="pending-payment-{{ payment.pk }}">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <p class="font-extrabold text-pixu-ink">{% translate "Pix aguardando confirmação" %}</p>
+              <p class="mt-1 text-sm leading-relaxed text-pixu-muted">{% blocktranslate with amount=payment.amount_cents|brl_from_cents open_amount=line.debt.payment_balance.open_cents|brl_from_cents %}Pix de R$ {{ amount }} informado. Saldo aberto atual: R$ {{ open_amount }}; ele só muda depois da sua confirmação.{% endblocktranslate %}</p>
+            </div>
+            <span class="inline-flex shrink-0 items-center rounded-full border border-amber-200 bg-pixu-surface px-2.5 py-1 text-xs font-extrabold text-pixu-pending">{% translate "Aguardando você" %}</span>
+          </div>
+          <p class="mt-3 text-sm leading-relaxed text-pixu-ink">{% translate "Confira o recebimento no extrato do seu banco antes de decidir." %}</p>
+          <div class="mt-3 grid gap-2 sm:grid-cols-2">
+            <form method="post" action="{% url 'settlements:confirm' payment.pk %}" hx-post="{% url 'settlements:confirm' payment.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
+              {% csrf_token %}
+              <button class="flex min-h-11 w-full items-center justify-center rounded-xl bg-pixu-action-solid px-4 py-2.5 font-extrabold text-white shadow-md transition hover:brightness-110 active:scale-[0.98]" type="submit">{% translate "Confirmar recebimento" %}</button>
+            </form>
+            <form method="post" action="{% url 'settlements:reject' payment.pk %}" hx-post="{% url 'settlements:reject' payment.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
+              {% csrf_token %}
+              <button class="flex min-h-11 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 font-bold text-pixu-muted transition hover:text-pixu-ink active:scale-[0.98]" type="submit">{% translate "Rejeitar pagamento" %}</button>
+            </form>
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if line.debt and line.pending_payments %}
+    {% include "charges/partials/receiver_participant_details_button.html" %}
+  {% endif %}
+
+  {% if line.debt %}
+    <div class="hidden fixed inset-0 z-50" id="participant-detail-{{ line.participation.pk }}" role="dialog" aria-modal="true" aria-labelledby="participant-detail-title-{{ line.participation.pk }}" aria-hidden="true" data-modal>
+      <div class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm" data-modal-backdrop></div>
+      <section class="absolute inset-x-0 bottom-0 max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-t-[28px] border border-pixu-border bg-pixu-surface p-5 shadow-2xl sm:left-1/2 sm:top-1/2 sm:inset-x-auto sm:bottom-auto sm:w-[min(100%-2rem,38rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[24px] sm:p-6">
+        <div class="mb-3 flex justify-center sm:hidden"><span class="h-1.5 w-12 rounded-full bg-pixu-border" aria-hidden="true"></span></div>
+        <div class="flex items-start justify-between gap-4 border-b border-pixu-border/60 pb-3">
+          <div class="min-w-0">
+            <h3 class="break-words text-lg font-extrabold text-pixu-ink" id="participant-detail-title-{{ line.participation.pk }}">
+              {% if line.participation.user %}<a class="text-pixu-link underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'accounts:detail' line.participation.user.username %}">{{ line.participation.user.name|default:line.participation.user.username }}</a>{% else %}{{ line.participation.guest_name }}{% endif %}
+            </h3>
+            <p class="mt-1 text-sm leading-relaxed text-pixu-muted">{% translate "Detalhes da cota e do histórico financeiro." %}</p>
+          </div>
+          <button class="grid size-11 shrink-0 place-items-center rounded-full bg-pixu-surface-raised text-lg text-pixu-muted transition hover:text-pixu-ink focus:outline-none focus:ring-2 focus:ring-pixu-action/30" type="button" data-modal-close aria-label="{% translate 'Fechar' %}">×</button>
+        </div>
+
+        {% if request.user.pk == line.debt.creditor_id and line.debt.debtor_id %}
+          <form class="mt-4 rounded-2xl border border-pixu-border bg-pixu-surface-raised p-4" method="post" action="{% url 'settlements:auto_confirm' line.debt.pk %}" hx-post="{% url 'settlements:auto_confirm' line.debt.pk %}" hx-target="#charge-content" hx-swap="outerHTML" hx-disabled-elt="find button">
+            {% csrf_token %}
+            <label class="flex min-h-11 cursor-pointer items-start gap-3">
+              <input class="mt-0.5 size-5 shrink-0 accent-sakura-6" type="checkbox" name="auto_confirm_payments" value="on" {% if line.debt.auto_confirm_payments %}checked{% endif %} aria-describedby="auto-confirm-help-{{ line.debt.pk }}">
+              <span class="font-extrabold text-pixu-ink">{% translate "Confirmar automaticamente pagamentos declarados" %}</span>
+            </label>
+            <p class="mt-2 text-sm leading-relaxed text-pixu-muted" id="auto-confirm-help-{{ line.debt.pk }}">{% translate "Aplica-se somente a pagamentos futuros declarados por esta conta para esta cota, inclusive parciais. O Pixu não verifica a transferência; uma confirmação é final. Convidados sem conta continuam na confirmação manual." %}</p>
+            <button class="mt-3 flex min-h-11 w-full items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2.5 text-sm font-extrabold text-pixu-action hover:border-pixu-action sm:w-auto" type="submit">{% translate "Salvar preferência desta cota" %}</button>
+          </form>
+        {% endif %}
+
+        {% if line.extra_items %}
+          <section class="mt-4 rounded-2xl border border-sakura-1 bg-sakura-1/40 p-4" aria-labelledby="extra-charges-{{ line.participation.pk }}">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex min-w-0 items-start gap-2.5">
+                <svg class="mt-0.5 size-5 shrink-0 text-pixu-action" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+                <div>
+                  <h4 class="font-extrabold text-pixu-ink" id="extra-charges-{{ line.participation.pk }}">{% translate "Composição da cota" %}</h4>
+                  <p class="mt-1 text-sm leading-relaxed text-pixu-muted">{% translate "Base do rateio + itens extras = valor total da cota." %}</p>
+                </div>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Valor da cota" %}</p>
+                <p class="mt-1 font-mono text-base font-extrabold tabular-nums text-pixu-action">R$ {{ line.participation.share_cents|brl_from_cents }}</p>
+              </div>
+            </div>
+            <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-sakura-1 pt-3 font-mono text-sm tabular-nums text-pixu-ink">
+              <span class="font-bold">R$ {{ line.participation.base_share_cents|brl_from_cents }}</span>
+              {% for item in line.extra_items %}
+                <span aria-hidden="true" class="font-bold text-pixu-muted">+</span>
+                <span class="rounded-lg bg-pixu-surface/80 px-2 py-1"><strong class="text-pixu-action">R$ {{ item.amount_cents|brl_from_cents }}</strong> <span class="font-sans text-pixu-muted">({{ item.description }})</span></span>
+              {% endfor %}
+              <span aria-hidden="true" class="font-bold text-pixu-muted">=</span>
+              <strong class="font-extrabold text-pixu-ink">R$ {{ line.participation.share_cents|brl_from_cents }}</strong>
+            </div>
+          </section>
+        {% endif %}
+
+        <dl class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div class="rounded-xl bg-pixu-surface-raised p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Saldo aberto" %}</dt><dd class="mt-1 font-mono text-lg font-extrabold tabular-nums text-pixu-ink">R$ {{ line.debt.payment_balance.open_cents|brl_from_cents }}</dd></div>
+          <div class="rounded-xl bg-amber-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-pending">{% translate "Aguardando confirmação" %}</dt><dd class="mt-1 font-mono text-lg font-extrabold tabular-nums text-pixu-pending">R$ {{ line.debt.payment_balance.pending_cents|brl_from_cents }}</dd></div>
+          <div class="rounded-xl bg-green-50 p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-success">{% translate "Pix confirmado" %}</dt><dd class="mt-1 font-mono text-lg font-extrabold tabular-nums text-pixu-success">R$ {{ line.debt.payment_balance.confirmed_cents|brl_from_cents }}</dd></div>
+          <div class="rounded-xl bg-pixu-info-surface p-3"><dt class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Compensado" %}</dt><dd class="mt-1 font-mono text-lg font-extrabold tabular-nums text-pixu-action">R$ {{ line.debt.payment_balance.compensated_cents|brl_from_cents }}</dd></div>
+        </dl>
+
+        {% if line.debt.payment_items %}
+          <section class="mt-5 border-t border-pixu-border pt-4" aria-labelledby="payment-history-{{ line.participation.pk }}">
+            <h4 class="text-sm font-extrabold text-pixu-ink" id="payment-history-{{ line.participation.pk }}">{% translate "Histórico de pagamentos" %}</h4>
+            <ol class="mt-3 grid gap-3">
+              {% for payment in line.debt.payment_items %}
+                <li class="rounded-xl border border-pixu-border p-3">
+                  <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div><strong class="font-mono tabular-nums text-pixu-ink">R$ {{ payment.amount_cents|brl_from_cents }}</strong><p class="mt-1 text-xs text-pixu-muted">{{ payment.created_at|date:"d/m/Y H:i" }}{% if payment.reference %} · {{ payment.reference }}{% endif %}{% if payment.state == 'CONFIRMED' %} · {% if payment.confirmation_source == 'AUTOMATIC' %}{% translate "Confirmado automaticamente no Pixu" %}{% else %}{% translate "Confirmado manualmente pelo recebedor" %}{% endif %}{% endif %}</p></div>
+                    <span class="rounded-full px-2.5 py-1 text-xs font-extrabold{% if payment.state == 'CONFIRMED' %} bg-green-100 text-pixu-success{% elif payment.state == 'REJECTED' %} bg-red-100 text-pixu-danger{% elif payment.state == 'PENDING' %} bg-amber-100 text-pixu-pending{% else %} bg-pixu-surface-raised text-pixu-muted{% endif %}">{{ payment.get_state_display }}</span>
+                  </div>
+                  {% if payment.receipt %}<a class="mt-2 inline-flex min-h-10 items-center text-sm font-bold text-pixu-action underline-offset-2 hover:underline" href="{% url 'settlements:receipt' payment.pk %}">{% translate "Abrir comprovante privado" %}</a>{% endif %}
+                </li>
+              {% endfor %}
+            </ol>
+          </section>
+        {% endif %}
+
+        {% if line.debt.compensation_items %}
+          <section class="mt-5 border-t border-pixu-border pt-4" aria-labelledby="compensation-history-{{ line.participation.pk }}">
+            <h4 class="text-sm font-extrabold text-pixu-ink" id="compensation-history-{{ line.participation.pk }}">{% translate "Histórico de compensações" %}</h4>
+            <ol class="mt-3 grid gap-2">
+              {% for compensation in line.debt.compensation_items %}
+                <li class="rounded-xl border border-sakura-1 bg-pixu-info-surface p-3"><strong class="font-mono tabular-nums text-pixu-action">−R$ {{ compensation.amount_cents|brl_from_cents }}</strong><p class="mt-1 break-words text-sm text-pixu-muted">{% translate "Com a cobrança" %}: {{ compensation.other_debt.participation.charge.title }}</p><p class="mt-1 text-xs text-pixu-muted">{{ compensation.created_at|date:"d/m/Y H:i" }}</p></li>
+              {% endfor %}
+            </ol>
+          </section>
+        {% endif %}
+      </section>
+    </div>
+  {% endif %}
+</article>

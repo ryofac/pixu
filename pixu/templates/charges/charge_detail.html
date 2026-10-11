@@ -9,7 +9,7 @@
       <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0">
           <h1 class="break-words text-2xl font-extrabold leading-tight text-pixu-ink sm:text-3xl" id="page-title">{{ charge.title }}</h1>
-          <p class="mt-2 text-sm text-pixu-muted">Criada por {{ charge.creator.name|default:charge.creator.username }}</p>
+          <p class="mt-2 text-sm text-pixu-muted">Criada por <a class="font-semibold text-pixu-link underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pixu-focus" href="{% url 'accounts:detail' charge.creator.username %}">{{ charge.creator.name|default:charge.creator.username }}</a></p>
         </div>
         <div class="flex shrink-0 items-center gap-2 self-start sm:self-auto">
           {% include "charges/partials/status_badge.html" with charge=charge %}

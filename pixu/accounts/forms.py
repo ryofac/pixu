@@ -284,6 +284,13 @@ class PixProfileForm(forms.ModelForm):
 
 class AccountProfileForm(forms.Form):
     name = forms.CharField(label=_("Nome de exibição"), max_length=255, required=False)
+    allow_direct_charge_inclusion = forms.BooleanField(
+        label=_("Permitir inclusão direta em cobranças"),
+        help_text=_(
+            "Outras contas Pixu poderão incluir você em novas cobranças sem convite e aceite individual. Você pode desativar quando quiser; cobranças já aceitas não mudam.",
+        ),
+        required=False,
+    )
     pix_key = forms.CharField(
         label=_("Chave Pix principal"),
         max_length=255,
@@ -303,6 +310,9 @@ class AccountProfileForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.user = user
         self.fields["name"].initial = user.name
+        self.fields["allow_direct_charge_inclusion"].initial = (
+            user.allow_direct_charge_inclusion
+        )
         self.fields["pix_key"].initial = (
             user.pix_profile.pix_key if hasattr(user, "pix_profile") else ""
         )
@@ -310,7 +320,12 @@ class AccountProfileForm(forms.Form):
     def save(self) -> User:
         with transaction.atomic():
             self.user.name = self.cleaned_data["name"].strip()
-            self.user.save(update_fields=["name"])
+            self.user.allow_direct_charge_inclusion = self.cleaned_data[
+                "allow_direct_charge_inclusion"
+            ]
+            self.user.save(
+                update_fields=["name", "allow_direct_charge_inclusion"],
+            )
             PixProfile.objects.update_or_create(
                 user=self.user,
                 defaults={"pix_key": self.cleaned_data["pix_key"].strip()},

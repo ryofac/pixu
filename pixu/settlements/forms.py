@@ -77,6 +77,13 @@ class PaymentForm(forms.Form):
         return int(self.cleaned_data["amount"] * 100)
 
 
+class DebtAutoConfirmForm(forms.Form):
+    auto_confirm_payments = forms.BooleanField(
+        label=_("Confirmar automaticamente pagamentos declarados"),
+        required=False,
+    )
+
+
 class ReceiptForm(forms.Form):
     receipt = forms.FileField(
         label=_("Novo comprovante"),

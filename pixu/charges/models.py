@@ -318,6 +318,10 @@ class Debt(models.Model):
         verbose_name=_("recebedor"),
     )
     original_cents = models.PositiveBigIntegerField(_("valor original em centavos"))
+    auto_confirm_payments = models.BooleanField(
+        _("confirmar pagamentos declarados automaticamente"),
+        default=False,
+    )
     created_at = models.DateTimeField(
         _("criada em"),
         default=timezone.now,

@@ -19,7 +19,7 @@
 
 ### 2.1 Referências visuais
 
-Os materiais existentes em `docs/design/` são referências visuais, não contratos de comportamento. A direção Sakura e os cartões arredondados foram preservados, com hierarquia de estados e layouts próprios para desktop. A aplicação inclui os fluxos financeiros aprovados em mudanças OpenSpec posteriores; não há confirmação automática. O protótipo da Wave 0 é autocontido e não carrega Tailwind, fontes ou ícones por CDN.
+Os materiais existentes em `docs/design/` são referências visuais, não contratos de comportamento. A direção Sakura e os cartões arredondados foram preservados, com hierarquia de estados e layouts próprios para desktop. A aplicação inclui os fluxos financeiros aprovados em mudanças OpenSpec posteriores; confirmação automática só acontece para uma dívida em que o recebedor habilitou essa opção, sem verificação ou integração bancária. O protótipo da Wave 0 é autocontido e não carrega Tailwind, fontes ou ícones por CDN.
 
 ### 2.2 Logo — System Core aprovada
 
@@ -68,20 +68,20 @@ Usar fonte do sistema nesta fase. Ícones devem ter rótulo acessível ou ser de
 
 #### Tokens do tema escuro
 
-| Token | Valor | Uso |
-| --- | --- | --- |
-| `canvas` | `#0F172A` | Fundo principal |
-| `surface` | `#1E293B` | Cartões, formulários e navegação |
-| `surface-raised` | `#273449` | Superfícies elevadas e hover |
-| `text` | `#F8FAFC` | Texto principal |
-| `text-muted` | `#CBD5E1` | Texto secundário |
-| `border` | `#475569` | Bordas e separadores |
-| `brand` | `#FFA7A6` | Detalhes Sakura e links sobre fundo escuro |
-| `brand-action` | `#B91649` | Ação primária com texto branco |
-| `focus` | `#93C5FD` | Indicador de foco visível |
-| `success` | `#86EFAC` | Confirmações e estados positivos |
-| `warning` | `#FCD34D` | Pendências e atenção |
-| `danger` | `#FDA4AF` | Recusas e erros |
+| Token            | Valor     | Uso                                        |
+| ---------------- | --------- | ------------------------------------------ |
+| `canvas`         | `#0F172A` | Fundo principal                            |
+| `surface`        | `#1E293B` | Cartões, formulários e navegação           |
+| `surface-raised` | `#273449` | Superfícies elevadas e hover               |
+| `text`           | `#F8FAFC` | Texto principal                            |
+| `text-muted`     | `#CBD5E1` | Texto secundário                           |
+| `border`         | `#475569` | Bordas e separadores                       |
+| `brand`          | `#FFA7A6` | Detalhes Sakura e links sobre fundo escuro |
+| `brand-action`   | `#B91649` | Ação primária com texto branco             |
+| `focus`          | `#93C5FD` | Indicador de foco visível                  |
+| `success`        | `#86EFAC` | Confirmações e estados positivos           |
+| `warning`        | `#FCD34D` | Pendências e atenção                       |
+| `danger`         | `#FDA4AF` | Recusas e erros                            |
 
 Os tons escuros são uma superfície azul-ardósia, não uma inversão literal do tema claro. Os pares de texto/ação e superfícies de estado foram exercitados nos testes de navegador; badges e estados mantêm rótulos, não dependem somente de cor.
 
@@ -99,7 +99,7 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 **Referências revisadas:** [`pixu_landing_page.html`](design/pixu_landing_page.html) para composição e conteúdo; [`pixu_logo_system.html`](design/pixu_logo_system.html) para a marca aprovada. São referências visuais, não arquivos para servir diretamente: substituir URLs `#` pelas rotas reais, localizar para pt-BR e manter o build local.
 
 - Preservar cabeçalho com marca, seletor de tema e entrada; hero com chamada e cadastro; e os caminhos reais de criar conta e entrar. Usuário autenticado vê o dashboard ao abrir a rota inicial.
-- Organizar o conteúdo público em três seções verticais sequenciais: criar rateio, convidar e aceitar cotas; acompanhar pagamentos feitos fora do Pixu, anexos e confirmação manual; consultar saldos, compensações, histórico e cancelamento de cobrança pelo criador.
+- Organizar o conteúdo público em três seções verticais sequenciais: criar rateio, convidar e aceitar cotas; acompanhar pagamentos feitos fora do Pixu e anexos, com confirmação manual como padrão; consultar saldos, compensações, histórico e cancelamento de cobrança pelo criador.
 - Em mobile e desktop, todas as seções aparecem na mesma ordem por rolagem normal, sem scroll snap obrigatório, captura de rolagem, conteúdo escondido ou animação necessária para entendê-las. Usar uma coluna em telas estreitas e composições próprias para telas largas.
 - Manter paleta Sakura, gradientes suaves e superfícies com contraste suficiente nos dois temas. Usar os tokens definidos nesta seção, fonte de sistema e ícones SVG locais/inline; não carregar Tailwind, fontes ou icon fonts por CDN.
 - Todo conteúdo visível é pt-BR. Usar exemplos abstratos que representem ações possíveis, sem nomes, contas ou transações reais e sem afirmar que um pagamento, verificação ou cancelamento ocorreu para uma pessoa real. Descrever somente funcionalidades disponíveis na aplicação; não apresentar exclusão administrativa ou extrato global.
@@ -125,20 +125,24 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - **Onboarding e solicitação inicial de chave Pix:**
   - No primeiro acesso após o cadastro (seja por SSO ou cadastro tradicional), a pessoa é recebida em uma tela dedicada de boas-vindas / onboarding.
   - Confirmação do identificador `@username`: campo obrigatório no cadastro com sugestão automática gerada a partir do nome da pessoa, permitindo ajuste direto no input.
-  - Solicitação da chave Pix principal: campo único e simplificado de texto livre (*"Cole sua chave Pix"*), sem menus ou seletores burocráticos de tipos de chave (a chave é colada pelo usuário).
-  - Texto fixo obrigatório: *“A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.”*
+  - Solicitação da chave Pix principal: campo único e simplificado de texto livre (_"Cole sua chave Pix"_), sem menus ou seletores burocráticos de tipos de chave (a chave é colada pelo usuário).
+  - Texto fixo obrigatório: _“A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.”_
   - Botões de ação diretos e objetivos: ação primária **Salvar e continuar** e ação secundária subordinada **Fazer depois** (salvando o nome e `@username`, deixando apenas a chave Pix vazia).
 - **Aviso de chave pendente no Dashboard:**
-  - Caso a pessoa opte por "Fazer depois", um banner em destaque no topo do Dashboard alerta sobre a ausência da chave (*"Sua chave Pix ainda não foi configurada. Você pode participar de cobranças normalmente, mas precisará cadastrar uma chave para poder receber dinheiro quando criar um rateio."*), com botão de ação direta **Configurar chave Pix**.
+  - Caso a pessoa opte por "Fazer depois", um banner em destaque no topo do Dashboard alerta sobre a ausência da chave (_"Sua chave Pix ainda não foi configurada. Você pode participar de cobranças normalmente, mas precisará cadastrar uma chave para poder receber dinheiro quando criar um rateio."_), com botão de ação direta **Configurar chave Pix**.
   - Alerta contextual ao tentar criar cobrança onde o criador seja o recebedor sem ter cadastrado chave Pix.
 - **Fluxos convencionais Allauth:** Confirmação de e-mail informa envio e próximos passos; recuperação de senha e logout seguem o padrão visual do layout de entrada.
 - Após login/onboarding, encaminhar para o dashboard autenticado; a lista completa permanece disponível em **Cobranças** (`/charges/`).
 
 ### Perfil
 
-- Editar nome de exibição e uma chave Pix principal.
-- Texto fixo: “A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.”
-- A edição afeta apenas o perfil da própria pessoa autenticada.
+- O detalhe canônico por `@username` exige autenticação. Para a própria conta, o título é **Meu perfil** e permanecem as ações de editar perfil, gerenciar e-mail e sair; para outra conta, o título é **Perfil de {nome}** e a página é somente leitura.
+- Em telas móveis, identidade e chave Pix aparecem em cartões empilhados; em telas largas, ficam lado a lado, com cobranças em comum ocupando a largura abaixo. A identidade mostra nome e `@username`.
+- A chave Pix principal não vazia pode ser consultada por qualquer pessoa autenticada que acesse o detalhe, mesmo sem cobrança em comum. O cartão informa que a chave foi declarada pela titular e não é verificada pelo Pixu; quando ausente, mostra um estado vazio sem inventar valor ou ação de pagamento. A titular também pode copiar a chave.
+- Somente o perfil de outra conta mostra **Cobranças em comum**. Essa seção lista a interseção das cobranças que visitante e conta-alvo podem acessar, com somente título, estado textual e link para o detalhe que valida acesso novamente. Não mostra valor, cotas, participantes, saldos, pagamentos, comprovantes, e-mail nem dados de terceiros. Sem cobranças compartilhadas, usa um estado vazio neutro.
+- No detalhe autenticado de cobrança, criadora, recebedora e participantes com conta Pixu são links para o detalhe canônico, inclusive quando aparecem como **Você**. Os links usam token semântico com contraste legível nos dois temas. Convidados externos continuam texto simples, mesmo que o nome coincida com um `@username`; nenhuma conta é inferida pelo nome autodeclarado.
+- Editar nome de exibição e chave Pix afeta somente o perfil da própria pessoa autenticada. A chave continua sendo fornecida pela pessoa e não é validada pelo Pixu.
+- A preferência **Permitir inclusão direta em cobranças** pertence à própria conta, inicia desativada e pode ser alterada no perfil. No onboarding, um aviso recomenda considerar a ativação, mas não marca a opção por padrão. A preferência vale somente para cobranças criadas depois da alteração; desativá-la não desfaz participações já aceitas.
 
 ### Convites
 
@@ -152,6 +156,7 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 ### Criar cobrança
 
 - Formulário com título, descrição opcional, valor total, seleção de um recebedor e busca de usuários cadastrados.
+- A seleção múltipla de convidados usa checkbox de cantos arredondados (não toggle), com estado marcado em Sakura e tique contrastante. O cartão inteiro permanece clicável, com alvo confortável; foco de teclado é visível nos dois temas e a seleção não depende apenas da cor.
 - O campo “Quem recebe” começa no usuário autenticado e permite escolher outra conta ativa. Receber não inclui automaticamente a pessoa no rateio.
 - “Também participo do rateio” começa marcada; desmarcar exclui a cota do criador, mantendo sua autoria e acesso à cobrança. É necessário ao menos um participante.
 - Oferecer “Permitir convidados anônimos por link”, com total explícito obrigatório de pessoas, limite editável e default de 10 entradas, além de validade de código pessoal default de 7 dias ou até quitar. O total inclui contas selecionadas e vagas anônimas; a cobrança pode nascer sem participantes convidados, mas o total declarado fixa a cota das vagas futuras.
@@ -159,6 +164,7 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - “Conferir cotas” oferece a mesma revisão por POST convencional, inclusive sem JavaScript.
 - Permitir editar a cota do criador e cotas pendentes até que a regra de bloqueio se aplique; cotas aceitas ficam visíveis como imutáveis.
 - Depois de confirmar, mostrar “Aguardando aceite” quando houver convidados, ou “Ativa” se somente a participação do próprio criador já estiver aceita.
+- Participantes com a preferência de inclusão direta ativada entram como aceitos em novas cobranças, sem convite individual; os demais seguem o convite e aceite existentes. A informação de que contas Pixu podem autorizar inclusão direta é apresentada no onboarding e explicada na preferência do perfil.
 - Ao criar entradas anônimas, mostrar no resumo o link compartilhado e o código do link, com ação de gerar novo link. O link compartilhado deixa de aceitar nomes ao atingir o limite, ser revogado ou quando o criador fechar as entradas.
 
 ### Detalhe da cobrança
@@ -167,28 +173,32 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - **Divisão da Grid e Hierarquia Responsiva:**
   - **No Desktop (`lg:` e `xl:`):** Grid proporcional de duas colunas (`lg:grid-cols-[minmax(0,1.4fr)_minmax(19rem,1fr)]`):
     - **Coluna Principal (Esquerda ~60-65%):** Foco operacional vivo da conta:
-      1. *Ação Imediata do Usuário* (aceitar cota ou pagar se houver pendência);
-      2. *Pagamentos e Saldos* (com confirmações manuais em destaque, 4 métricas de saldo e chave Pix);
-      3. *Participantes e Cotas* (lista detalhada de quem está na conta, cota base comum e itens extras consumidos por pessoa).
+      1. _Ação Imediata do Usuário_ (aceitar cota ou pagar se houver pendência);
+      2. _Participantes e Cotas_ — na visão do recebedor, é a única lista operacional e incorpora saldo, Pix pendente e confirmação manual na linha da pessoa, sem uma lista financeira paralela.
     - **Sidebar de Apoio (Direita ~35-40%):** Painel de contexto limpo e respirado:
-      1. *Resumo da Conta* (Total, Quem recebe, Sua cota, Descrição);
-      2. *Link da Mesa (Convidados Anônimos)* (link compartilhado, ações de compartilhar e copiar, contador de entradas e opções rápidas).
+      1. _Resumo da Conta_ (Total, Quem recebe, Sua cota, Descrição);
+      2. _Link da Mesa (Convidados Anônimos)_ (link compartilhado, ações de compartilhar e copiar, contador de entradas e opções rápidas).
   - **No Mobile (`< lg`):** Empilhamento vertical sequencial em blocos card bem ordenados:
-    1. Resumo da Conta e Link da Mesa no topo;
-    2. Ação Imediata do Usuário (se houver);
-    3. Pagamentos e Saldos (com confirmação rápida e registro);
-    4. Participantes e Cotas.
+    1. Participantes e Cotas, com a ação de confirmação que exige atenção no início da lista;
+    2. Resumo da Conta;
+    3. Link da Mesa, quando houver convidados anônimos.
+- **Hierarquia aprovada de participantes e pagamentos (visão do recebedor):**
+  - A primeira divisão da lista é sempre de identidade: **Contas Pixu** e **Convites Anônimos**. Cada pessoa aparece em um único grupo; não há uma segunda categoria global de “pagamentos aguardando”, “em aberto” ou “quitados”.
+  - Dentro de cada grupo, a própria participação do recebedor fica identificada como cota própria. Os demais pagantes são ordenados por atenção: Pix pendente de confirmação pelo recebedor, saldo aberto sem Pix pendente e, por último, cota quitada. Uma participação que ainda aguarda aceite não parece uma dívida ativa.
+  - A linha mostra nome, cota e estado textual. Quando houver itens extras, a cota discrimina a parcela base, cada item extra e o total em uma expressão aritmética exata; sem extras, mantém somente o total conciso. O atalho **Ver detalhes da cota** começa alinhado ao conteúdo da linha. A origem é comunicada pelo título do grupo, sem repetir badges de **Conta Pixu** ou **Usuário externo** em cada pessoa. O recebedor pode configurar, em cada dívida de conta Pixu, se futuros pagamentos declarados serão confirmados automaticamente. O controle explicita que não há verificação bancária, inclui pagamentos parciais e torna a confirmação final; convidados sem conta continuam na confirmação manual.
+  - **“Em aberto há …”** é reservado a cotas sem nenhum pagamento iniciado e mede o tempo desde a criação da dívida. Não usar “atrasado”, vencimento, juros ou multa, pois a cobrança não tem data de vencimento neste fluxo. Saldos parciais ou com Pix rejeitado mostram o saldo restante, sem se passarem por pagamento não iniciado.
+  - Pagamentos confirmados e compensações preservam seu histórico e seus comprovantes autorizados em detalhe sob demanda (modal no desktop e bottom sheet no celular); a compactação da lista não elimina auditoria ou acesso já permitido.
 - **Menu Contextual de Ações do Criador (`···`):**
   - Eliminação de formulários secundários embutidos em sanfonas aninhadas (`<details><summary>`) na sidebar ("AI slope").
-  - As ações do criador (*Adicionar item extra*, *Ajustar cotas / recebedor*, *Cancelar cobrança*) são acessadas pelo menu `···` no cabeçalho ou por gatilhos limpos na interface.
+  - As ações do criador (_Adicionar item extra_, _Ajustar cotas / recebedor_, _Cancelar cobrança_) são acessadas pelo menu `···` no cabeçalho ou por gatilhos limpos na interface.
 - **Padrão de Interação (Bottom Sheet no Mobile / Modal no Desktop):**
-  - Para formulários rápidos de inclusão de consumos (*Adicionar item extra*), a interface dispara um **Bottom Sheet** deslizante a partir do rodapé no celular (`rounded-t-[28px]`, puxador superior, botões na área do polegar e sem colisão com o teclado virtual).
+  - Para formulários rápidos de inclusão de consumos (_Adicionar item extra_), a interface dispara um **Bottom Sheet** deslizante a partir do rodapé no celular (`rounded-t-[28px]`, puxador superior, botões na área do polegar e sem colisão com o teclado virtual).
   - Em telas médias/largas (`sm:` e `lg:`), o mesmo componente transmuta responsivamente para um diálogo centralizado com backdrop suave (`sm:rounded-[24px] sm:max-w-md`).
   - Formulários extensos de redistribuição de cotas utilizam rotas/telas dedicadas com validação total no servidor.
 - **Regras Operacionais e Financeiras:**
   - Lista de participantes com cota e estado de convite.
   - Para o criador, cada pagante mostra links dos comprovantes que anexou. A visualização é somente leitura e não dá ao criador, por si só, permissão para confirmar ou rejeitar pagamentos.
-  - O pagamento permanece decidido apenas pelo recebedor. Comprovantes autorizados abrem em prévia do navegador quando suportado pelo formato.
+  - O recebedor decide entre confirmação manual (padrão) e confirmação automática em cada dívida elegível. A configuração não verifica comprovantes nem transfere dinheiro. Comprovantes autorizados abrem em prévia do navegador quando suportado pelo formato.
   - Para o criador, expor substituição após recusa e edição permitida de cotas.
   - O criador pode cancelar logicamente cobranças ativas ou aguardando aceite com motivo opcional. Antes de confirmar, informar que não haverá estorno; após cancelar, mostrar a cobrança e pagamentos revogados no histórico, com motivo, autor e data quando disponíveis. Convites pendentes ficam inválidos, sem ações de pagamento, aceite, compensação ou edição estrutural.
   - Se uma cobrança possuir compensação, explicar que ela não pode ser cancelada. Exclusão absoluta é uma ação administrativa exclusiva de superusuários, exige motivo opcional e auditoria mínima, e também é bloqueada quando há compensações; não a expor como ação comum do produto.
@@ -252,7 +262,7 @@ A persistência da preferência visual de tema, descrita na seção 2.4, armazen
 
 Estes padrões orientam as telas financeiras implementadas em mudanças OpenSpec próprias:
 
-- Pagamento Pix fica pendente até confirmação manual do recebedor; comprovante não é tratado como verificação.
+- Pagamento Pix fica pendente até a decisão manual do recebedor por padrão; quando a confirmação automática estiver ativada para aquela dívida, declarações futuras de uma conta autenticada são confirmadas após validação. Comprovante não é tratado como verificação.
 - O criador da cobrança pode consultar em modo de leitura os comprovantes anexados pelos pagantes enquanto os registros de pagamento permanecerem no histórico. Somente o recebedor confirma ou rejeita.
 - Cancelamento lógico revoga pagamentos e invalida convites, preservando cobrança, pagamentos e comprovantes no histórico; não desfaz transferências externas nem recria dívidas. Cobranças com compensações não podem ser canceladas ou excluídas.
 - Um pagamento pertence a uma dívida. Pagamentos parciais são mostrados em linhas próprias.

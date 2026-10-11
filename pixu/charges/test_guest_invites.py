@@ -79,6 +79,8 @@ class GuestInviteServiceTests(TestCase):
         )
 
         debt = Debt.objects.get(participation=access.participation)
+        debt.auto_confirm_payments = True
+        debt.save(update_fields=["auto_confirm_payments"])
         charge.refresh_from_db()
         assert charge.state == Charge.State.ACTIVE
         assert debt.debtor_id is None
@@ -90,6 +92,8 @@ class GuestInviteServiceTests(TestCase):
             amount_cents=23500,
         )
         assert payment.payer_id is None
+        assert payment.state == Payment.State.PENDING
+        assert payment.confirmation_source == Payment.ConfirmationSource.MANUAL
         confirm_payment(payment_id=payment.pk, actor=self.creator)
         with pytest.raises(PermissionDenied):
             get_guest_participation(
@@ -211,6 +215,24 @@ class GuestInviteServiceTests(TestCase):
         personal = self.client.get(personal_url)
         assert personal.status_code == 200
         assert "Convidado web" in personal.content.decode()
+
+    def test_creator_detail_uses_theme_aware_guest_link_tokens(self):
+        charge = self.create_guest_charge()
+        credentials = charge._guest_credentials
+        self.client.force_login(self.creator)
+        session = self.client.session
+        session[f"pixu_guest_credentials:{charge.pk}"] = credentials
+        session.save()
+
+        response = self.client.get(reverse("charges:detail", args=[charge.pk]))
+
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert '<label class="block text-xs font-bold uppercase tracking-wide text-pixu-muted" for="guest-share-url">' in content
+        assert "bg-pixu-surface-raised" in content
+        assert "focus:ring-pixu-focus/30" in content
+        assert "dark:border-dark-border" not in content
+        assert "dark:bg-slate-800" not in content
 
     def test_authenticated_entry_is_bound_to_account_without_username_conflict(self):
         account = User.objects.create_user(username="meireles", name="Meireles")

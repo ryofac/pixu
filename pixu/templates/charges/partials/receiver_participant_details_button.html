@@ -1,0 +1,7 @@
+{% load i18n %}
+<div class="flex justify-start">
+  <button class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-transparent px-2.5 py-2 text-xs font-semibold text-pixu-action transition hover:bg-sakura-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-pixu-focus/50" type="button" data-modal-open="participant-detail-{{ line.participation.pk }}" aria-haspopup="dialog">
+    {% translate "Detalhes e histórico" %}
+    <svg class="size-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+</div>

@@ -13,8 +13,12 @@ from django.utils.http import content_disposition_header
 from django.utils.translation import gettext as _
 from django.views import View
 
+from pixu.charges.detail_context import ChargeDetailState
+from pixu.charges.detail_context import add_guest_session_context
+from pixu.charges.detail_context import charge_detail_context
 from pixu.charges.models import Debt
 
+from .forms import DebtAutoConfirmForm
 from .forms import PaymentForm
 from .forms import ReceiptForm
 from .models import Payment
@@ -24,6 +28,7 @@ from .services import payment_balance
 from .services import record_payment
 from .services import reject_payment
 from .services import replace_receipt
+from .services import set_debt_auto_confirm
 
 
 def _is_htmx(request) -> bool:
@@ -86,7 +91,7 @@ class PaymentCreateView(LoginRequiredMixin, View):
         form = PaymentForm(debt, data=request.POST, files=request.FILES)
         if form.is_valid():
             try:
-                record_payment(
+                payment = record_payment(
                     debt_id=debt.pk,
                     actor=request.user,
                     amount_cents=form.amount_cents,
@@ -107,13 +112,26 @@ class PaymentCreateView(LoginRequiredMixin, View):
                         _payment_context(
                             debt,
                             status_message=(
-                                _("Pagamento registrado e aguardando confirmação.")
+                                _(
+                                    "Pagamento registrado e confirmado automaticamente no Pixu."
+                                )
+                                if payment.confirmation_source
+                                == Payment.ConfirmationSource.AUTOMATIC
+                                else _(
+                                    "Pagamento registrado e aguardando confirmação."
+                                )
                             ),
                         ),
                     )
                 messages.success(
                     request,
-                    _("Pagamento registrado e aguardando confirmação do recebedor."),
+                    _(
+                        "Pagamento registrado e confirmado automaticamente no Pixu."
+                    )
+                    if payment.confirmation_source == Payment.ConfirmationSource.AUTOMATIC
+                    else _(
+                        "Pagamento registrado e aguardando confirmação do recebedor."
+                    ),
                 )
                 return redirect("charges:detail", pk=debt.participation.charge_id)
 
@@ -133,12 +151,66 @@ class PaymentCreateView(LoginRequiredMixin, View):
         return render(request, "settlements/payment_form.html", context, status=400)
 
 
+class DebtAutoConfirmView(LoginRequiredMixin, View):
+    def post(self, request, debt_id: int):
+        debt = get_object_or_404(
+            Debt.objects.select_related("participation__charge"),
+            pk=debt_id,
+        )
+        form = DebtAutoConfirmForm(data=request.POST)
+        status_message = _("Preferência atualizada.")
+        status_is_error = False
+        if form.is_valid():
+            try:
+                set_debt_auto_confirm(
+                    debt_id=debt.pk,
+                    actor=request.user,
+                    enabled=form.cleaned_data["auto_confirm_payments"],
+                )
+            except PermissionDenied:
+                raise
+            except ValidationError as error:
+                status_message = error.messages[0]
+                status_is_error = True
+        else:
+            status_message = _("Revise a preferência enviada.")
+            status_is_error = True
+
+        if _is_htmx(request):
+            context = charge_detail_context(
+                debt.participation.charge,
+                request.user,
+                ChargeDetailState(
+                    status_message=status_message,
+                    status_is_error=status_is_error,
+                ),
+            )
+            return render(
+                request,
+                "charges/partials/charge_state.html",
+                add_guest_session_context(
+                    context,
+                    request,
+                    debt.participation.charge,
+                ),
+                status=400 if status_is_error else 200,
+            )
+        if status_is_error:
+            messages.error(request, status_message)
+        else:
+            messages.success(request, status_message)
+        return redirect("charges:detail", pk=debt.participation.charge_id)
+
+
 class PaymentDecisionView(LoginRequiredMixin, View):
     action = ""
 
     def post(self, request, payment_id: int):
         payment = get_object_or_404(
-            Payment.objects.select_related("debt__participation__charge"),
+            Payment.objects.select_related(
+                "debt__participation__charge__creator",
+                "debt__participation__charge__creditor",
+            ),
             pk=payment_id,
         )
         try:
@@ -154,13 +226,21 @@ class PaymentDecisionView(LoginRequiredMixin, View):
             message = error.messages[0]
             if _is_htmx(request):
                 payment.refresh_from_db()
-                return render(
-                    request,
-                    "settlements/partials/payment_state.html",
-                    _payment_context(
-                        payment.debt,
+                context = charge_detail_context(
+                    payment.debt.participation.charge,
+                    request.user,
+                    ChargeDetailState(
                         status_message=message,
                         status_is_error=True,
+                    ),
+                )
+                return render(
+                    request,
+                    "charges/partials/charge_state.html",
+                    add_guest_session_context(
+                        context,
+                        request,
+                        payment.debt.participation.charge,
                     ),
                     status=400,
                 )
@@ -168,10 +248,19 @@ class PaymentDecisionView(LoginRequiredMixin, View):
         else:
             if _is_htmx(request):
                 payment.refresh_from_db()
+                context = charge_detail_context(
+                    payment.debt.participation.charge,
+                    request.user,
+                    ChargeDetailState(status_message=message),
+                )
                 return render(
                     request,
-                    "settlements/partials/payment_state.html",
-                    _payment_context(payment.debt, status_message=message),
+                    "charges/partials/charge_state.html",
+                    add_guest_session_context(
+                        context,
+                        request,
+                        payment.debt.participation.charge,
+                    ),
                 )
             messages.success(request, message)
         return redirect("charges:detail", pk=payment.debt.participation.charge_id)

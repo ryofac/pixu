@@ -17,6 +17,8 @@ from django.urls import reverse
 
 from pixu.accounts.models import PixProfile
 from pixu.accounts.tasks import send_email
+from pixu.charges.models import Charge
+from pixu.charges.models import Participation
 
 User = get_user_model()
 TEST_PASSWORD = "Pixu-tests-only!2026"
@@ -171,6 +173,7 @@ class AccountFlowTests(TestCase):
         other_profile = PixProfile.objects.create(
             user=other, pix_key="bruno@example.test",
         )
+        assert owner.allow_direct_charge_inclusion is False
         self.client.force_login(owner)
 
         response = self.client.post(
@@ -178,12 +181,15 @@ class AccountFlowTests(TestCase):
             {
                 "name": "Ana de Souza",
                 "pix_key": "ana@example.test",
+                "allow_direct_charge_inclusion": "on",
                 "user_id": other.pk,
             },
         )
 
         assert response.status_code == 302
         assert User.objects.get(pk=owner.pk).name == "Ana de Souza"
+        assert User.objects.get(pk=owner.pk).allow_direct_charge_inclusion
+        assert not User.objects.get(pk=other.pk).allow_direct_charge_inclusion
         assert PixProfile.objects.get(user=owner).pix_key == "ana@example.test"
         other_profile.refresh_from_db()
         assert other_profile.pix_key == "bruno@example.test"
@@ -192,6 +198,107 @@ class AccountFlowTests(TestCase):
         )
         assert other_response.status_code == 200
         self.assertNotContains(other_response, "ana@example.test")
+
+    def test_user_detail_requires_authentication_and_keeps_missing_users_hidden(self):
+        target = self.create_user(username="perfil", email="perfil@example.test")
+
+        response = self.client.get(reverse("accounts:detail", args=[target.username]))
+        assert response.status_code == 302
+        assert reverse("account_login") in response.url
+
+        self.client.force_login(target)
+        missing = self.client.get(reverse("accounts:detail", args=["nao-existe"]))
+        assert missing.status_code == 404
+
+    def test_authenticated_user_can_see_other_users_pix_key_without_shared_charge(self):
+        viewer = self.create_user(username="visitante", email="visitante@example.test")
+        target = self.create_user(
+            username="ana-perfil",
+            email="ana-perfil@example.test",
+        )
+        PixProfile.objects.create(user=target, pix_key="ana-perfil@example.test")
+        self.client.force_login(viewer)
+
+        response = self.client.get(reverse("accounts:detail", args=[target.username]))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Perfil de ana-perfil")
+        self.assertContains(response, "@ana-perfil")
+        self.assertContains(response, "ana-perfil@example.test")
+        self.assertContains(response, "O Pixu não verifica a chave junto ao banco.")
+        self.assertContains(response, "Cobranças em comum")
+        self.assertContains(
+            response,
+            "Vocês ainda não participam de uma mesma cobrança.",
+        )
+        self.assertNotContains(response, reverse("accounts:update"))
+        self.assertNotContains(response, "Gerenciar e-mail")
+
+    def test_user_detail_shows_only_shared_charges_and_their_normal_detail_link(self):
+        viewer = self.create_user(username="visitante", email="visitante@example.test")
+        target = self.create_user(
+            username="ana-perfil",
+            email="ana-perfil@example.test",
+        )
+        common = Charge.objects.create(
+            creator=target,
+            creditor=target,
+            title="Almoço compartilhado",
+            total_cents=12000,
+            state=Charge.State.ACTIVE,
+        )
+        Participation.objects.create(
+            charge=common,
+            user=viewer,
+            share_cents=12000,
+            base_share_cents=12000,
+            state=Participation.State.ACCEPTED,
+        )
+        Charge.objects.create(
+            creator=target,
+            creditor=target,
+            title="Cobrança privada de Ana",
+            total_cents=9000,
+            state=Charge.State.ACTIVE,
+        )
+        self.client.force_login(viewer)
+
+        response = self.client.get(reverse("accounts:detail", args=[target.username]))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Almoço compartilhado")
+        self.assertContains(response, reverse("charges:detail", args=[common.pk]))
+        self.assertContains(response, "Ativa")
+        self.assertNotContains(response, "Cobrança privada de Ana")
+        self.assertNotContains(response, "R$ 120,00")
+        self.assertNotContains(response, viewer.email)
+
+    def test_own_profile_keeps_private_actions_and_displays_own_key(self):
+        user = self.create_user(username="perfil-proprio", email="proprio@example.test")
+        PixProfile.objects.create(user=user, pix_key="proprio@example.test")
+        self.client.force_login(user)
+
+        response = self.client.get(reverse("accounts:detail", args=[user.username]))
+
+        assert response.status_code == 200
+        self.assertContains(response, "Meu perfil")
+        self.assertContains(response, "proprio@example.test")
+        self.assertContains(response, reverse("accounts:update"))
+        self.assertContains(response, reverse("account_email"))
+        self.assertContains(response, "Sair da conta")
+        self.assertNotContains(response, "Cobranças em comum")
+
+    def test_other_user_without_pix_key_has_clear_empty_state(self):
+        viewer = self.create_user(username="visitante", email="visitante@example.test")
+        target = self.create_user(username="sem-chave", email="sem-chave@example.test")
+        self.client.force_login(viewer)
+
+        response = self.client.get(reverse("accounts:detail", args=[target.username]))
+
+        assert response.status_code == 200
+        self.assertContains(response, "sem-chave ainda não informou uma chave Pix.")
+        self.assertNotContains(response, "Copiar chave Pix")
+        self.assertNotContains(response, "Pagamento")
 
     @override_settings(ACCOUNT_ALLOW_REGISTRATION=True, ACCOUNT_RATE_LIMITS={})
     def test_complete_account_journey_through_forms_with_csrf(self):  # noqa: PLR0915
@@ -238,6 +345,7 @@ class AccountFlowTests(TestCase):
         )
         assert response.request["PATH_INFO"] == reverse("accounts:onboarding")
         self.assertContains(response, "Complete seu perfil")
+        self.assertContains(response, "começa desativada")
 
         response = submit_form(
             reverse("accounts:onboarding"),

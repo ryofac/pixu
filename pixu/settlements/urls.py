@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import ConfirmPaymentView
+from .views import DebtAutoConfirmView
 from .views import PaymentCreateView
 from .views import PaymentReceiptDeleteView
 from .views import PaymentReceiptUpdateView
@@ -11,6 +12,11 @@ from .views import RejectPaymentView
 app_name = "settlements"
 
 urlpatterns = [
+    path(
+        "debts/<int:debt_id>/auto-confirm/",
+        DebtAutoConfirmView.as_view(),
+        name="auto_confirm",
+    ),
     path("debts/<int:debt_id>/pay/", PaymentCreateView.as_view(), name="record"),
     path(
         "payments/<int:payment_id>/confirm/",

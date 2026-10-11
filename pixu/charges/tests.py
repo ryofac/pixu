@@ -80,6 +80,50 @@ class ChargeServiceTests(TestCase):
         assert Participation.objects.filter(charge=charge).count() == 3
         assert not Debt.objects.filter(participation__charge=charge).exists()
 
+    def test_direct_inclusion_accepts_only_accounts_that_opted_in(self):
+        self.bob.allow_direct_charge_inclusion = True
+        self.bob.save(update_fields=["allow_direct_charge_inclusion"])
+
+        charge = self.create_charge([self.bob, self.carla])
+        bob_participation = charge.participations.get(user=self.bob)
+        carla_participation = charge.participations.get(user=self.carla)
+
+        assert bob_participation.state == Participation.State.ACCEPTED
+        assert bob_participation.accepted_at is not None
+        assert Debt.objects.get(participation=bob_participation).debtor_id == self.bob.pk
+        assert carla_participation.state == Participation.State.PENDING
+        assert not Debt.objects.filter(participation=carla_participation).exists()
+        assert charge.state == Charge.State.AWAITING_ACCEPTANCE
+
+    def test_directly_included_creditor_is_accepted_without_self_debt(self):
+        creditor = self.bob
+        creditor.allow_direct_charge_inclusion = True
+        creditor.save(update_fields=["allow_direct_charge_inclusion"])
+        charge = create_charge(
+            creator=self.creator,
+            title="Conta recebida por quem participa",
+            total_cents=1200,
+            invitee_ids=[creditor.pk],
+            creditor_id=creditor.pk,
+        )
+
+        participation = charge.participations.get(user=creditor)
+        assert participation.state == Participation.State.ACCEPTED
+        assert charge.state == Charge.State.ACTIVE
+        assert not Debt.objects.filter(participation=participation).exists()
+
+    def test_opt_out_does_not_revert_existing_direct_participation(self):
+        self.bob.allow_direct_charge_inclusion = True
+        self.bob.save(update_fields=["allow_direct_charge_inclusion"])
+        charge = self.create_charge([self.bob])
+        participation = charge.participations.get(user=self.bob)
+        self.bob.allow_direct_charge_inclusion = False
+        self.bob.save(update_fields=["allow_direct_charge_inclusion"])
+
+        participation.refresh_from_db()
+        assert participation.state == Participation.State.ACCEPTED
+        assert Debt.objects.filter(participation=participation).exists()
+
     def test_creator_only_charge_is_active_without_self_debt(self):
         charge = self.create_charge()
 

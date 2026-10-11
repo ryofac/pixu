@@ -80,7 +80,7 @@
             <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <strong>{{ payment.amount_cents|brl_from_cents }}</strong>
-                <p class="text-xs text-pixu-muted">{{ payment.created_at|date:"d/m/Y H:i" }}{% if payment.reference %} · {{ payment.reference }}{% endif %}</p>
+                <p class="text-xs text-pixu-muted">{{ payment.created_at|date:"d/m/Y H:i" }}{% if payment.reference %} · {{ payment.reference }}{% endif %}{% if payment.state == 'CONFIRMED' %} · {% if payment.confirmation_source == 'AUTOMATIC' %}{% translate "Confirmado automaticamente no Pixu" %}{% else %}{% translate "Confirmado manualmente pelo recebedor" %}{% endif %}{% endif %}</p>
               </div>
               <span class="rounded-full px-2.5 py-1 text-xs font-extrabold{% if payment.state == 'CONFIRMED' %} bg-green-100 text-pixu-success{% elif payment.state == 'REJECTED' %} bg-red-100 text-pixu-danger{% else %} bg-amber-100 text-pixu-pending{% endif %}">{{ payment.get_state_display }}</span>
             </div>

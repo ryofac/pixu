@@ -146,17 +146,32 @@ Somente um superusuário MUST poder excluir absolutamente uma cobrança pela ár
 
 ### Requirement: Convite visível quando a recebedora também participa
 
-Ao criar uma cobrança, o sistema MUST criar uma participação `PENDING` e exibi-la na lista de convites da conta para cada pessoa ativa explicitamente selecionada como participante, mesmo quando essa mesma pessoa for também a recebedora da cobrança. O convite MUST apresentar o título da cobrança, quem a criou, quem recebe e a cota da pessoa, e MUST permitir que somente essa pessoa aceite ou recuse. Selecionar alguém somente como recebedor MUST NOT criar uma participação nem um convite: a seleção de recebedor não substitui a seleção explícita de participantes. Ao aceitar uma participação, a pessoa recebedora MUST NOT receber uma dívida contra si mesma; a cobrança MUST aguardar o aceite das demais participações pendentes antes de ativar.
+Ao criar uma cobrança, o sistema MUST criar uma participação `PENDING` e exibi-la na lista de convites da conta para cada pessoa ativa explicitamente selecionada como participante cuja preferência de inclusão direta esteja desativada, inclusive quando essa mesma pessoa for também a recebedora da cobrança. O convite MUST apresentar o título da cobrança, quem a criou, quem recebe e a cota da pessoa, e MUST permitir que somente essa pessoa aceite ou recuse. Para cada conta selecionada cuja titular ativou a preferência de inclusão direta, o sistema MUST criar a participação como `ACCEPTED`, sem convite nem aceite individual, usando a cota calculada pelas regras existentes e criando uma dívida somente quando a pessoa for diferente do recebedor. Selecionar alguém somente como recebedor MUST NOT criar uma participação nem um convite: a seleção de recebedor não substitui a seleção explícita de participantes. Ao aceitar uma participação, a pessoa recebedora MUST NOT receber uma dívida contra si mesma; a cobrança MUST permanecer aguardando aceite enquanto existir qualquer convite pendente e MUST ativar quando todas as participações atuais estiverem aceitas e as regras de total e cotas forem satisfeitas.
 
 #### Scenario: Recebedora selecionada também como convidada
 
-- **WHEN** o criador escolhe a mesma conta ativa como recebedora e como participante e confirma a criação da cobrança
+- **WHEN** o criador escolhe a mesma conta ativa, cuja preferência de inclusão direta está desativada, como recebedora e participante e confirma a criação da cobrança
 - **THEN** essa conta vê um convite `PENDING` em “Convites” com a cobrança, o criador, a recebedora e sua cota, podendo aceitar ou recusar
+
+#### Scenario: Participante com preferência ativada entra diretamente
+
+- **WHEN** o criador seleciona uma conta ativa cuja titular ativou inclusão direta e confirma a cobrança
+- **THEN** a participação é criada como `ACCEPTED`, não aparece como convite pendente e sua dívida é criada conforme as regras existentes se o recebedor for outra pessoa
 
 #### Scenario: Recebedora aceita sua participação
 
 - **WHEN** a recebedora aceita o convite criado para sua própria participação
 - **THEN** sua participação passa a `ACCEPTED`, nenhuma dívida é criada contra ela mesma e a cobrança só fica ativa depois que as demais participações atuais forem aceitas
+
+#### Scenario: Recebedora com inclusão direta não recebe dívida contra si
+
+- **WHEN** o criador seleciona como participante uma conta que também é recebedora e cuja titular autorizou inclusão direta
+- **THEN** sua participação é criada como aceita sem convite e nenhuma dívida é criada contra ela mesma
+
+#### Scenario: Preferência desativada após participação direta
+
+- **WHEN** uma pessoa desativa inclusão direta depois de ter sido incluída e aceita em uma cobrança existente
+- **THEN** sua participação continua aceita e a dívida existente não é revertida
 
 #### Scenario: Recebedora não foi selecionada como participante
 
@@ -166,7 +181,7 @@ Ao criar uma cobrança, o sistema MUST criar uma participação `PENDING` e exib
 #### Scenario: Participantes mudam antes da atualização da prévia do rateio
 
 - **WHEN** o criador adiciona ou remove participantes e envia a cobrança antes de a prévia HTMX atualizar as cotas para a seleção atual
-- **THEN** o sistema recalcula a divisão igualitária para os participantes atuais, cria a cobrança e emite convites somente às pessoas selecionadas, sem bloquear a criação por campos de cota desatualizados
+- **THEN** o sistema recalcula a divisão igualitária para as contas atualmente selecionadas, cria participações aceitas ou convites conforme a preferência própria de cada conta e não bloqueia a criação por campos de cota desatualizados
 
 ### Requirement: Rateio de itens individuais
 
@@ -269,3 +284,83 @@ Em uma cobrança itemizada, enquanto não houver operação financeira, o criado
 
 - **WHEN** existe um pagamento registrado para qualquer participação
 - **THEN** o servidor recusa alterações posteriores dos itens, responsáveis e cotas sem mudar o histórico da cobrança
+
+### Requirement: Hierarquia de identidade no detalhe da cobrança
+
+No detalhe autenticado de uma cobrança, a lista de participantes e cotas MUST usar a identidade como hierarquia primária e exclusiva: participações vinculadas a usuários cadastrados aparecem em **Contas Pixu** e participações convidadas sem conta aparecem em **Convites Anônimos**. Uma participação MUST aparecer em apenas um desses grupos e não pode ser repetida em uma lista financeira separada.
+
+Quando a pessoa autenticada é o recebedor, a linha da própria participação, se existir, MUST identificá-la como cota própria e não pode ser apresentada como dívida ou pagamento. As demais linhas MUST mostrar a cota e o estado que a pessoa autenticada tem permissão de acompanhar. A origem da participação MUST permanecer clara pelo título do grupo exclusivo, sem badge redundante em cada linha. O grupo de convite anônimo MUST identificar o nome como autodeclarado sem expor código pessoal, token de acesso ou dados de outras sessões convidadas.
+
+#### Scenario: Recebedor visualiza identidades mistas sem duplicação
+
+- **WHEN** o recebedor abre uma cobrança ativa com participantes de conta Pixu e convidados anônimos
+- **THEN** cada pessoa aparece uma única vez em Contas Pixu ou Convites Anônimos com sua cota e origem, sem uma segunda lista de pagamentos concorrente
+
+#### Scenario: Participação do recebedor não parece uma dívida
+
+- **WHEN** o recebedor também participa do rateio
+- **THEN** sua linha informa que é uma cota própria e não mostra saldo aberto, ação de pagamento ou ação de confirmação contra si
+
+#### Scenario: Identidade convidada permanece restrita
+
+- **WHEN** o recebedor abre uma linha de Convites Anônimos
+- **THEN** vê somente o nome autodeclarado, a origem e o estado financeiro daquela cota, sem código pessoal, token ou dados de acesso do convidado
+
+### Requirement: Ordenação contextual das cotas do recebedor
+
+Para o recebedor autenticado, as cotas devedoras dentro de cada grupo de identidade MUST ser ordenadas pela atenção financeira, sem criar categorias de primeiro nível para pagamentos: primeiro participações que possuem ao menos um Pix `PENDING` a decidir pelo recebedor, depois saldos abertos sem Pix pendente, e por último cotas quitadas. A participação própria do recebedor, quando houver, pode permanecer fixada antes das demais participações de Conta Pixu.
+
+Uma cota com saldo aberto e sem nenhum pagamento registrado MUST exibir **“Em aberto há &lt;duração&gt;”**, calculado desde a criação da dívida. Esse texto MUST descrever tempo em aberto e MUST NOT usar vocabulário de atraso, vencimento, multa ou cobrança vencida. Uma cota com pagamento confirmado ou rejeitado anteriormente, mas ainda com saldo, MUST informar o saldo aberto restante sem ser rotulada como pagamento não iniciado. Cotas liquidadas por Pix confirmado ou compensação MUST informar a quitação de modo compatível com sua forma de liquidação.
+
+#### Scenario: Pix pendente ganha prioridade dentro de Conta Pixu
+
+- **WHEN** uma conta Pixu possui Pix `PENDING` e outra conta Pixu possui somente saldo aberto
+- **THEN** ambas permanecem em Contas Pixu e a conta com Pix pendente aparece antes da conta com saldo aberto
+
+#### Scenario: Tempo em aberto não implica atraso
+
+- **WHEN** uma dívida criada há oito dias não tem nenhum pagamento registrado
+- **THEN** a linha mostra “Em aberto há 8 dias” e não menciona atraso, vencimento ou penalidade
+
+#### Scenario: Saldo parcial não é tratado como pagamento não iniciado
+
+- **WHEN** uma dívida possui Pix confirmado ou rejeitado no histórico e ainda tem saldo aberto sem Pix pendente
+- **THEN** a linha mostra o saldo aberto restante sem usar o texto “Em aberto há” como se nenhum pagamento tivesse sido iniciado
+
+#### Scenario: Cota quitada permanece no grupo de identidade
+
+- **WHEN** uma participação convidada sem conta tem sua dívida integralmente liquidada
+- **THEN** ela permanece em Convites Anônimos, depois das cotas que exigem atenção desse grupo, com texto que identifica a quitação
+
+### Requirement: Composição legível da cota com itens extras
+
+No detalhe do recebedor, uma participação com itens extras MUST mostrar a composição exata da sua cota na própria linha: parcela da base comum, cada item extra individual e o total persistido da cota, em uma expressão aritmética equivalente a `base + item + item = total`. Os valores MUST ser formatados em reais e somar exatamente o total da participação; uma cota sem itens extras MUST continuar exibindo somente seu total, sem termos artificiais. O atalho “Ver detalhes da cota” MUST permanecer acessível abaixo da linha e alinhado ao início do conteúdo, sem competir com o valor.
+
+#### Scenario: Cota discrimina dois itens extras
+
+- **WHEN** uma participação possui base de R$ 85,00, itens extras de R$ 5,00 e R$ 6,00 e cota total de R$ 96,00
+- **THEN** sua linha mostra a expressão equivalente a `R$ 85,00 + R$ 5,00 (item extra) + R$ 6,00 (item extra) = R$ 96,00` e o atalho de detalhes começa à esquerda
+
+#### Scenario: Cota sem item extra permanece concisa
+
+- **WHEN** uma participação não possui item extra
+- **THEN** sua linha mostra somente o valor total da cota e não exibe sinais de soma, parcelas zeradas ou o rótulo “item extra”
+
+### Requirement: Navegação para perfis de contas Pixu no detalhe da cobrança
+
+No detalhe autenticado de uma cobrança, toda identidade exibida de uma conta Pixu — criadora, recebedora ou participante cadastrada, inclusive a própria pessoa quando identificada como “Você” — MUST ser um link para o detalhe daquela conta. O link MUST preservar um nome acessível, foco visível e a mesma autorização do detalhe de perfil. Nomes de convidados externos MUST permanecer texto simples: o sistema MUST NOT inferir uma conta pelo nome autodeclarado nem oferecer perfil, `@username` ou rota de conta para eles.
+
+#### Scenario: Participante cadastrado abre seu perfil a partir da cobrança
+
+- **WHEN** uma pessoa autenticada consulta uma cobrança que mostra outra participante cadastrada
+- **THEN** o nome daquela participante é um link para seu detalhe de conta autenticado
+
+#### Scenario: Identidade da própria pessoa permanece navegável
+
+- **WHEN** uma pessoa autenticada consulta uma cobrança em que aparece como criadora, recebedora ou participante
+- **THEN** sua identificação, inclusive quando o texto visível é “Você”, permite abrir seu próprio perfil
+
+#### Scenario: Convidado externo permanece sem perfil Pixu
+
+- **WHEN** uma cobrança mostra uma participação de convidado externo, mesmo que o nome autodeclarado coincida com um `@username` existente
+- **THEN** o nome permanece sem link de perfil e nenhum dado da conta coincidente é exposto

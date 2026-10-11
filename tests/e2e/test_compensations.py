@@ -132,7 +132,7 @@ def assert_compensation_after_reload(page, live_server, scenario):
     reciprocal_debt_card = page.locator(f"#debt-{scenario.reciprocal_debt.pk}")
     expect(
         reciprocal_debt_card.locator("dl").first.locator("dd").nth(0),
-    ).to_have_text("10,00")
+    ).to_contain_text("10,00")
     expect(reciprocal_debt_card).to_contain_text("Histórico de compensações")
     assert_no_horizontal_overflow(page)
 

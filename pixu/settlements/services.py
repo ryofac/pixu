@@ -380,13 +380,27 @@ def record_payment(
                 {"amount": _("O valor excede o disponível para esta dívida.")},
             )
         receipt_data = validate_receipt(receipt) if receipt else None
+        auto_confirm = bool(
+            actor is not None
+            and payer_id is not None
+            and debt.debtor_id == actor.pk
+            and debt.auto_confirm_payments
+        )
         payment = Payment(
             debt=debt,
             payer_id=payer_id,
             creditor_id=debt.creditor_id,
             amount_cents=amount_cents,
             reference=reference,
-            state=Payment.State.PENDING,
+            state=(
+                Payment.State.CONFIRMED if auto_confirm else Payment.State.PENDING
+            ),
+            confirmation_source=(
+                Payment.ConfirmationSource.AUTOMATIC
+                if auto_confirm
+                else Payment.ConfirmationSource.MANUAL
+            ),
+            confirmed_at=timezone.now() if auto_confirm else None,
         )
         if receipt_data:
             payment.receipt = receipt
@@ -398,6 +412,36 @@ def record_payment(
             charge.locked_at = timezone.now()
             charge.save(update_fields=["locked_at"])
         return payment
+
+
+def set_debt_auto_confirm(
+    *,
+    debt_id: int,
+    actor,
+    enabled: bool,
+) -> Debt:
+    """Set the receiver-controlled automatic confirmation preference for one debt."""
+    if not isinstance(enabled, bool):
+        raise ValidationError(_("Informe um estado válido para a preferência."))
+    debt_stub = Debt.objects.select_related("participation").get(pk=debt_id)
+    with transaction.atomic():
+        charge = Charge.objects.select_for_update().get(
+            pk=debt_stub.participation.charge_id,
+        )
+        debt = Debt.objects.select_for_update().get(pk=debt_id)
+        if debt.creditor_id != actor.pk:
+            raise PermissionDenied
+        if charge.state != Charge.State.ACTIVE:
+            raise ValidationError(
+                _("Só é possível alterar esta preferência em uma cobrança ativa."),
+            )
+        if debt.debtor_id is None:
+            raise ValidationError(
+                _("A confirmação automática está disponível somente para contas Pixu."),
+            )
+        debt.auto_confirm_payments = enabled
+        debt.save(update_fields=["auto_confirm_payments"])
+        return debt
 
 
 def confirm_payment(*, payment_id: int, actor) -> Payment:

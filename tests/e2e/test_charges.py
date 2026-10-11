@@ -120,7 +120,32 @@ def test_invited_creditor_sees_pending_invitation_with_correct_terms(page, live_
     ).to_be_visible()
 
 
-@pytest.mark.parametrize("viewport", [(390, 844), (1440, 900)])
+def test_charge_creation_respects_invitees_direct_inclusion_preference(page, live_server):
+    creator = create_user(username="criador-inclusao-e2e", name="Criadora")
+    participant = create_user(username="participante-optin-e2e", name="Participante")
+    participant.allow_direct_charge_inclusion = True
+    participant.save(update_fields=["allow_direct_charge_inclusion"])
+    login_as(page, live_server, creator)
+    page.goto(app_url(live_server, reverse("charges:create")))
+
+    page.get_by_label("Título").fill("Cota sem convite individual")
+    page.get_by_label("Valor total em reais").fill("80,00")
+    page.get_by_label(participant.username).check()
+    page.get_by_role("button", name="Criar cobrança", exact=True).click()
+
+    expect(page.get_by_role("heading", name="Cota sem convite individual")).to_be_visible()
+    charge = Charge.objects.get(title="Cota sem convite individual")
+    participation = Participation.objects.get(charge=charge, user=participant)
+    assert participation.state == Participation.State.ACCEPTED
+    assert participation.accepted_at is not None
+    assert charge.state == Charge.State.ACTIVE
+    login_as(page, live_server, participant)
+    invites_page = page.goto(app_url(live_server, reverse("charges:invites")))
+    assert invites_page is not None and invites_page.status == 200
+    expect(page.get_by_text("Cota sem convite individual", exact=True)).to_have_count(0)
+
+
+@pytest.mark.parametrize("viewport", [(375, 844), (1024, 900)])
 def test_charge_detail_pluralization_and_long_content_fit_viewport(page, live_server, viewport):
     page.set_viewport_size({"width": viewport[0], "height": viewport[1]})
     creator = create_user(username="detalhe-e2e", name="Nome longo da pessoa responsável pela cobrança")
@@ -172,4 +197,7 @@ def test_charge_detail_pluralization_and_long_content_fit_viewport(page, live_se
     expect(page.get_by_text("2 pessoas", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=shared.title)).to_be_visible()
     assert_no_horizontal_overflow(page)
-    assert_content_reachable_above_mobile_nav(page, page.get_by_text("Pendente", exact=True).last)
+    assert_content_reachable_above_mobile_nav(
+        page,
+        page.get_by_text("Aguardando aceite", exact=True).last,
+    )
