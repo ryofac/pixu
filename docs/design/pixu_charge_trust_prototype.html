@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protótipo · Preferências de cobrança e confirmação</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #fff4f3;
+        --surface: #fff;
+        --raised: #fffafa;
+        --text: #2d3748;
+        --muted: #5b6573;
+        --border: #e8d5d8;
+        --brand: #ec275f;
+        --action: #b91649;
+        --focus: #1d5ca8;
+        --info: #eaf1fa;
+        --success: #176b45;
+      }
+      [data-theme="dark"] {
+        color-scheme: dark;
+        --canvas: #0f172a;
+        --surface: #1e293b;
+        --raised: #273449;
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --border: #475569;
+        --brand: #ffa7a6;
+        --action: #b91649;
+        --focus: #93c5fd;
+        --info: #24344c;
+        --success: #86efac;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 28px 16px 48px;
+        background: var(--canvas);
+        color: var(--text);
+        font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { width: min(100%, 880px); margin: 0 auto; }
+      .top, .panel-head, .setting, .person, .debt-line, .actions {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      }
+      .top { margin-bottom: 22px; }
+      .eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(24px, 5vw, 32px); line-height: 1.2; }
+      h2 { margin: 0; font-size: 19px; }
+      h3 { margin: 0; font-size: 16px; }
+      p { margin: 0; }
+      .theme {
+        min-height: 44px; border: 1px solid var(--border); border-radius: 12px;
+        padding: 8px 12px; background: var(--surface); color: var(--text); font: inherit; font-weight: 700;
+      }
+      .panel {
+        margin-top: 16px; border: 1px solid var(--border); border-radius: 20px;
+        padding: clamp(16px, 4vw, 24px); background: var(--surface); box-shadow: 0 2px 8px rgb(45 55 72 / 6%);
+      }
+      .panel-head { align-items: flex-start; margin-bottom: 18px; }
+      .intro, .hint { color: var(--muted); font-size: 14px; }
+      .intro { margin-top: 5px; max-width: 66ch; }
+      .setting { align-items: flex-start; border-top: 1px solid var(--border); padding: 18px 0 4px; }
+      .setting-copy { max-width: 62ch; }
+      .setting-copy p { margin-top: 5px; color: var(--muted); font-size: 14px; }
+      .switch {
+        position: relative; flex: 0 0 54px; width: 54px; height: 32px; margin: 0;
+        appearance: none; border: 2px solid #778395; border-radius: 999px;
+        background: var(--raised); cursor: pointer; transition: background-color .15s ease, border-color .15s ease;
+      }
+      .switch::before {
+        position: absolute; top: 3px; left: 3px; width: 22px; height: 22px;
+        border-radius: 50%; background: #778395; content: ""; transition: transform .15s ease, background-color .15s ease;
+      }
+      .switch:checked { border-color: var(--action); background: var(--action); }
+      .switch:checked::before { transform: translateX(22px); background: #fff; }
+      :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+      .callout { margin-top: 16px; border-radius: 14px; padding: 13px 15px; background: var(--info); color: var(--text); font-size: 14px; }
+      .callout strong { display: block; margin-bottom: 3px; }
+      .status { border-radius: 999px; padding: 4px 10px; background: var(--info); color: var(--muted); font-size: 12px; font-weight: 750; white-space: nowrap; }
+      .status.active { background: color-mix(in srgb, var(--success) 16%, var(--surface)); color: var(--success); }
+      .account { border: 1px solid var(--border); border-radius: 16px; padding: 14px; background: var(--raised); }
+      .person { justify-content: flex-start; margin-bottom: 12px; }
+      .avatar { display: grid; width: 40px; height: 40px; flex: 0 0 40px; place-items: center; border-radius: 50%; background: var(--info); color: var(--text); font-weight: 800; }
+      .person small { display: block; color: var(--muted); }
+      .debt-line { border-top: 1px solid var(--border); padding-top: 13px; align-items: flex-start; }
+      .debt-line .hint { margin-top: 4px; }
+      .actions { justify-content: flex-end; margin-top: 18px; }
+      .button { min-height: 44px; border: 1px solid var(--border); border-radius: 12px; padding: 9px 15px; background: var(--surface); color: var(--text); font: inherit; font-weight: 750; }
+      .button.primary { border-color: var(--action); background: var(--action); color: white; }
+      .footnote { margin-top: 18px; color: var(--muted); font-size: 13px; }
+      @media (max-width: 520px) {
+        body { padding-top: 18px; }
+        .top { align-items: flex-start; }
+        .panel-head { flex-direction: column; }
+        .setting { gap: 10px; }
+        .debt-line { gap: 10px; }
+        .actions { flex-direction: column-reverse; }
+        .button { width: 100%; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="top">
+        <div>
+          <p class="eyebrow">Wave 0 · protótipo para revisão</p>
+          <h1>Preferências de cobrança</h1>
+        </div>
+        <button class="theme" id="theme" type="button">Tema escuro</button>
+      </header>
+
+      <section class="panel" aria-labelledby="profile-title">
+        <div class="panel-head">
+          <div>
+            <h2 id="profile-title">No seu perfil</h2>
+            <p class="intro">Você controla se outras contas Pixu podem adicionar sua participação diretamente em novas cobranças.</p>
+          </div>
+          <span class="status" id="profile-status">Desativado</span>
+        </div>
+        <div class="setting">
+          <div class="setting-copy">
+            <h3>Permitir inclusão direta em cobranças</h3>
+            <p>Quando ativada, sua conta pode ser incluída sem convite e aceite individual. A cota segue as regras da cobrança. Desativar depois não remove participações já aceitas.</p>
+          </div>
+          <input class="switch" id="direct-inclusion" type="checkbox" aria-label="Permitir inclusão direta em cobranças" aria-describedby="inclusion-explainer" />
+        </div>
+        <div class="callout" id="inclusion-explainer">
+          <strong>Uma escolha sua, desativada por padrão</strong>
+          Ative apenas se estiver confortável em ser incluído diretamente. Você pode mudar esta preferência no perfil quando quiser.
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="charge-title">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Detalhe da cobrança · visão do recebedor</p>
+            <h2 id="charge-title">Viagem para a serra</h2>
+            <p class="intro">A confirmação automática é uma opção sua para esta dívida; não é confiança permanente entre contas.</p>
+          </div>
+          <span class="status active">Ativa</span>
+        </div>
+        <article class="account">
+          <div class="person">
+            <span class="avatar" aria-hidden="true">MC</span>
+            <div><strong>Marina Costa</strong><small>@marinacosta · Conta Pixu</small></div>
+            <span class="status">Em aberto</span>
+          </div>
+          <div class="debt-line">
+            <div>
+              <h3>Cota de R$ 120,00</h3>
+              <p class="hint">Pagamentos que Marina declarar para esta cota serão confirmados automaticamente.</p>
+            </div>
+            <input class="switch" id="auto-confirm" type="checkbox" aria-label="Confirmar automaticamente pagamentos declarados para a cota de Marina Costa" />
+          </div>
+        </article>
+        <div class="callout" id="confirmation-explainer">
+          <strong>O que muda ao ativar</strong>
+          Cada pagamento Pix que Marina declarar para esta dívida será confirmado no Pixu após as validações, inclusive pagamentos parciais. O Pixu não realiza nem verifica a transferência. A confirmação não pode ser desfeita; pagamentos já registrados não mudam se você desligar a opção.
+        </div>
+        <p class="footnote">Convidados sem conta Pixu continuam no fluxo de confirmação manual. Esta opção só vale para esta dívida e para declarações futuras.</p>
+        <div class="actions">
+          <button type="button" class="button">Cancelar</button>
+          <button type="button" class="button primary">Salvar preferência</button>
+        </div>
+      </section>
+    </main>
+    <script>
+      const themeButton = document.querySelector("#theme");
+      themeButton.addEventListener("click", () => {
+        const dark = document.documentElement.dataset.theme !== "dark";
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+        themeButton.textContent = dark ? "Tema claro" : "Tema escuro";
+      });
+      const inclusion = document.querySelector("#direct-inclusion");
+      const inclusionStatus = document.querySelector("#profile-status");
+      inclusion.addEventListener("change", () => {
+        inclusionStatus.textContent = inclusion.checked ? "Ativado" : "Desativado";
+        inclusionStatus.classList.toggle("active", inclusion.checked);
+      });
+    </script>
+  </body>
+</html>

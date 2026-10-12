@@ -79,7 +79,8 @@ services:
     volumes:
       - /app/.venv
       - .:/app:z
-    entrypoint: ["wait-for-it", "e2e-postgres:5432", "--strict", "--timeout=60", "--"]
+    entrypoint:
+      ["wait-for-it", "e2e-postgres:5432", "--strict", "--timeout=60", "--"]
     command: ["pytest"]
 
   postgres:

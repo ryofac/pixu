@@ -2,8 +2,8 @@
 
 ## Antes de alterar o projeto
 
-1. Leia `PIXU_IMPLEMENTATION_BRIEF.md` para as regras de produto e o escopo aprovado.
-2. Consulte a mudança OpenSpec ativa em `openspec/`. Trabalhe em uma mudança por vez.
+1. Leia as specs vigentes em `openspec/specs/` para as regras de produto e o escopo aprovado.
+2. Consulte a mudança OpenSpec ativa em `openspec/`, quando houver. Trabalhe em uma mudança por vez.
 3. Para telas do produto, conclua primeiro a Wave 0 e registre as decisões em `docs/product-design.md`. Os documentos e HTMLs em `docs/design/` são referências que ainda podem divergir; reconcilie-os antes de tratá-los como contrato visual.
 
 ## Arquitetura e ferramentas

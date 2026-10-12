@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixu · Protótipo de hierarquia para cobrança mista</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f7f4f0;
+      --surface: #fffdfb;
+      --surface-muted: #f1ede8;
+      --ink: #292522;
+      --muted: #716b65;
+      --line: #e5ded7;
+      --brand: #b84e65;
+      --brand-strong: #8f334b;
+      --brand-soft: #f9e7eb;
+      --success: #247550;
+      --success-soft: #e4f3ea;
+      --warning: #9a5b13;
+      --warning-soft: #fff1d8;
+      --danger: #a03838;
+      --shadow: 0 18px 42px rgba(61, 42, 32, .08);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 11px;
+      font-family: ui-rounded, "SF Pro Rounded", "Nunito Sans", system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: #d9d3ce; }
+    button, summary { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, summary:focus-visible, a:focus-visible {
+      outline: 3px solid #e29aaa;
+      outline-offset: 3px;
+    }
+    .simulator-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 14px 20px;
+      color: #fffaf7;
+      background: #322c28;
+      font-size: 13px;
+    }
+    .simulator-bar strong { letter-spacing: .02em; }
+    .viewport-switcher { display: flex; gap: 6px; }
+    .viewport-switcher button {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid #665c55;
+      border-radius: 9px;
+      color: #eee7e1;
+      background: transparent;
+    }
+    .viewport-switcher button[aria-pressed="true"] {
+      color: #322c28;
+      border-color: #ffe9dc;
+      background: #ffe9dc;
+    }
+    .stage {
+      display: flex;
+      justify-content: center;
+      min-height: calc(100vh - 65px);
+      padding: 30px;
+    }
+    .app {
+      position: relative;
+      width: min(100%, 1440px);
+      overflow: hidden;
+      background: var(--canvas);
+      border: 1px solid rgba(87, 67, 54, .12);
+      box-shadow: var(--shadow);
+    }
+    .app.mobile { max-width: 390px; border-radius: 32px; }
+    .app.tablet { max-width: 820px; border-radius: 24px; }
+    .app.desktop { border-radius: 20px; }
+    .app-main { max-width: 1240px; margin: 0 auto; padding: 48px 40px 56px; }
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 8px; font-size: clamp(27px, 4vw, 40px); line-height: 1.08; letter-spacing: -.04em; }
+    h2 { margin-bottom: 6px; font-size: 19px; line-height: 1.2; letter-spacing: -.02em; }
+    h3 { margin-bottom: 5px; font-size: 15px; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .status-pill, .state {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 32px;
+      padding: 0 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .status-pill { color: var(--success); background: var(--success-soft); }
+    .status-pill::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+    .icon-button {
+      display: inline-grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--ink);
+      background: var(--surface);
+    }
+    .icon-button svg { width: 20px; height: 20px; }
+    .menu-wrap { position: relative; }
+    .menu {
+      position: absolute;
+      z-index: 5;
+      top: 52px;
+      right: 0;
+      width: 190px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .menu[hidden] { display: none; }
+    .menu button {
+      width: 100%;
+      padding: 10px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--ink);
+      text-align: left;
+      background: transparent;
+    }
+    .menu button:hover { background: var(--surface-muted); }
+    .button {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 17px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .button.primary { color: #fff; background: var(--brand-strong); }
+    .button.secondary { color: var(--brand-strong); border-color: #d991a0; background: transparent; }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(280px, .75fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .stack { display: grid; gap: 20px; min-width: 0; }
+    .card {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+    }
+    .card-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+    .card-header p, .supporting { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .participant-list { display: grid; gap: 2px; }
+    .participant-group + .participant-group { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .participant-group-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+    .participant-group-title { margin: 0; font-size: 14px; font-weight: 900; }
+    .participant-group-count { color: var(--muted); font-size: 12px; font-weight: 800; white-space: nowrap; }
+    .participant-group-copy { margin: 0 0 8px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+    .avatar {
+      display: grid;
+      width: 40px;
+      height: 40px;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--brand-strong);
+      background: var(--brand-soft);
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .participant-row {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 14px 0;
+      border-top: 1px solid var(--line);
+    }
+    .participant-row.attention {
+      margin-top: 6px;
+      padding: 14px;
+      border: 1px solid #efc4cd;
+      border-radius: var(--radius-sm);
+      background: var(--brand-soft);
+    }
+    .participant-row .avatar { width: 40px; height: 40px; }
+    .participant-row-main { min-width: 0; }
+    .participant-row-name { margin: 0; font-size: 15px; font-weight: 900; }
+    .participant-row-detail, .participant-row-note { margin: 3px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .participant-row-note { margin-top: 7px; }
+    .participant-row-value { min-width: 88px; text-align: right; }
+    .participant-row-value strong { display: block; font-size: 16px; white-space: nowrap; }
+    .participant-row-value span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .participant-row .state { margin-top: 8px; min-height: 25px; padding: 0 9px; font-size: 11px; }
+    .state.awaiting { color: var(--brand-strong); background: #f8dce3; }
+    .state.open { color: var(--warning); background: var(--warning-soft); }
+    .state.settled { color: var(--success); background: var(--success-soft); }
+    .state.receiver { color: #41627e; background: #e7f0f8; }
+    .participant-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .participant-actions .button { min-height: 42px; }
+    .summary-list { display: grid; gap: 16px; margin: 0; }
+    .summary-row { display: flex; justify-content: space-between; gap: 18px; }
+    .summary-row dt { color: var(--muted); font-size: 13px; }
+    .summary-row dd { max-width: 58%; margin: 0; color: var(--ink); font-size: 14px; font-weight: 800; text-align: right; overflow-wrap: anywhere; }
+    .total { margin: 0 0 22px; font-size: 32px; letter-spacing: -.04em; }
+    .guest-card { border-color: #e0c9ad; }
+    .guest-card .card-header { margin-bottom: 14px; }
+    .guest-full { color: var(--warning); background: var(--warning-soft); }
+    .guest-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 18px 0;
+    }
+    .metric { padding: 13px; border-radius: var(--radius-sm); background: #fbf3e9; }
+    .metric strong { display: block; margin-bottom: 4px; font-size: 20px; letter-spacing: -.03em; }
+    .metric span { color: var(--muted); font-size: 11px; line-height: 1.3; }
+    .link-row { display: flex; gap: 8px; margin-top: 18px; }
+    .link-row .button { flex: 1; }
+    .link-row .button:disabled { color: var(--muted); border-color: var(--line); background: var(--surface-muted); cursor: not-allowed; }
+    .capacity-note { margin: 0; color: var(--warning); font-size: 13px; font-weight: 700; line-height: 1.45; }
+    .access-code {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-muted);
+    }
+    .access-code span { color: var(--muted); font-size: 12px; }
+    .access-code strong { color: var(--brand-strong); font-size: 14px; letter-spacing: .1em; overflow-wrap: anywhere; }
+    details { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+    summary { color: var(--muted); font-size: 13px; font-weight: 800; cursor: pointer; }
+    .more-actions { display: flex; flex-wrap: wrap; gap: 8px 16px; padding-top: 8px; }
+    .text-action { min-height: 44px; padding: 0; border: 0; color: var(--brand-strong); background: transparent; font-size: 13px; font-weight: 800; }
+    .text-action.danger { color: var(--danger); }
+    .mobile-nav { display: none; }
+    /* O seletor da classe permite testar o viewport no simulador também em uma janela larga. */
+    .app.mobile .app-main { padding: 28px 18px 112px; }
+    .app.mobile .page-header { margin-bottom: 24px; }
+    .app.mobile .detail-grid { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+    .app.mobile .detail-grid .primary-column, .app.mobile .context-column { display: contents; }
+    .app.mobile .context-column .summary-card { order: 2; }
+    .app.mobile .context-column .guest-card { order: 3; }
+    .app.mobile .card { padding: 19px; border-radius: var(--radius-md); }
+    .app.mobile .card-header { margin-bottom: 15px; }
+    .app.mobile .avatar { width: 36px; height: 36px; }
+    .app.mobile .participant-row { grid-template-columns: 36px minmax(0, 1fr); }
+    .app.mobile .participant-row .avatar { width: 36px; height: 36px; }
+    .app.mobile .participant-row-value { grid-column: 2; min-width: 0; text-align: left; }
+    .app.mobile .participant-actions .button { flex: 1 1 145px; }
+    .app.mobile .mobile-nav { position: absolute; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-around; padding: 10px 12px; border-top: 1px solid var(--line); background: rgba(255, 253, 251, .96); }
+    .app.mobile .mobile-nav a { color: var(--muted); font-size: 11px; font-weight: 800; text-decoration: none; }
+    .app.mobile .mobile-nav a[aria-current="page"] { color: var(--brand-strong); }
+    .app.tablet .app-main { padding: 36px 28px 48px; }
+    .app.tablet .detail-grid { grid-template-columns: minmax(0, 1.2fr) minmax(245px, .8fr); gap: 18px; }
+    @media (max-width: 760px) {
+      .simulator-bar { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .stage { padding: 0; }
+      .app, .app.mobile, .app.tablet, .app.desktop { width: 100%; max-width: none; min-height: 100vh; border: 0; border-radius: 0; }
+      .app-main { padding: 28px 18px 112px; }
+      .page-header { margin-bottom: 24px; }
+      .status-pill { min-height: 28px; padding: 0 9px; font-size: 11px; }
+      .detail-grid { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+      .detail-grid .primary-column { display: contents; }
+      .context-column { display: contents; }
+      .context-column .summary-card { order: 2; }
+      .context-column .guest-card { order: 3; }
+      .card { padding: 19px; border-radius: var(--radius-md); }
+      .card-header { margin-bottom: 15px; }
+      .avatar { width: 36px; height: 36px; }
+      .participant-row { grid-template-columns: 36px minmax(0, 1fr); }
+      .participant-row .avatar { width: 36px; height: 36px; }
+      .participant-row-value { grid-column: 2; min-width: 0; text-align: left; }
+      .participant-actions .button { flex: 1 1 145px; }
+      .mobile-nav {
+        position: fixed;
+        z-index: 10;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: flex;
+        justify-content: space-around;
+        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        background: rgba(255, 253, 251, .96);
+        backdrop-filter: blur(12px);
+      }
+      .mobile-nav a { color: var(--muted); font-size: 11px; font-weight: 800; text-decoration: none; }
+      .mobile-nav a[aria-current="page"] { color: var(--brand-strong); }
+      .app.mobile .mobile-nav { position: fixed; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="simulator-bar">
+    <strong>Protótipo · Contas Pixu + Convites Anônimos</strong>
+    <div class="viewport-switcher" aria-label="Escolher viewport">
+      <button type="button" data-viewport="mobile" aria-pressed="false">Celular</button>
+      <button type="button" data-viewport="tablet" aria-pressed="false">Tablet</button>
+      <button type="button" data-viewport="desktop" aria-pressed="true">Desktop</button>
+    </div>
+  </header>
+  <main class="stage">
+    <section class="app desktop" data-app aria-label="Tela de detalhe da cobrança">
+      <div class="app-main">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Detalhe da cobrança</p>
+            <h1>Almoço no Barbecue</h1>
+          </div>
+          <div class="header-actions">
+            <span class="status-pill">Ativa</span>
+            <div class="menu-wrap">
+              <button class="icon-button" type="button" data-menu-button aria-expanded="false" aria-label="Mais opções da cobrança">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+              </button>
+              <div class="menu" data-menu hidden>
+                <button type="button">Editar cobrança</button>
+                <button type="button">Cancelar cobrança</button>
+              </div>
+            </div>
+          </div>
+        </header>
+        <div class="detail-grid">
+          <div class="stack primary-column">
+            <section class="card" aria-labelledby="participants-title">
+              <div class="card-header">
+                <div><h2 id="participants-title">Participantes e cotas</h2><p>4 pessoas no rateio. Pagantes são ordenados pela situação do pagamento.</p></div>
+              </div>
+              <div class="participant-list">
+                <section class="participant-group" aria-labelledby="accounts-title">
+                  <div class="participant-group-header"><h3 class="participant-group-title" id="accounts-title">Contas Pixu</h3><span class="participant-group-count">3 pessoas</span></div>
+                  <article class="participant-row">
+                    <span class="avatar" aria-hidden="true">V</span>
+                    <div class="participant-row-main"><p class="participant-row-name">Você</p><p class="participant-row-detail">Recebedor</p><span class="state receiver">Sua cota</span></div>
+                    <div class="participant-row-value"><strong>R$ 117,50</strong><span>cota própria</span></div>
+                  </article>
+                  <article class="participant-row attention">
+                    <span class="avatar" aria-hidden="true">A</span>
+                    <div class="participant-row-main">
+                      <p class="participant-row-name">Ana</p>
+                      <p class="participant-row-detail">Convite direto</p>
+                      <span class="state awaiting">Aguardando sua confirmação</span>
+                      <p class="participant-row-note">Pix informado há 2 dias. Confira o extrato antes de confirmar.</p>
+                      <div class="participant-actions">
+                        <button class="button primary" type="button">Confirmar recebimento</button>
+                        <button class="button secondary" type="button">Rejeitar</button>
+                      </div>
+                    </div>
+                    <div class="participant-row-value"><strong>R$ 117,50</strong><span>Pix informado</span></div>
+                  </article>
+                  <article class="participant-row">
+                    <span class="avatar" aria-hidden="true">M</span>
+                    <div class="participant-row-main"><p class="participant-row-name">Meireles</p><p class="participant-row-detail">Entrou pelo link</p><span class="state open">Em aberto há 8 dias</span><p class="participant-row-note">Ainda não registrou um pagamento.</p></div>
+                    <div class="participant-row-value"><strong>R$ 117,50</strong><span>cota em aberto</span></div>
+                  </article>
+                </section>
+                <section class="participant-group" aria-labelledby="anonymous-invites-title">
+                  <div class="participant-group-header"><h3 class="participant-group-title" id="anonymous-invites-title">Convites Anônimos</h3><span class="participant-group-count">1 pessoa</span></div>
+                  <p class="participant-group-copy">Pessoas sem conta Pixu, identificadas por nome e código nesta cobrança.</p>
+                  <article class="participant-row">
+                    <span class="avatar" aria-hidden="true">J</span>
+                    <div class="participant-row-main"><p class="participant-row-name">João</p><p class="participant-row-detail">Entrou pelo link · nome autodeclarado</p><span class="state settled">Quitado</span><p class="participant-row-note">Pagamento confirmado ontem.</p></div>
+                    <div class="participant-row-value"><strong>R$ 117,50</strong><span>confirmado</span></div>
+                  </article>
+                </section>
+              </div>
+            </section>
+          </div>
+          <aside class="stack context-column" aria-label="Resumo e acesso da cobrança">
+            <section class="card summary-card" aria-labelledby="summary-title">
+              <div class="card-header"><div><h2 id="summary-title">Resumo</h2><p>O contexto essencial da conta</p></div></div>
+              <p class="total">R$ 470,00</p>
+              <dl class="summary-list">
+                <div class="summary-row"><dt>Quem recebe</dt><dd>Você</dd></div>
+                <div class="summary-row"><dt>Pessoas no rateio</dt><dd>4</dd></div>
+                <div class="summary-row"><dt>Descrição</dt><dd>Almoço de sábado com o grupo.</dd></div>
+              </dl>
+            </section>
+            <section class="card guest-card" aria-labelledby="guest-title">
+              <div class="card-header">
+                <div><p class="eyebrow">Acesso da mesa</p><h2 id="guest-title">Link de convite</h2><p>O link admite pessoas sem conta e contas Pixu enquanto houver vagas.</p></div>
+                <span class="state guest-full">Sem vagas</span>
+              </div>
+              <div class="guest-metrics">
+                <div class="metric"><strong>0</strong><span>vagas restantes · 4 de 4 no rateio</span></div>
+                <div class="metric"><strong>2 de 10</strong><span>entradas pelo link utilizadas</span></div>
+              </div>
+              <p class="capacity-note">O total declarado já foi preenchido. O link permanece aberto, mas não aceita outra pessoa enquanto não surgir uma vaga.</p>
+              <div class="link-row">
+                <button class="button primary" type="button" disabled>Compartilhar</button>
+                <button class="button secondary" type="button" disabled>Copiar link</button>
+              </div>
+              <div class="access-code"><span>Código do link</span><strong>A41F82D09C</strong></div>
+              <details>
+                <summary>Mais ações do link</summary>
+                <div class="more-actions">
+                  <button class="text-action" type="button">Fechar entradas</button>
+                  <button class="text-action" type="button">Gerar novo link</button>
+                  <button class="text-action danger" type="button">Revogar link</button>
+                </div>
+              </details>
+            </section>
+          </aside>
+        </div>
+      </div>
+      <nav class="mobile-nav" aria-label="Navegação principal">
+        <a href="#" aria-current="page">Cobranças</a>
+        <a href="#">Atividade</a>
+        <a href="#">Perfil</a>
+      </nav>
+    </section>
+  </main>
+  <script>
+    const app = document.querySelector("[data-app]");
+    const viewportButtons = document.querySelectorAll("[data-viewport]");
+    viewportButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        app.className = "app " + button.dataset.viewport;
+        viewportButtons.forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+      });
+    });
+    const menuButton = document.querySelector("[data-menu-button]");
+    const menu = document.querySelector("[data-menu]");
+    menuButton.addEventListener("click", () => {
+      const open = menuButton.getAttribute("aria-expanded") === "true";
+      menuButton.setAttribute("aria-expanded", String(!open));
+      menu.hidden = open;
+    });
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest(".menu-wrap")) {
+        menu.hidden = true;
+        menuButton.setAttribute("aria-expanded", "false");
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        menu.hidden = true;
+        menuButton.setAttribute("aria-expanded", "false");
+        menuButton.focus();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 **Status:** direção responsiva revisada com o usuário; logo System Core e temas claro/escuro/sistema implementados; teste de compreensão dos termos com usuários ainda pendente
 
 **Escopo visual:** entrada pública, dashboard, perfil, cobranças, convites, pagamentos e compensações.
-**Fontes normativas:** `PIXU_IMPLEMENTATION_BRIEF.md` e a mudança ativa `openspec/changes/manage-charge-cancellation-and-landing`.
+**Fontes normativas:** requisitos vigentes em `openspec/specs/` e decisões de produto aprovadas.
 
 ## 1. Princípios
 

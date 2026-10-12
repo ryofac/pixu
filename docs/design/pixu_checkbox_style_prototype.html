@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Protótipo · Checkbox Pixu</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #fff4f3;
+        --surface: #fff;
+        --surface-raised: #fffafa;
+        --text: #2d3748;
+        --muted: #5b6573;
+        --border: #e8d5d8;
+        --border-strong: #d7c2c6;
+        --brand: #ec275f;
+        --action: #b91649;
+        --focus: #1d5ca8;
+        --selected-surface: #ffdbdb;
+      }
+
+      [data-theme="dark"] {
+        color-scheme: dark;
+        --canvas: #0f172a;
+        --surface: #1e293b;
+        --surface-raised: #273449;
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --border: #475569;
+        --border-strong: #64748b;
+        --brand: #ffa7a6;
+        --action: #b91649;
+        --focus: #93c5fd;
+        --selected-surface: #512739;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 32px 16px;
+        background: var(--canvas);
+        color: var(--text);
+        font:
+          16px/1.5 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      main {
+        width: min(100%, 720px);
+        margin: 0 auto;
+      }
+      .topline {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      .eyebrow {
+        margin: 0 0 4px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        font-size: clamp(24px, 5vw, 32px);
+        line-height: 1.2;
+      }
+      .theme-toggle {
+        min-height: 44px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 12px;
+        background: var(--surface);
+        color: var(--text);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .theme-toggle:focus-visible,
+      input:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 20px;
+        background: var(--surface);
+        box-shadow: 0 2px 8px rgb(45 55 72 / 6%);
+      }
+      .panel h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+      .intro {
+        margin: 5px 0 18px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .search-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .search {
+        width: 100%;
+        min-height: 48px;
+        border: 1px solid var(--border-strong);
+        border-radius: 12px;
+        padding: 10px 14px;
+        background: var(--surface-raised);
+        color: var(--text);
+        font: inherit;
+      }
+      .choices {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .choice {
+        display: flex;
+        min-height: 52px;
+        align-items: center;
+        gap: 12px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 10px 14px;
+        background: var(--surface);
+        cursor: pointer;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .choice:has(input:checked) {
+        border-color: var(--brand);
+        background: var(--selected-surface);
+      }
+      .choice:hover {
+        border-color: var(--brand);
+      }
+      .choice-copy {
+        display: grid;
+        gap: 1px;
+      }
+      .choice-name {
+        font-weight: 750;
+      }
+      .choice-hint {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      input[type="checkbox"] {
+        appearance: none;
+        display: grid;
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        place-content: center;
+        margin: 0;
+        border: 1.5px solid var(--border-strong);
+        border-radius: 6px;
+        background: var(--surface);
+        color: #fff;
+        cursor: pointer;
+        transition:
+          background-color 0.15s ease,
+          border-color 0.15s ease;
+      }
+
+      input[type="checkbox"]::before {
+        width: 12px;
+        height: 12px;
+        content: "";
+        transform: scale(0);
+        transform-origin: center;
+        transition: transform 0.12s ease-in-out;
+        background: currentColor;
+        clip-path: polygon(14% 44%, 0 60%, 40% 100%, 100% 20%, 84% 6%, 39% 72%);
+      }
+
+      input[type="checkbox"]:checked {
+        border-color: var(--action);
+        background: var(--action);
+      }
+      input[type="checkbox"]:checked::before {
+        transform: scale(1);
+      }
+      input[type="checkbox"]:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .summary {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-top: 18px;
+        border-radius: 12px;
+        padding: 12px 14px;
+        background: var(--surface-raised);
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .summary-mark {
+        color: var(--action);
+        font-weight: 900;
+      }
+      .note {
+        margin: 14px 2px 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 20px 12px;
+        }
+        .panel {
+          padding: 16px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="topline">
+        <div>
+          <p class="eyebrow">Wave 0 · seleção de convidados</p>
+          <h1>Quem vai participar?</h1>
+        </div>
+        <button
+          class="theme-toggle"
+          type="button"
+          id="theme-toggle"
+          aria-pressed="false"
+        >
+          Tema escuro
+        </button>
+      </div>
+
+      <section class="panel" aria-labelledby="invitees-title">
+        <h2 id="invitees-title">Convidar pessoas do Pixu</h2>
+        <p class="intro">
+          Escolha quem participa desta cobrança. A cota será calculada na
+          prévia.
+        </p>
+        <label class="search-label" for="invitee-search">Buscar pessoa</label>
+        <input
+          class="search"
+          id="invitee-search"
+          type="search"
+          placeholder="Nome ou usuário"
+        />
+
+        <div class="choices">
+          <label class="choice">
+            <input type="checkbox" name="invitee" value="ana" />
+            <span class="choice-copy"
+              ><span class="choice-name">Ana Exemplo</span
+              ><span class="choice-hint">@ana-exemplo</span></span
+            >
+          </label>
+          <label class="choice">
+            <input type="checkbox" name="invitee" value="bruno" checked />
+            <span class="choice-copy"
+              ><span class="choice-name">Bruno Exemplo</span
+              ><span class="choice-hint">@bruno-exemplo</span></span
+            >
+          </label>
+        </div>
+
+        <div class="summary" aria-live="polite">
+          <span class="summary-mark" aria-hidden="true">✓</span
+          ><span
+            ><strong>1 pessoa selecionada.</strong> O tique e o realce do cartão
+            mostram o estado sem depender só da cor.</span
+          >
+        </div>
+      </section>
+      <p class="note">
+        Protótipo de componente: borda mais suave, checkbox arredondada e
+        preenchimento Sakura ao selecionar. O cartão inteiro continua clicável;
+        Tab, Espaço e foco visível seguem funcionando.
+      </p>
+    </main>
+    <script>
+      const root = document.documentElement;
+      const themeToggle = document.getElementById("theme-toggle");
+      themeToggle.addEventListener("click", () => {
+        const dark = root.dataset.theme !== "dark";
+        root.dataset.theme = dark ? "dark" : "light";
+        themeToggle.setAttribute("aria-pressed", String(dark));
+        themeToggle.textContent = dark ? "Tema claro" : "Tema escuro";
+      });
+
+      document.querySelectorAll('input[name="invitee"]').forEach((checkbox) => {
+        checkbox.addEventListener("change", () => {
+          const count = document.querySelectorAll(
+            'input[name="invitee"]:checked',
+          ).length;
+          document.querySelector(".summary strong").textContent =
+            `${count} ${count === 1 ? "pessoa selecionada." : "pessoas selecionadas."}`;
+        });
+      });
+    </script>
+  </body>
+</html>

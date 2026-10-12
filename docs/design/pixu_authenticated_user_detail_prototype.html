@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixu · Protótipo de detalhe de conta</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #fff4f3;
+      --surface: #ffffff;
+      --surface-raised: #fffafa;
+      --text: #2d3748;
+      --muted: #5b6573;
+      --border: #e8d5d8;
+      --brand: #ec275f;
+      --action: #b91649;
+      --focus: #1d7fc4;
+      --success: #176b45;
+      --success-soft: #e5f4eb;
+      --warning: #805400;
+      --warning-soft: #fff1d8;
+      --shadow: 0 18px 42px rgb(79 31 46 / 9%);
+      font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, sans-serif;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --canvas: #0f172a;
+      --surface: #1e293b;
+      --surface-raised: #273449;
+      --text: #f8fafc;
+      --muted: #cbd5e1;
+      --border: #475569;
+      --brand: #ffa7a6;
+      --action: #d61d5c;
+      --focus: #93c5fd;
+      --success: #86efac;
+      --success-soft: #153c2c;
+      --warning: #fcd34d;
+      --warning-soft: #4b350b;
+      --shadow: 0 18px 42px rgb(0 0 0 / 32%);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-padding-bottom: 84px; }
+    body { min-width: 0; margin: 0; color: var(--text); background: var(--canvas); }
+    button, a { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, a:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+    .prototype-controls {
+      position: sticky;
+      z-index: 4;
+      top: 0;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px clamp(16px, 4vw, 32px);
+      color: #fff;
+      background: #2d3748;
+    }
+    .prototype-controls strong { font-size: 14px; }
+    .control-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .control-button {
+      min-height: 36px;
+      padding: 0 11px;
+      border: 1px solid #8290a4;
+      border-radius: 9px;
+      color: inherit;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 750;
+    }
+    .control-button[aria-pressed="true"] { color: #2d3748; border-color: #fff4f3; background: #fff4f3; }
+    .stage { min-height: calc(100vh - 60px); padding: clamp(16px, 3vw, 32px); }
+    .app {
+      width: min(100%, 1180px);
+      min-height: 680px;
+      margin: 0 auto;
+      overflow: clip;
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      background: var(--canvas);
+      box-shadow: var(--shadow);
+    }
+    .app[data-width="375"] { max-width: 375px; min-height: 812px; border-radius: 30px; }
+    .app[data-width="1024"] { max-width: 1024px; }
+    .app-shell { min-height: inherit; }
+    .sidebar { display: none; }
+    .main { min-width: 0; padding: 24px 16px 96px; }
+    .topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .back-link {
+      display: inline-flex;
+      min-width: 44px;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      text-decoration: none;
+      background: var(--surface);
+    }
+    .back-link svg { width: 20px; height: 20px; }
+    .eyebrow { margin: 0 0 2px; color: var(--muted); font-size: 12px; font-weight: 760; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: 0; font-size: clamp(25px, 3vw, 34px); line-height: 1.1; letter-spacing: -.035em; }
+    h2 { margin-bottom: 5px; font-size: 17px; letter-spacing: -.01em; }
+    .profile-grid { display: grid; gap: 16px; }
+    .card { min-width: 0; padding: 20px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); }
+    .identity { display: flex; align-items: center; gap: 14px; }
+    .avatar {
+      display: grid;
+      flex: 0 0 auto;
+      width: 54px;
+      height: 54px;
+      place-items: center;
+      border-radius: 50%;
+      color: var(--action);
+      background: color-mix(in srgb, var(--brand) 18%, var(--surface));
+      font-size: 18px;
+      font-weight: 900;
+    }
+    .identity h2 { margin: 0 0 3px; font-size: 20px; }
+    .username { margin: 0; color: var(--muted); font-size: 14px; }
+    .own-note { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .actions { display: grid; gap: 8px; margin-top: 17px; }
+    .button {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      color: var(--text);
+      background: var(--surface-raised);
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .button:hover, .charge-link:hover { border-color: color-mix(in srgb, var(--brand) 55%, var(--border)); }
+    .button.primary { color: #fff; border-color: var(--action); background: var(--action); }
+    .pix-card { display: grid; align-content: start; gap: 12px; }
+    .card-kicker { margin: 0; color: var(--muted); font-size: 12px; font-weight: 780; letter-spacing: .075em; text-transform: uppercase; }
+    .pix-value {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      font-weight: 850;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    .pix-helper { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .empty-value { margin: 0; color: var(--muted); font-size: 15px; font-weight: 720; }
+    .shared-section { margin-top: 24px; }
+    .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 0 4px 10px; }
+    .section-heading h2 { margin-bottom: 0; }
+    .section-heading p { margin: 0; color: var(--muted); font-size: 13px; text-align: right; }
+    .charge-list { display: grid; gap: 10px; }
+    .charge-link {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 64px;
+      padding: 13px 14px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      color: var(--text);
+      background: var(--surface);
+      text-decoration: none;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .charge-link:hover { box-shadow: 0 7px 18px rgb(75 32 48 / 8%); }
+    .charge-copy { min-width: 0; }
+    .charge-title { display: block; overflow: hidden; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
+    .state { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }
+    .chevron { width: 20px; height: 20px; color: var(--brand); }
+    .empty-state { padding: 19px; border: 1px dashed var(--border); border-radius: 15px; color: var(--muted); background: var(--surface); font-size: 14px; line-height: 1.5; }
+    .charge-origin { margin-top: 26px; }
+    .origin-card { padding: 18px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); }
+    .origin-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); }
+    .origin-row:first-of-type { border-top: 0; }
+    .person-link, .guest-name { min-width: 0; font-weight: 820; }
+    .person-link { color: var(--action); text-underline-offset: 3px; }
+    .guest-name { color: var(--text); }
+    .origin-meta { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .amount { flex: 0 0 auto; font-weight: 850; }
+    .mobile-nav { position: absolute; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--surface); }
+    .mobile-nav a { display: grid; min-height: 52px; place-items: center; color: var(--muted); font-size: 11px; font-weight: 750; text-decoration: none; }
+    .mobile-nav a[aria-current="page"] { color: var(--action); }
+    .scenario[hidden] { display: none; }
+    .view-only-label { margin: 0 0 13px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    @media (min-width: 760px) {
+      .app-shell { display: grid; grid-template-columns: 192px minmax(0, 1fr); }
+      .sidebar { display: flex; flex-direction: column; gap: 7px; padding: 26px 15px; border-right: 1px solid var(--border); background: var(--surface); }
+      .brand { margin: 0 0 28px 10px; color: var(--action); font-size: 21px; font-weight: 950; letter-spacing: -.05em; }
+      .sidebar a { display: flex; min-height: 44px; align-items: center; padding: 0 11px; border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 780; text-decoration: none; }
+      .sidebar a[aria-current="page"] { color: var(--action); background: color-mix(in srgb, var(--brand) 13%, var(--surface)); }
+      .sidebar .signout { margin-top: auto; }
+      .main { padding: 42px 42px 56px; }
+      .profile-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); }
+      .mobile-nav { display: none; }
+      .shared-section { margin-top: 30px; }
+      .actions { grid-template-columns: 1fr 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body data-theme="light">
+  <header class="prototype-controls">
+    <strong>Protótipo · detalhe de conta</strong>
+    <div class="control-group" aria-label="Estados do protótipo">
+      <button class="control-button" type="button" data-scenario="own" aria-pressed="true">Meu perfil</button>
+      <button class="control-button" type="button" data-scenario="shared" aria-pressed="false">Perfil com cobranças</button>
+      <button class="control-button" type="button" data-scenario="empty" aria-pressed="false">Perfil sem chave</button>
+      <button class="control-button" type="button" data-scenario="origin" aria-pressed="false">Origem na cobrança</button>
+    </div>
+    <div class="control-group" aria-label="Visualização">
+      <button class="control-button" type="button" data-width="375" aria-pressed="false">375 px</button>
+      <button class="control-button" type="button" data-width="1024" aria-pressed="true">1024 px</button>
+      <button class="control-button" type="button" data-theme-toggle aria-pressed="false">Tema escuro</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="app" data-width="1024">
+      <div class="app-shell">
+        <nav class="sidebar" aria-label="Navegação principal">
+          <p class="brand">PiXu</p>
+          <a href="#inicio">Início</a><a href="#cobrancas">Cobranças</a><a href="#convites">Convites</a><a href="#perfil" aria-current="page">Perfil</a>
+          <a class="signout" href="#sair">Sair</a>
+        </nav>
+        <div class="main">
+          <section class="scenario" data-scenario-panel="own">
+            <header class="topbar"><a class="back-link" href="#voltar" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><div><p class="eyebrow">Conta Pixu</p><h1>Meu perfil</h1></div></header>
+            <div class="profile-grid">
+              <article class="card"><div class="identity"><div class="avatar" aria-hidden="true">RM</div><div><h2>Rita Meireles</h2><p class="username">@rita.meireles</p></div></div><p class="own-note">Estes dados são visíveis somente para você nesta tela.</p><div class="actions"><a class="button primary" href="#editar">Editar perfil</a><a class="button" href="#email">Gerenciar e-mail</a><a class="button" href="#sair">Sair da conta</a></div></article>
+              <article class="card pix-card"><p class="card-kicker">Chave Pix principal</p><p class="pix-value">rita.meireles@exemplo.com</p><p class="pix-helper">A chave Pix é informada por você. O Pixu não verifica a chave junto ao banco.</p><button class="button" type="button">Copiar chave Pix</button></article>
+            </div>
+          </section>
+
+          <section class="scenario" data-scenario-panel="shared" hidden>
+            <header class="topbar"><a class="back-link" href="#voltar" aria-label="Voltar à cobrança"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><div><p class="eyebrow">Conta Pixu</p><h1>Perfil de Ana Costa</h1></div></header>
+            <p class="view-only-label">Informações declaradas por Ana. Este perfil é somente leitura.</p>
+            <div class="profile-grid">
+              <article class="card"><div class="identity"><div class="avatar" aria-hidden="true">AC</div><div><h2>Ana Costa</h2><p class="username">@ana.costa</p></div></div></article>
+              <article class="card pix-card"><p class="card-kicker">Chave Pix principal</p><p class="pix-value">ana.costa@exemplo.com</p><p class="pix-helper">Chave informada pela titular. O Pixu não verifica a chave junto ao banco.</p><button class="button" type="button">Copiar chave Pix</button></article>
+            </div>
+            <section class="shared-section" aria-labelledby="shared-heading"><div class="section-heading"><h2 id="shared-heading">Cobranças em comum</h2><p>Apenas cobranças já visíveis para vocês.</p></div><div class="charge-list"><a class="charge-link" href="#churrasco"><span class="charge-copy"><span class="charge-title">Churrasco de domingo</span><span class="state">Ativa</span></span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a><a class="charge-link" href="#viagem"><span class="charge-copy"><span class="charge-title">Hospedagem da viagem</span><span class="state">Aguardando aceite</span></span><svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></a></div></section>
+          </section>
+
+          <section class="scenario" data-scenario-panel="empty" hidden>
+            <header class="topbar"><a class="back-link" href="#voltar" aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><div><p class="eyebrow">Conta Pixu</p><h1>Perfil de Bruno Lima</h1></div></header>
+            <p class="view-only-label">Informações declaradas por Bruno. Este perfil é somente leitura.</p>
+            <div class="profile-grid"><article class="card"><div class="identity"><div class="avatar" aria-hidden="true">BL</div><div><h2>Bruno Lima</h2><p class="username">@bruno.lima</p></div></div></article><article class="card pix-card"><p class="card-kicker">Chave Pix principal</p><p class="empty-value">Bruno ainda não informou uma chave Pix.</p><p class="pix-helper">Nenhuma chave substituta ou meio de pagamento é exibido aqui.</p></article></div>
+            <section class="shared-section" aria-labelledby="empty-heading"><div class="section-heading"><h2 id="empty-heading">Cobranças em comum</h2></div><div class="empty-state">Vocês ainda não participam de uma mesma cobrança. Quando houver uma, somente seu título e estado aparecerão aqui.</div></section>
+          </section>
+
+          <section class="scenario" data-scenario-panel="origin" hidden>
+            <header class="topbar"><a class="back-link" href="#cobrancas" aria-label="Voltar para cobranças"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></a><div><p class="eyebrow">Cobrança · origem dos links</p><h1>Churrasco de domingo</h1></div></header>
+            <section class="origin-card" aria-labelledby="registered-heading"><h2 id="registered-heading">Contas Pixu</h2><div class="origin-row"><div><a class="person-link" href="#perfil-rita">Você</a><p class="origin-meta">Recebedora</p></div><span class="amount">R$ 90,00</span></div><div class="origin-row"><div><a class="person-link" href="#perfil-ana">Ana Costa</a><p class="origin-meta">Em aberto há 8 dias</p></div><span class="amount">R$ 90,00</span></div></section>
+            <section class="origin-card charge-origin" aria-labelledby="guest-heading"><h2 id="guest-heading">Convites anônimos</h2><div class="origin-row"><div><span class="guest-name">Rafa</span><p class="origin-meta">Entrada por convite</p></div><span class="amount">R$ 90,00</span></div></section>
+          </section>
+        </div>
+        <nav class="mobile-nav" aria-label="Navegação principal"><a href="#inicio">Início</a><a href="#cobrancas">Cobranças</a><a href="#convites">Convites</a><a href="#perfil" aria-current="page">Perfil</a></nav>
+      </div>
+    </div>
+  </main>
+  <script>
+    const app = document.querySelector('.app');
+    const root = document.body;
+    const scenarioButtons = document.querySelectorAll('[data-scenario]');
+    const panels = document.querySelectorAll('[data-scenario-panel]');
+    scenarioButtons.forEach((button) => button.addEventListener('click', () => {
+      scenarioButtons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+      panels.forEach((panel) => { panel.hidden = panel.dataset.scenarioPanel !== button.dataset.scenario; });
+    }));
+    document.querySelectorAll('[data-width]').forEach((button) => button.addEventListener('click', () => {
+      app.dataset.width = button.dataset.width;
+      document.querySelectorAll('[data-width]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    }));
+    document.querySelector('[data-theme-toggle]').addEventListener('click', (button) => {
+      const dark = root.dataset.theme !== 'dark';
+      root.dataset.theme = dark ? 'dark' : 'light';
+      button.currentTarget.setAttribute('aria-pressed', String(dark));
+      button.currentTarget.textContent = dark ? 'Tema claro' : 'Tema escuro';
+    });
+  </script>
+</body>
+</html>
