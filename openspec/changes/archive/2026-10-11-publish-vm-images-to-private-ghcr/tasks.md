@@ -12,5 +12,5 @@
 
 ## 3. Verificação integrada
 
-- [ ] 3.1 Executar o workflow no GitHub e confirmar que os quatro pacotes permanecem privados, estão ligados ao repositório e foram publicados com tags `main` e `sha-<commit>` e manifests que incluem amd64/arm64.
+- [x] 3.1 Executar o workflow no GitHub e confirmar que os quatro pacotes permanecem privados, estão ligados ao repositório e foram publicados com tags `main` e `sha-<commit>` e manifests que incluem amd64/arm64.
 - [ ] 3.2 Validar pull autenticado pelo caminho documentado no Portainer/VM e redeploy manual usando uma tag SHA; confirmar que o caminho local de bundle com overrides permanece disponível para rollback.
