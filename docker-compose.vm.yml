@@ -52,7 +52,7 @@ x-django-environment: &django-environment
 
 services:
   django: &django
-    image: ${PIXU_DJANGO_IMAGE:-pixu_django:production}
+    image: ${PIXU_DJANGO_IMAGE:-ghcr.io/ryofac/pixu-django:${PIXU_IMAGE_TAG:-main}}
     restart: unless-stopped
     environment: *django-environment
     volumes:
@@ -66,11 +66,11 @@ services:
 
   celeryworker:
     <<: *django
-    image: ${PIXU_DJANGO_IMAGE:-pixu_django:production}
+    image: ${PIXU_DJANGO_IMAGE:-ghcr.io/ryofac/pixu-django:${PIXU_IMAGE_TAG:-main}}
     command: /start-celeryworker
 
   postgres:
-    image: ${PIXU_POSTGRES_IMAGE:-pixu_postgres:production}
+    image: ${PIXU_POSTGRES_IMAGE:-ghcr.io/ryofac/pixu-postgres:${PIXU_IMAGE_TAG:-main}}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -97,13 +97,13 @@ services:
       retries: 12
 
   nginx:
-    image: ${PIXU_NGINX_IMAGE:-pixu_nginx:production}
+    image: ${PIXU_NGINX_IMAGE:-ghcr.io/ryofac/pixu-nginx:${PIXU_IMAGE_TAG:-main}}
     restart: unless-stopped
     volumes:
       - pixu_vm_media:/usr/share/nginx/media:ro
 
   traefik:
-    image: ${PIXU_TRAEFIK_IMAGE:-pixu_traefik:production}
+    image: ${PIXU_TRAEFIK_IMAGE:-ghcr.io/ryofac/pixu-traefik:${PIXU_IMAGE_TAG:-main}}
     restart: unless-stopped
     depends_on:
       - django

@@ -31,6 +31,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Python 'run' stage
 FROM python:3.14-slim-bookworm AS python-run-stage
 
+LABEL org.opencontainers.image.source="https://github.com/ryofac/pixu"
+
 ARG APP_HOME=/app
 
 WORKDIR ${APP_HOME}

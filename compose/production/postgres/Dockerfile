@@ -1,5 +1,7 @@
 FROM docker.io/postgres:18
 
+LABEL org.opencontainers.image.source="https://github.com/ryofac/pixu"
+
 COPY ./compose/production/postgres/maintenance /usr/local/bin/maintenance
 RUN chmod +x /usr/local/bin/maintenance/*
 RUN mv /usr/local/bin/maintenance/* /usr/local/bin \

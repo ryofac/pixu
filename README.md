@@ -211,22 +211,32 @@ Para uma VM sem domínio próprio, use um hostname DuckDNS apontado para o IP p�
 
    Substitua `pixu-seunome.duckdns.org` e `seu-email@example.com` em `deploy/vm/traefik.yml`. Copie esse arquivo já preenchido para o caminho definido por `PIXU_TRAEFIK_CONFIG` na VM (por padrão `/opt/pixu/traefik/traefik.yml`). O Compose monta esse arquivo sobre a configuração embutida na imagem, portanto mudanças de hostname ou e-mail não exigem novo build da imagem. `DJANGO_ALLOWED_HOSTS` e `DJANGO_CSRF_TRUSTED_ORIGINS` devem usar o hostname, por exemplo `https://pixu-seunome.duckdns.org`. O SMTP precisa ser configurado para que confirmação de cadastro e recuperação de senha funcionem.
 
-2. Na máquina de build, compile os assets e construa as imagens que serão carregadas na VM:
+2. Cada push para `main` executa o workflow do GitHub Actions e publica as imagens Django, PostgreSQL, Nginx e Traefik em `ghcr.io/ryofac`, para `linux/amd64` e `linux/arm64`. Novos pacotes GHCR começam privados; o workflow usa `GITHUB_TOKEN` e não precisa de PAT para publicar. Ele cria as tags `main` e `sha-<commit>` em cada pacote. O workflow não muda a visibilidade de pacotes preexistentes: depois da primeira publicação, confirme em **GitHub → Packages** que `pixu-django`, `pixu-postgres`, `pixu-nginx` e `pixu-traefik` estão privados e associados ao repositório `ryofac/pixu`.
+
+   Para que o Portainer baixe pacotes privados, configure uma credencial de registro para `ghcr.io` com um usuário GitHub que tenha acesso aos pacotes e um PAT clássico com somente `read:packages`. No Portainer Community Edition, cadastre `ghcr.io` como registry personalizado e informe usuário e token nas credenciais do registry; não coloque o PAT em `.env.vm`, no Compose ou no repositório. Se o PAT ou a conta ainda não tiver acesso aos pacotes, conceda acesso de leitura na configuração do pacote no GitHub.
+
+   Use `PIXU_IMAGE_TAG=main` para acompanhar a publicação mais recente. Para um deploy reproduzível, defina `PIXU_IMAGE_TAG=sha-<commit>` em **Environment variables** da Stack. O Compose aponta por padrão para `ghcr.io/ryofac/pixu-django`, `ghcr.io/ryofac/pixu-postgres`, `ghcr.io/ryofac/pixu-nginx` e `ghcr.io/ryofac/pixu-traefik`, todos com a tag escolhida; Redis continua usando a imagem pública `redis:7.2`.
+
+   Se o GHCR não estiver disponível, ainda é possível gerar e carregar as imagens localmente. Na máquina com Docker, Buildx, Node.js e npm, rode:
 
    ```sh
    ./scripts/build-vm-images.sh
    ```
 
-   O script também gera automaticamente `pixu-vm-images.tar.gz`. Para usar outro caminho, defina `PIXU_VM_IMAGES_BUNDLE` antes de executá-lo. Transfira esse arquivo para a VM e carregue-o com `docker load`:
+   Para escolher arquitetura, passe `linux/amd64` ou `linux/arm64`. O script gera `pixu-vm-images.tar.gz` e o checksum `pixu-vm-images.tar.gz.sha256`. Transfira os dois arquivos para a VM e carregue as imagens:
 
    ```sh
-   # na VM:
-   docker load < pixu-vm-images.tar.gz
+   sha256sum -c pixu-vm-images.tar.gz.sha256
+   tar -xzf pixu-vm-images.tar.gz
+   cat metadata.txt
+   docker load -i images.tar
    ```
 
-3. Crie uma Stack no Portainer usando `docker-compose.vm.yml`. Em **Environment variables**, importe `.env.vm` ou cadastre as mesmas variáveis manualmente. A porta 80 precisa estar acessível à Let's Encrypt para o desafio HTTP-01; 443 também deve estar liberada para o acesso HTTPS.
+   Para esse fallback, configure na Stack os overrides `PIXU_DJANGO_IMAGE=pixu_django:production`, `PIXU_POSTGRES_IMAGE=pixu_postgres:production`, `PIXU_NGINX_IMAGE=pixu_nginx:production` e `PIXU_TRAEFIK_IMAGE=pixu_traefik:production`. Eles também permitem voltar a uma imagem local já carregada.
 
-4. Faça o deploy da Stack. O Django coleta os arquivos estáticos e inicia Gunicorn; o worker Celery, PostgreSQL, Redis, Nginx e Traefik sobem pelo mesmo Compose. O `start` de produção não executa migrações automaticamente: depois do primeiro deploy, abra o console do container Django no Portainer e execute `python manage.py migrate` (e repita esse passo quando uma nova imagem trouxer migrações). Se quiser validar a interpolação antes de colar no Portainer, rode localmente:
+3. Crie uma Stack no Portainer usando `docker-compose.vm.yml`. Em **Environment variables**, importe `.env.vm` ou cadastre as mesmas variáveis manualmente; configure também a credencial do registry `ghcr.io` descrita acima e selecione-a para a Stack quando usar imagens privadas. A porta 80 precisa estar acessível à Let's Encrypt para o desafio HTTP-01; 443 também deve estar liberada para o acesso HTTPS.
+
+4. Faça o deploy/redeploy manual da Stack com a opção de baixar imagens habilitada, para o Portainer puxar a tag selecionada do GHCR. O Django coleta os arquivos estáticos e inicia Gunicorn; o worker Celery, PostgreSQL, Redis, Nginx e Traefik sobem pelo mesmo Compose. O `start` de produção não executa migrações automaticamente: depois do primeiro deploy, abra o console do container Django no Portainer e execute `python manage.py migrate` (e repita esse passo quando uma nova imagem trouxer migrações). Se quiser validar a interpolação antes de colar no Portainer, rode localmente:
 
    ```sh
    docker compose --env-file .env.vm -f docker-compose.vm.yml config
