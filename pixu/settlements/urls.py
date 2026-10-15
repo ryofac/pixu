@@ -2,11 +2,11 @@ from django.urls import path
 
 from .views import ConfirmPaymentView
 from .views import DebtAutoConfirmView
+from .views import GuestPaymentReceiptView
 from .views import PaymentCreateView
 from .views import PaymentReceiptDeleteView
 from .views import PaymentReceiptUpdateView
 from .views import PaymentReceiptView
-from .views import GuestPaymentReceiptView
 from .views import RejectPaymentView
 
 app_name = "settlements"

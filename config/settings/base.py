@@ -103,6 +103,7 @@ LOCAL_APPS = [
     "pixu.accounts.apps.AccountsConfig",
     "pixu.charges.apps.ChargesConfig",
     "pixu.settlements.apps.SettlementsConfig",
+    "pixu.extracts.apps.ExtractsConfig",
     "pixu.dashboard.apps.DashboardConfig",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps

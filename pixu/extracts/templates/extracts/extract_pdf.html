@@ -1,0 +1,73 @@
+{% load charge_format i18n %}
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <title>{{ extract_title }} · Pixu</title>
+    <style>
+      @page { size: A4 landscape; margin: 14mm 12mm 17mm; @bottom-left { content: "Pixu · Extrato financeiro"; color: #64748b; font-size: 8pt; } @bottom-right { content: "Página " counter(page) " de " counter(pages); color: #64748b; font-size: 8pt; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; color: #292327; font-family: sans-serif; font-size: 9pt; }
+      header { border-bottom: 2px solid #9d263f; margin-bottom: 12px; padding-bottom: 10px; }
+      .brand { color: #9d263f; font-size: 10pt; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 5px 0 3px; font-size: 22pt; }
+      .muted { color: #64748b; }
+      .summary { display: flex; justify-content: space-between; gap: 24px; margin: 12px 0; padding: 10px 12px; background: #fff4f3; border: 1px solid #f2d7d8; border-radius: 6px; }
+      .summary strong { color: #7e2035; font-size: 15pt; }
+      .filters { margin: 5px 0 0; font-size: 8pt; }
+      table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      thead { display: table-header-group; }
+      tr { break-inside: avoid; }
+      th { background: #f7eff0; color: #49373c; font-size: 7pt; text-align: left; text-transform: uppercase; letter-spacing: .04em; }
+      th, td { border-bottom: 1px solid #e8e1e2; padding: 6px 5px; vertical-align: top; overflow-wrap: anywhere; }
+      td { font-size: 8pt; }
+      .amount { text-align: right; white-space: nowrap; font-weight: 700; }
+      .id { font-family: monospace; font-size: 7pt; }
+      .status { color: #7e2035; font-weight: 700; }
+      .footnote { margin-top: 10px; color: #64748b; font-size: 7pt; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">Pixu</div>
+      <h1>{{ extract_title }}</h1>
+      <div class="muted">{% translate "Gerado em" %} {{ generated_at|date:"d/m/Y H:i T" }}</div>
+      {% if filters.q or filters.date_from or filters.date_to %}
+        <p class="filters"><strong>{% translate "Filtros" %}:</strong>{% if filters.q %} {% translate "Pessoa ou cobrança" %}: {{ filters.q }}{% endif %}{% if filters.date_from %} · {% translate "De" %} {{ filters.date_from|date:"d/m/Y" }}{% endif %}{% if filters.date_to %} · {% translate "Até" %} {{ filters.date_to|date:"d/m/Y" }}{% endif %}</p>
+      {% endif %}
+    </header>
+    <div class="summary">
+      <div><span class="muted">{% if is_paid %}{% translate "Total liquidado no resultado" %}{% else %}{% translate "Saldo aberto no resultado" %}{% endif %}</span><br><strong>R$ {{ total_cents|brl_from_cents }}</strong></div>
+      <div><span class="muted">{% translate "Registros incluídos" %}</span><br><strong>{{ rows|length }}</strong></div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 11%">{% translate "Tipo / ID" %}</th>
+          <th style="width: 11%">{% translate "Data efetiva" %}</th>
+          <th style="width: 14%">{% translate "Pessoa" %}</th>
+          <th style="width: 18%">{% translate "Cobrança" %}</th>
+          <th style="width: 14%">{% translate "Valores" %}</th>
+          <th style="width: 10%">{% translate "Situação" %}</th>
+          <th style="width: 22%">{% translate "Auditoria" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td><strong>{{ row.type }}</strong><br><span class="id">{{ row.event_id }}</span><br><span class="muted">{% translate "Registro" %} #{{ row.source_record_id }} · {% translate "Dívida" %} #{{ row.debt_id }}</span></td>
+            <td>{{ row.effective_at|date:"d/m/Y H:i" }}<br><span class="muted">{% translate "Registro" %}: {{ row.recorded_at|date:"d/m/Y H:i" }}</span></td>
+            <td>{{ row.counterparty }}</td>
+            <td>{{ row.charge_title }}<br><span class="muted">{% translate "Cobrança" %} #{{ row.charge_id }}</span>{% if row.paired_charge_title %}<br><span class="muted">{% translate "Relacionada" %}: {{ row.paired_charge_title }}</span>{% endif %}</td>
+            <td class="amount">{% if row.open_cents != "" %}{% translate "Aberto" %}: R$ {{ row.open_cents|brl_from_cents }}<br>{% endif %}{% if row.original_cents != "" %}{% translate "Original" %}: R$ {{ row.original_cents|brl_from_cents }}<br>{% endif %}{% translate "Evento" %}: R$ {{ row.amount_cents|brl_from_cents }}</td>
+            <td class="status">{{ row.state }}</td>
+            <td>{% if row.confirmation_source %}{{ row.confirmation_source }} · {% endif %}{% if row.reference %}{{ row.reference }} · {% endif %}{% if row.receipt_present == "Sim" %}{% translate "Comprovante anexado (não incluído)" %}{% endif %}{% if row.compensation_request_id %}{% translate "Compensação" %}: <span class="id">{{ row.compensation_request_id }}</span> · {% translate "Dívida relacionada" %} #{{ row.paired_debt_id }}{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="muted">{% translate "Nenhum registro corresponde aos filtros." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="footnote">{% translate "Os valores são apresentados em reais para leitura. O arquivo CSV correspondente contém os valores exatos em centavos." %}</p>
+  </body>
+</html>

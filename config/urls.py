@@ -29,6 +29,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("charges/", include("pixu.charges.urls", namespace="charges")),
     path("settlements/", include("pixu.settlements.urls", namespace="settlements")),
+    path("extracts/", include("pixu.extracts.urls", namespace="extracts")),
     # Your stuff: custom urls includes go here
     # ...
 ]

@@ -15,32 +15,46 @@
 
     <div class="space-y-3" aria-labelledby="charges-heading">
       <h2 class="text-lg font-extrabold text-pixu-ink" id="charges-heading">{% translate "Suas cobranças" %}</h2>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {% for charge in charges %}
-          <a class="block rounded-[20px] border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised hover:shadow-md focus-visible:ring-2 focus-visible:ring-pixu-focus sm:p-5" href="{% url 'charges:detail' charge.pk %}">
-            <div class="flex items-center justify-between gap-3">
-              <strong class="min-w-0 break-words">{{ charge.title }}</strong>
-              {% include "charges/partials/status_badge.html" with charge=charge %}
-            </div>
-            <p class="mb-3 mt-2 text-sm text-pixu-muted">
-              {% if charge.creator_id == request.user.id %}{% translate "Criada por você" %}{% else %}{% translate "Criada por" %} {{ charge.creator.name|default:charge.creator.username }}{% endif %}
-            </p>
-            <p class="mb-3 text-sm text-pixu-muted">{% translate "Quem recebe" %}: {% if charge.creditor_id == request.user.id %}{% translate "você" %}{% else %}{{ charge.creditor.name|default:charge.creditor.username }}{% endif %}</p>
-            <div class="flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Total" %}</span><strong>R$ {{ charge.total_cents|brl_from_cents }}</strong></div>
-            {% for participation in charge.participations.all %}
-              {% if participation.user_id == request.user.id %}
-                <div class="mt-2 flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Sua cota" %}</span><strong class="text-pixu-action">R$ {{ participation.share_cents|brl_from_cents }}</strong></div>
-              {% endif %}
+      {% if payable_charges %}
+        <section class="space-y-3" aria-labelledby="payable-charges-title">
+          <h3 class="font-extrabold text-pixu-ink" id="payable-charges-title">{% translate "A pagar primeiro" %}</h3>
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {% for row in payable_charges %}
+              {% include "charges/partials/charge_list_card.html" with charge=row.charge direction="payable" open_cents=row.balance_cents %}
             {% endfor %}
-          </a>
-        {% empty %}
-          <div class="rounded-[20px] border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-8 text-center md:col-span-2 xl:col-span-3">
-            <h3 class="mb-2 font-extrabold text-pixu-ink">{% translate "Nenhuma cobrança por aqui" %}</h3>
-            <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% translate "Crie uma cobrança para organizar uma despesa em grupo." %}</p>
-            <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2 font-bold text-pixu-action no-underline" href="{% url 'charges:create' %}">{% translate "Criar cobrança" %}</a>
           </div>
-        {% endfor %}
-      </div>
+        </section>
+      {% endif %}
+
+      {% if receivable_charges %}
+        <section class="space-y-3" aria-labelledby="receivable-charges-title">
+          <h3 class="font-extrabold text-pixu-ink" id="receivable-charges-title">{% translate "A receber primeiro" %}</h3>
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {% for row in receivable_charges %}
+              {% include "charges/partials/charge_list_card.html" with charge=row.charge direction="receivable" open_cents=row.balance_cents %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if other_charges %}
+        <section class="space-y-3" aria-labelledby="other-charges-title">
+          <h3 class="font-extrabold text-pixu-ink" id="other-charges-title">{% translate "Outras cobranças" %}</h3>
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {% for charge in other_charges %}
+              {% include "charges/partials/charge_list_card.html" with charge=charge %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if not charges %}
+        <div class="rounded-[20px] border border-dashed border-pixu-border bg-pixu-surface-raised px-4 py-8 text-center">
+          <h3 class="mb-2 font-extrabold text-pixu-ink">{% translate "Nenhuma cobrança por aqui" %}</h3>
+          <p class="mb-4 text-sm leading-relaxed text-pixu-muted">{% translate "Crie uma cobrança para organizar uma despesa em grupo." %}</p>
+          <a class="inline-flex min-h-11 items-center justify-center rounded-xl border border-pixu-border bg-pixu-surface px-4 py-2 font-bold text-pixu-action no-underline" href="{% url 'charges:create' %}">{% translate "Criar cobrança" %}</a>
+        </div>
+      {% endif %}
     </div>
   </section>
 {% endblock content %}

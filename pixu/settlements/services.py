@@ -7,9 +7,15 @@ from django.core.exceptions import PermissionDenied
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import BigIntegerField
+from django.db.models import ExpressionWrapper
+from django.db.models import F
+from django.db.models import OuterRef
+from django.db.models import Subquery
 from django.db.models import Sum
+from django.db.models import Value
 from django.db.models.functions import Coalesce
+from django.db.models.functions import Greatest
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -41,34 +47,96 @@ class CompensationOption:
     max_amount_cents: int
 
 
+def with_payment_balances(queryset):
+    """Annotate debts with the shared integer-cent payment balance fields."""
+    confirmed = (
+        Payment.objects.filter(
+            debt_id=OuterRef("pk"),
+            state=Payment.State.CONFIRMED,
+        )
+        .order_by()
+        .values("debt_id")
+        .annotate(total=Sum("amount_cents"))
+        .values("total")[:1]
+    )
+    pending = (
+        Payment.objects.filter(
+            debt_id=OuterRef("pk"),
+            state=Payment.State.PENDING,
+        )
+        .order_by()
+        .values("debt_id")
+        .annotate(total=Sum("amount_cents"))
+        .values("total")[:1]
+    )
+    compensated_as_debt = (
+        Compensation.objects.filter(debt_id=OuterRef("pk"))
+        .order_by()
+        .values("debt_id")
+        .annotate(total=Sum("amount_cents"))
+        .values("total")[:1]
+    )
+    compensated_as_reciprocal = (
+        Compensation.objects.filter(reciprocal_debt_id=OuterRef("pk"))
+        .order_by()
+        .values("reciprocal_debt_id")
+        .annotate(total=Sum("amount_cents"))
+        .values("total")[:1]
+    )
+    zero = Value(0, output_field=BigIntegerField())
+    return (
+        queryset.annotate(
+            confirmed_cents=Coalesce(Subquery(confirmed), zero),
+            pending_cents=Coalesce(Subquery(pending), zero),
+            compensated_as_debt_cents=Coalesce(Subquery(compensated_as_debt), zero),
+            compensated_as_reciprocal_cents=Coalesce(
+                Subquery(compensated_as_reciprocal),
+                zero,
+            ),
+        )
+        .annotate(
+            compensated_cents=F("compensated_as_debt_cents")
+            + F("compensated_as_reciprocal_cents"),
+        )
+        .annotate(
+            open_cents=Greatest(
+                zero,
+                ExpressionWrapper(
+                    F("original_cents")
+                    - F("confirmed_cents")
+                    - F("compensated_cents"),
+                    output_field=BigIntegerField(),
+                ),
+                output_field=BigIntegerField(),
+            ),
+        )
+        .annotate(
+            available_cents=Greatest(
+                zero,
+                F("open_cents") - F("pending_cents"),
+                output_field=BigIntegerField(),
+            ),
+        )
+    )
+
+
 def payment_balance(debt: Debt | int) -> PaymentBalance:
     debt_id = debt.pk if isinstance(debt, Debt) else debt
-    debt_value = Debt.objects.only("original_cents").get(pk=debt_id)
-    totals = debt_value.payments.aggregate(
-        confirmed=Coalesce(
-            Sum("amount_cents", filter=Q(state=Payment.State.CONFIRMED)),
-            0,
-        ),
-        pending=Coalesce(
-            Sum("amount_cents", filter=Q(state=Payment.State.PENDING)),
-            0,
-        ),
-    )
-    compensated = Compensation.objects.filter(
-        Q(debt_id=debt_id) | Q(reciprocal_debt_id=debt_id),
-    ).aggregate(total=Coalesce(Sum("amount_cents"), 0))["total"]
-    confirmed = int(totals["confirmed"] or 0)
-    pending = int(totals["pending"] or 0)
-    compensated = int(compensated or 0)
-    original = int(debt_value.original_cents)
-    open_cents = max(original - confirmed - compensated, 0)
+    row = with_payment_balances(Debt.objects.filter(pk=debt_id)).values(
+        "original_cents",
+        "confirmed_cents",
+        "compensated_cents",
+        "pending_cents",
+        "open_cents",
+        "available_cents",
+    ).get()
     return PaymentBalance(
-        original_cents=original,
-        confirmed_cents=confirmed,
-        compensated_cents=compensated,
-        pending_cents=pending,
-        open_cents=open_cents,
-        available_cents=max(open_cents - pending, 0),
+        original_cents=int(row["original_cents"]),
+        confirmed_cents=int(row["confirmed_cents"]),
+        compensated_cents=int(row["compensated_cents"]),
+        pending_cents=int(row["pending_cents"]),
+        open_cents=int(row["open_cents"]),
+        available_cents=int(row["available_cents"]),
     )
 
 
