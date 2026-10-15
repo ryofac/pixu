@@ -1,0 +1,21 @@
+{% load charge_format i18n %}
+<a class="block rounded-[20px] border border-pixu-border bg-pixu-surface p-4 text-inherit no-underline shadow-sm transition hover:bg-pixu-surface-raised hover:shadow-md focus-visible:ring-2 focus-visible:ring-pixu-focus sm:p-5" href="{% url 'charges:detail' charge.pk %}">
+  <div class="flex items-center justify-between gap-3">
+    <strong class="min-w-0 break-words">{{ charge.title }}</strong>
+    {% include "charges/partials/status_badge.html" with charge=charge %}
+  </div>
+  <p class="mb-3 mt-2 text-sm text-pixu-muted">
+    {% if charge.creator_id == request.user.id %}{% translate "Criada por você" %}{% else %}{% translate "Criada por" %} {{ charge.creator.name|default:charge.creator.username }}{% endif %}
+  </p>
+  <p class="mb-3 text-sm text-pixu-muted">{% translate "Quem recebe" %}: {% if charge.creditor_id == request.user.id %}{% translate "você" %}{% else %}{{ charge.creditor.name|default:charge.creditor.username }}{% endif %}</p>
+  <div class="flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Total" %}</span><strong>R$ {{ charge.total_cents|brl_from_cents }}</strong></div>
+  {% if direction %}
+    <div class="mt-2 flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Saldo em aberto" %}</span><strong class="{% if direction == 'payable' %}text-pixu-action{% else %}text-pixu-success{% endif %}">R$ {{ open_cents|brl_from_cents }}</strong></div>
+  {% else %}
+    {% for participation in charge.participations.all %}
+      {% if participation.user_id == request.user.id %}
+        <div class="mt-2 flex items-center justify-between gap-3 text-sm"><span class="text-pixu-muted">{% translate "Sua cota" %}</span><strong class="text-pixu-action">R$ {{ participation.share_cents|brl_from_cents }}</strong></div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+</a>

@@ -17,6 +17,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   build-essential \
   # psycopg dependencies
   libpq-dev \
+  # WeasyPrint runtime dependencies
+  libpango-1.0-0 \
+  libpangoft2-1.0-0 \
+  libharfbuzz-subset0 \
   gettext \
   wait-for-it
 
@@ -38,6 +42,7 @@ FROM e2e-browser-stage AS e2e
 
 COPY . ${APP_HOME}
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked
+RUN python -m playwright install chromium
 
 FROM python-build-stage AS local
 

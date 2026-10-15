@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load charge_format i18n %}
+
+{% block title %}{{ extract_title }} · Extrato · Pixu{% endblock title %}
+
+{% block content %}
+  <section class="space-y-6 pt-2 lg:pt-0" aria-labelledby="page-title">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <a class="inline-flex min-h-10 items-center text-sm font-bold text-pixu-action underline underline-offset-2" href="{% url 'home' %}">← {% translate "Voltar ao início" %}</a>
+        <p class="mb-1 mt-3 text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% translate "Extrato financeiro" %}</p>
+        <h1 class="text-3xl font-black tracking-tight text-pixu-ink sm:text-4xl" id="page-title">{{ extract_title }}</h1>
+        <p class="mt-1.5 text-sm leading-relaxed text-pixu-muted">
+          {% if extract_kind == "paid" %}{% translate "Linha do tempo de pagamentos e compensações nas suas dívidas." %}{% else %}{% translate "Dívidas individuais agrupadas por pessoa, em cobranças ativas." %}{% endif %}
+        </p>
+      </div>
+      <div class="rounded-2xl border border-pixu-border bg-pixu-surface px-5 py-4 shadow-sm sm:min-w-56">
+        <p class="text-xs font-extrabold uppercase tracking-wider text-pixu-muted">{% if extract_kind == "paid" %}{% translate "Total liquidado no resultado" %}{% else %}{% translate "Saldo aberto" %}{% endif %}</p>
+        <p class="mt-1 font-mono text-2xl font-black tabular-nums text-pixu-ink">R$ {{ total_cents|brl_from_cents }}</p>
+      </div>
+    </header>
+
+    <form class="grid gap-3 rounded-2xl border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[minmax(14rem,1fr)_12rem_12rem_auto] lg:items-end" method="get" action="">
+      <div class="grid gap-1.5{% if extract_kind != 'paid' %} sm:col-span-2 lg:col-span-1{% endif %}">
+        <label class="text-sm font-bold text-pixu-ink" for="{{ filter_form.q.id_for_label }}">{{ filter_form.q.label }}</label>
+        {{ filter_form.q }}
+        {% for error in filter_form.q.errors %}<p class="text-sm text-pixu-danger" id="{{ filter_form.q.auto_id }}_errors" role="alert">{{ error }}</p>{% endfor %}
+      </div>
+      {% if extract_kind == "paid" %}
+        <div class="grid gap-1.5">
+          <label class="text-sm font-bold text-pixu-ink" for="{{ filter_form.date_from.id_for_label }}">{{ filter_form.date_from.label }}</label>
+          {{ filter_form.date_from }}
+          {% for error in filter_form.date_from.errors %}<p class="text-sm text-pixu-danger" id="{{ filter_form.date_from.auto_id }}_errors" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="grid gap-1.5">
+          <label class="text-sm font-bold text-pixu-ink" for="{{ filter_form.date_to.id_for_label }}">{{ filter_form.date_to.label }}</label>
+          {{ filter_form.date_to }}
+          {% for error in filter_form.date_to.errors %}<p class="text-sm text-pixu-danger" id="{{ filter_form.date_to.auto_id }}_errors" role="alert">{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+      <div class="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-1">
+        <button class="min-h-11 rounded-xl bg-pixu-action-solid px-4 py-2.5 text-sm font-extrabold text-white hover:brightness-110" type="submit">{% translate "Buscar" %}</button>
+        <a class="inline-flex min-h-11 items-center rounded-xl border border-pixu-border px-4 py-2.5 text-sm font-bold text-pixu-muted no-underline hover:bg-pixu-surface-raised" href="{% if extract_kind == 'paid' %}{% url 'extracts:paid' %}{% elif extract_kind == 'payable' %}{% url 'extracts:payable' %}{% else %}{% url 'extracts:receivable' %}{% endif %}">{% translate "Limpar" %}</a>
+      </div>
+      {% for error in filter_form.non_field_errors %}<p class="text-sm text-pixu-danger sm:col-span-2 lg:col-span-4" role="alert">{{ error }}</p>{% endfor %}
+    </form>
+
+    {% if filter_form.is_bound and not filter_form.is_valid %}
+      <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-pixu-ink" role="alert">{% translate "Revise os filtros para consultar o extrato." %}</div>
+    {% else %}
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-pixu-muted">{% if extract_kind == "paid" %}{% blocktranslate with count=page_obj.paginator.count %}{{ count }} evento(s) correspondente(s){% endblocktranslate %}{% else %}{% blocktranslate with count=page_obj.paginator.count %}{{ count }} grupo(s) de pessoas correspondente(s){% endblocktranslate %}{% endif %}</p>
+        <div class="flex flex-wrap gap-2">
+          <a class="inline-flex min-h-10 items-center rounded-xl border border-pixu-border bg-pixu-surface px-3 py-2 text-sm font-bold text-pixu-ink no-underline hover:bg-pixu-surface-raised" href="{% url 'extracts:export_csv' extract_kind %}{% if query_string %}?{{ query_string }}{% endif %}">{% translate "Baixar CSV" %}</a>
+          <a class="inline-flex min-h-10 items-center rounded-xl border border-pixu-border bg-pixu-surface px-3 py-2 text-sm font-bold text-pixu-ink no-underline hover:bg-pixu-surface-raised" href="{% url 'extracts:export_pdf' extract_kind %}{% if query_string %}?{{ query_string }}{% endif %}">{% translate "Baixar PDF" %}</a>
+        </div>
+      </div>
+
+      {% if extract_kind == "paid" %}
+        <ol class="space-y-3" aria-label="{% translate 'Eventos do extrato' %}">
+          {% for event in results %}
+            <li class="rounded-2xl border border-pixu-border bg-pixu-surface p-4 shadow-sm sm:p-5">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full bg-pixu-surface-raised px-2.5 py-1 text-xs font-extrabold text-pixu-ink">{% if event.event_type == "payment" %}{% translate "Pagamento" %}{% else %}{% translate "Compensação" %}{% endif %}</span>
+                    <span class="rounded-full px-2.5 py-1 text-xs font-bold{% if event.state == 'REVOKED' %} bg-rose-50 text-rose-800{% else %} bg-green-50 text-green-800{% endif %}">{{ event.state_label }}</span>
+                    <time class="text-xs text-pixu-muted" datetime="{{ event.effective_at|date:'c' }}">{{ event.effective_at|date:"d/m/Y H:i" }}</time>
+                  </div>
+                  <h2 class="mt-2 break-words font-extrabold text-pixu-ink">{{ event.counterparty }}</h2>
+                  <p class="mt-0.5 break-words text-sm text-pixu-muted">{{ event.charge_title }}</p>
+                  {% if event.event_type == "payment" %}
+                    <p class="mt-2 text-xs text-pixu-muted">{% translate "Registrado" %}: {{ event.recorded_at|date:"d/m/Y H:i" }} · {{ event.confirmation_source_label }}{% if event.reference %} · {{ event.reference }}{% endif %}{% if event.receipt_present %} · {% translate "Comprovante anexado" %}{% endif %}</p>
+                  {% else %}
+                    <p class="mt-2 text-xs text-pixu-muted">{% translate "Compensa também" %}: {{ event.paired_charge_title }}</p>
+                  {% endif %}
+                </div>
+                <strong class="shrink-0 font-mono text-xl font-black tabular-nums text-pixu-ink">R$ {{ event.amount_cents|brl_from_cents }}</strong>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2 border-t border-pixu-border pt-3 text-sm">
+                <a class="font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:detail' event.charge_id %}">{% translate "Abrir cobrança" %}</a>
+                {% if event.paired_charge_id %}<a class="font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:detail' event.paired_charge_id %}">{% translate "Abrir cobrança relacionada" %}</a>{% endif %}
+              </div>
+            </li>
+          {% empty %}
+            <li class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-5 py-8 text-center">
+              <h2 class="font-extrabold text-pixu-ink">{% translate "Nenhum evento neste período" %}</h2>
+              <p class="mt-1 text-sm text-pixu-muted">{% translate "Pagamentos confirmados e compensações aparecerão aqui." %}</p>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <div class="space-y-4">
+          {% for group in results %}
+            <section class="overflow-hidden rounded-2xl border border-pixu-border bg-pixu-surface shadow-sm" aria-labelledby="counterparty-{{ forloop.counter }}">
+              <header class="flex flex-col gap-2 border-b border-pixu-border bg-pixu-surface-raised px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div><h2 class="font-extrabold text-pixu-ink" id="counterparty-{{ forloop.counter }}">{{ group.name }}</h2><p class="text-xs text-pixu-muted">{{ group.debts|length }} {% translate "dívida(s) em aberto" %}</p></div>
+                <strong class="font-mono text-lg font-black tabular-nums text-pixu-ink">R$ {{ group.total_cents|brl_from_cents }}</strong>
+              </header>
+              <ul class="divide-y divide-pixu-border">
+                {% for debt in group.debts %}
+                  <li class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                    <div class="min-w-0">
+                      <a class="break-words font-bold text-pixu-action underline underline-offset-2" href="{% url 'charges:detail' debt.participation.charge_id %}">{{ debt.participation.charge.title }}</a>
+                      <p class="mt-1 text-xs text-pixu-muted">{% translate "Dívida" %} #{{ debt.pk }} · {% translate "Criada" %} {{ debt.created_at|date:"d/m/Y" }}</p>
+                      {% if debt.compensation_recommended %}<p class="mt-1 text-xs font-bold text-sky-800">{% translate "Há uma dívida recíproca que pode ser compensada." %}</p>{% endif %}
+                    </div>
+                    <div class="flex shrink-0 items-center justify-between gap-4 sm:justify-end">
+                      <span class="text-xs font-bold uppercase tracking-wide text-pixu-muted">{% translate "Saldo aberto" %}</span>
+                      <strong class="font-mono text-lg font-black tabular-nums text-pixu-ink">R$ {{ debt.open_cents|brl_from_cents }}</strong>
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% empty %}
+            <div class="rounded-2xl border border-dashed border-pixu-border bg-pixu-surface-raised px-5 py-8 text-center">
+              <h2 class="font-extrabold text-pixu-ink">{% translate "Nenhuma dívida em aberto" %}</h2>
+              <p class="mt-1 text-sm text-pixu-muted">{% translate "Quando houver uma cobrança ativa nesta direção, ela aparecerá aqui." %}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if page_obj and page_obj.paginator.num_pages > 1 %}
+        <nav class="flex flex-wrap items-center justify-between gap-3 border-t border-pixu-border pt-4" aria-label="{% translate 'Paginação do extrato' %}">
+          <span class="text-sm text-pixu-muted">{% blocktranslate with current=page_obj.number total=page_obj.paginator.num_pages %}Página {{ current }} de {{ total }}{% endblocktranslate %}</span>
+          <div class="flex gap-2">
+            {% if page_obj.has_previous %}<a class="inline-flex min-h-10 items-center rounded-xl border border-pixu-border bg-pixu-surface px-3 text-sm font-bold text-pixu-ink no-underline" rel="prev" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">{% translate "Anterior" %}</a>{% endif %}
+            {% if page_obj.has_next %}<a class="inline-flex min-h-10 items-center rounded-xl border border-pixu-border bg-pixu-surface px-3 text-sm font-bold text-pixu-ink no-underline" rel="next" href="?{% if query_string %}{{ query_string }}&amp;{% endif %}page={{ page_obj.next_page_number }}">{% translate "Próxima" %}</a>{% endif %}
+          </div>
+        </nav>
+      {% endif %}
+    {% endif %}
+  </section>
+{% endblock content %}

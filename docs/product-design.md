@@ -2,7 +2,7 @@
 
 **Status:** direção responsiva revisada com o usuário; logo System Core e temas claro/escuro/sistema implementados; teste de compreensão dos termos com usuários ainda pendente
 
-**Escopo visual:** entrada pública, dashboard, perfil, cobranças, convites, pagamentos e compensações.
+**Escopo visual:** entrada pública, dashboard, extratos financeiros, perfil, cobranças, convites, pagamentos e compensações.
 **Fontes normativas:** requisitos vigentes em `openspec/specs/` e decisões de produto aprovadas.
 
 ## 1. Princípios
@@ -12,6 +12,7 @@
 - Django templates são a fonte do HTML; HTMX atualiza somente regiões identificadas e continua sujeito à mesma validação e autorização do servidor.
 - Tailwind é compilado pelo build local do repositório. A interface não depende de CDN.
 - Valores monetários são sempre apresentados em reais com duas casas, e persistidos como centavos inteiros.
+- Campos monetários usam teclado numérico no celular e formatam os dígitos como centavos durante a digitação (`1234` → `12,34`); o servidor continua validando e convertendo o valor.
 - Estados financeiros e de convite são nomeados com clareza. “Convite pendente”, “cobrança aguardando aceite” e “dívida ativa” representam situações diferentes.
 - Criar cobrança não significa que os convidados aceitaram. Cada aceite confirma a cota e o recebedor; gera dívida somente quando participante e recebedor são pessoas diferentes. A cobrança só ativa quando todos os convites atuais foram aceitos, exceto no modo anônimo com total explícito, em que uma cota fixa pode ser paga enquanto ainda há vagas abertas ou outro convite pendente.
 
@@ -143,6 +144,21 @@ Os tons escuros são uma superfície azul-ardósia, não uma inversão literal d
 - No detalhe autenticado de cobrança, criadora, recebedora e participantes com conta Pixu são links para o detalhe canônico, inclusive quando aparecem como **Você**. Os links usam token semântico com contraste legível nos dois temas. Convidados externos continuam texto simples, mesmo que o nome coincida com um `@username`; nenhuma conta é inferida pelo nome autodeclarado.
 - Editar nome de exibição e chave Pix afeta somente o perfil da própria pessoa autenticada. A chave continua sendo fornecida pela pessoa e não é validada pelo Pixu.
 - A preferência **Permitir inclusão direta em cobranças** pertence à própria conta, inicia desativada e pode ser alterada no perfil. No onboarding, um aviso recomenda considerar a ativação, mas não marca a opção por padrão. A preferência vale somente para cobranças criadas depois da alteração; desativá-la não desfaz participações já aceitas.
+
+### Dashboard e extratos financeiros
+
+- Os saldos **A pagar**, **A receber** e **Já pago** são atalhos para extratos próprios. A compensação potencial não ganha um cartão global adicional; sua recomendação permanece contextual a uma dívida elegível em **A pagar**.
+- O resumo do dashboard mostra até cinco pessoas em cada direção (**A pagar** e **A receber**), priorizadas pela dívida ativa mais antiga daquela relação. O valor de cada linha soma somente as dívidas ativas naquela direção, sem compensar os lados nem misturar um saldo a pagar com um saldo a receber.
+- Os extratos **A pagar** e **A receber** agrupam linhas de dívidas individuais sob o nome da pessoa. Cada linha mostra o título da cobrança, o saldo correspondente e abre o detalhe existente e autorizado da cobrança. Dívidas mais antigas aparecem primeiro.
+- **Já pago** é uma linha do tempo de eventos, com uma linha por pagamento confirmado ou compensação aplicada; a liquidação mais recente aparece primeiro. Uma compensação é apresentada uma vez como evento, com referência às cobranças envolvidas. Pagamentos confirmados depois revogados permanecem identificados como revogados para auditoria e não compõem o total liquidado.
+- Todos os extratos permitem busca por pessoa ou título. **Já pago** também permite intervalo de datas, aplicado à data efetiva de liquidação. Busca e período selecionados são preservados ao exportar todos os resultados correspondentes, sem limitar o arquivo à página visível.
+- A exportação oferece CSV adequado a planilhas em pt-BR e PDF com identidade visual Pixu. Os arquivos incluem identificadores e dados suficientes para reconciliar cada dívida ou evento; comprovantes privados não são incorporados, apenas indicados quando existem.
+- Manter densidade visual baixa: cabeçalhos claros, grupos simples por pessoa e linhas concisas; usar superfícies, tipografia, estados, foco e temas já definidos neste documento. Em telas estreitas, preservar leitura e ações sem rolagem horizontal. O PDF aplica os mesmos tokens da marca em um layout de impressão legível.
+
+### Lista de cobranças
+
+- Separar cobranças com saldo aberto em **A pagar primeiro** e **A receber primeiro**, ordenando cada grupo pela dívida em aberto mais antiga. Mostrar o saldo ainda aberto no cartão para refletir pagamentos parciais. Cobranças aguardando aceite, quitadas ou canceladas continuam acessíveis em **Outras cobranças**, com as mais recentes primeiro.
+- Uma cobrança com várias dívidas a receber aparece uma vez no grupo e soma os saldos abertos dessas dívidas. Manter os cartões e o detalhe autorizado existentes, com estados vazios discretos e sem repetir links de extrato.
 
 ### Convites
 
