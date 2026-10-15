@@ -2,6 +2,12 @@
 
 As mudanças relevantes do Pixu são registradas neste arquivo.
 
+## [1.2.0] - 2026-10-15
+
+### Corrigido
+
+- Login OAuth com Google em produção, incluindo as dependências do `django-allauth` necessárias para validar o ID token retornado pelo provedor.
+
 ## [1.1.0] - 2026-10-11
 
 Esta versão cobre as mudanças a partir do commit [`4d74f34`](https://github.com/ryofac/pixu/commit/4d74f340e7aa98a4804a88e4e3defc4fde60818), inclusive.
@@ -26,4 +32,5 @@ Esta versão cobre as mudanças a partir do commit [`4d74f34`](https://github.co
 - Imagens Docker `pixu-django`, `pixu-postgres`, `pixu-nginx` e `pixu-traefik` publicadas no GHCR com tags `main` e `sha-<commit>` para `linux/amd64` e `linux/arm64`.
 - Compose da VM aceita `PIXU_IMAGE_TAG` e preserva overrides para imagens locais carregadas pelo bundle.
 
+[1.2.0]: https://github.com/ryofac/pixu/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/ryofac/pixu/compare/4d74f340e7aa98a4804a88e4e3defc4fde60818%5E...v1.1.0
