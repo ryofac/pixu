@@ -15,6 +15,23 @@ def format_brl_cents(value: int) -> str:
 class BrazilianDecimalField(forms.DecimalField):
     """Accept pt-BR decimals and the dotted form used by integrations."""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.widget.attrs.update(
+            {
+                "inputmode": "numeric",
+                "data-money-input": "true",
+                "data-money-max-digits": str(self.max_digits or 12),
+            },
+        )
+        self.widget.attrs.setdefault("placeholder", "0,00")
+
+    def prepare_value(self, value):
+        if isinstance(value, (int, Decimal)) and not isinstance(value, bool):
+            formatted = f"{Decimal(value):,.2f}"
+            return formatted.replace(",", "X").replace(".", ",").replace("X", ".")
+        return super().prepare_value(value)
+
     def to_python(self, value):
         if isinstance(value, str):
             value = value.strip().replace("R$", "").strip()

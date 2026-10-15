@@ -104,7 +104,8 @@ class ProductEntryTests(TestCase):
         charges_response = self.client.get(reverse("charges:list"))
 
         assert dashboard_response.status_code == 200
-        self.assertContains(dashboard_response, "Potencial de compensação")
+        self.assertContains(dashboard_response, "Já pago")
+        self.assertNotContains(dashboard_response, "Potencial de compensação")
         self.assertContains(dashboard_response, "Você não tem convites pendentes.")
         assert charges_response.status_code == 200
         self.assertContains(charges_response, "Suas cobranças")
@@ -128,7 +129,7 @@ class DashboardBalanceTests(TestCase):
         accept_participation(participation_id=participation.pk, actor=debtor)
         return charge, Debt.objects.get(participation=participation)
 
-    def test_dashboard_shows_open_totals_and_separate_net_compensation_potential(self):
+    def test_dashboard_shows_open_totals_and_paid_events_without_global_potential(self):
         _charge, debt_to_bruno = self.create_active_debt(
             debtor=self.ana,
             creditor=self.bruno,
@@ -169,7 +170,8 @@ class DashboardBalanceTests(TestCase):
         assert response.status_code == 200
         assert response.context["payable_cents"] == 5_000
         assert response.context["receivable_cents"] == 6_000
-        assert response.context["compensation_potential_cents"] == 4_000
+        assert response.context["paid_cents"] == 5_000
+        assert "compensation_potential_cents" not in response.context
 
     def test_dashboard_lists_pending_invites_and_other_people_charges(self):
         charge = create_charge(
@@ -211,7 +213,7 @@ class DashboardBalanceTests(TestCase):
         assert response.status_code == 200
         assert response.context["payable_cents"] == 0
         assert response.context["receivable_cents"] == 0
-        assert response.context["compensation_potential_cents"] == 0
+        assert response.context["paid_cents"] == 0
         assert list(response.context["pending_invites"]) == []
         assert list(response.context["participated_charges"]) == [charge]
         self.assertContains(response, "Rateio cancelado")

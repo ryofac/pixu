@@ -20,6 +20,7 @@ from django.views.generic import FormView
 from django.views.generic import TemplateView
 
 from pixu.accounts.models import PixProfile
+from pixu.extracts.queries import open_debts
 from pixu.settlements.forms import CompensationForm
 from pixu.settlements.services import apply_compensation
 from pixu.settlements.services import suggest_compensations
@@ -81,8 +82,54 @@ class ChargeListView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["charges"] = _visible_charges(self.request.user)
+        charges = list(_visible_charges(self.request.user))
+        charges_by_id = {charge.pk: charge for charge in charges}
+        payable_charges = _prioritized_charge_rows(
+            self.request.user,
+            "payable",
+            charges_by_id,
+        )
+        receivable_charges = _prioritized_charge_rows(
+            self.request.user,
+            "receivable",
+            charges_by_id,
+        )
+        prioritized_ids = {
+            row["charge"].pk for row in [*payable_charges, *receivable_charges]
+        }
+        context.update(
+            {
+                "charges": charges,
+                "payable_charges": payable_charges,
+                "receivable_charges": receivable_charges,
+                "other_charges": [
+                    charge for charge in charges if charge.pk not in prioritized_ids
+                ],
+            },
+        )
         return context
+
+
+def _prioritized_charge_rows(actor, direction, charges_by_id):
+    grouped = {}
+    for debt in open_debts(actor=actor, direction=direction):
+        charge = charges_by_id.get(debt.participation.charge_id)
+        if charge is None:
+            continue
+        row = grouped.get(charge.pk)
+        if row is None:
+            row = {
+                "charge": charge,
+                "balance_cents": 0,
+                "oldest_at": debt.created_at,
+            }
+            grouped[charge.pk] = row
+        row["balance_cents"] += int(debt.open_cents)
+        row["oldest_at"] = min(row["oldest_at"], debt.created_at)
+    return sorted(
+        grouped.values(),
+        key=lambda row: (row["oldest_at"], row["charge"].pk),
+    )
 
 
 class InviteListView(LoginRequiredMixin, TemplateView):

@@ -17,7 +17,58 @@ document.body.addEventListener("pixu:pending-invites-updated", (event) => {
   });
 });
 
+function formatMoneyInput(input) {
+  const cursor = input.selectionStart ?? input.value.length;
+  const trailingDigits = input.value.slice(cursor).replace(/\D/g, "").length;
+  const maxDigits = Number.parseInt(input.dataset.moneyMaxDigits, 10) || 12;
+  const negative = /^\s*[-−]/.test(input.value);
+  const digits = input.value.replace(/\D/g, "").slice(0, maxDigits);
+  let formatted = negative ? "-" : "";
+
+  if (digits) {
+    const cents = digits.padStart(3, "0");
+    const integer = cents.slice(0, -2).replace(/^0+(?=\d)/, "") || "0";
+    const groupedInteger = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    formatted += `${groupedInteger},${cents.slice(-2)}`;
+  }
+
+  if (formatted === input.value) return;
+  input.value = formatted;
+
+  if (document.activeElement !== input) return;
+
+  let remainingDigits = trailingDigits;
+  let nextCursor = input.value.length;
+  for (let index = input.value.length - 1; index >= 0; index -= 1) {
+    if (!/\d/.test(input.value[index])) continue;
+    if (remainingDigits === 0) {
+      nextCursor = index + 1;
+      break;
+    }
+    remainingDigits -= 1;
+    if (remainingDigits === 0) {
+      nextCursor = index;
+      break;
+    }
+  }
+  input.setSelectionRange(nextCursor, nextCursor);
+}
+
+document.querySelectorAll("[data-money-input]").forEach(formatMoneyInput);
+
+document.body.addEventListener("htmx:afterSwap", (event) => {
+  const target = event.detail.target;
+  if (target.matches?.("[data-money-input]")) formatMoneyInput(target);
+  target.querySelectorAll?.("[data-money-input]").forEach(formatMoneyInput);
+});
+
 document.body.addEventListener("input", (event) => {
+  const moneyInput = event.target.closest("[data-money-input]");
+  if (moneyInput && !moneyInput.readOnly && !moneyInput.disabled) {
+    formatMoneyInput(moneyInput);
+    return;
+  }
+
   const search = event.target.closest("[data-invitee-search]");
   if (!search) return;
 
