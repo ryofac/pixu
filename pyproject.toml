@@ -1,6 +1,6 @@
 [project]
 name = "pixu"
-version = "1.2.0"
+version = "1.3.0"
 description = "Aplicação web para dividir despesas e acompanhar obrigações entre amigos."
 readme = "README.md"
 license = { text = "Not open source" }
